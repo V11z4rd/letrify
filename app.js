@@ -2,7 +2,7 @@
 // PI-Letrify — app.js
 // ============================================
 
-const API_BASE = 'http://localhost:5265';
+const API_BASE = 'https://letrify.fly.dev/api/livro'; // Change to your backend URL if different
 
 // Global state
 window._bookMap = new Map();
