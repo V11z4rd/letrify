@@ -22,9 +22,10 @@ export default function MatchPage() {
       if (!token) throw new Error("Você precisa estar logado para usar o Radar.");
 
       const resposta = await fetch("https://letrify.fly.dev/api/match", {
-        method: "GET",
+        method: "POST",
         headers: {
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
         }
       });
 
