@@ -1,17 +1,24 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import RadarAfinidade, { UsuarioMatch } from "@/components/RadarAfinidade";
 import { authService } from "@/app/lib/authService";
 
 export default function MatchPage() {
   const [matches, setMatches] = useState<UsuarioMatch[]>([]);
-  // Atenção: Agora carregando começa como FALSE, porque a gente não busca ao abrir a tela
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
-  const [buscou, setBuscou] = useState(false); // Para sabermos se o cara já apertou o botão alguma vez
+  const [buscou, setBuscou] = useState(false);
 
-  // A função só roda quando o botão é clicado!
+  // 1. RECUPERAR DO CACHE AO ABRIR
+  useEffect(() => {
+    const cache = sessionStorage.getItem("letrify-last-matches");
+    if (cache) {
+      setMatches(JSON.parse(cache));
+      setBuscou(true);
+    }
+  }, []);
+
   const acionarRadar = async () => {
     setCarregando(true);
     setErro(null);
@@ -19,7 +26,7 @@ export default function MatchPage() {
 
     try {
       const token = authService.getToken();
-      if (!token) throw new Error("Você precisa estar logado para usar o Radar.");
+      if (!token) throw new Error("Logue para usar o Radar.");
 
       const resposta = await fetch("https://letrify.fly.dev/api/match", {
         method: "POST",
@@ -29,20 +36,26 @@ export default function MatchPage() {
         }
       });
 
-      // Se der erro, vamos jogar o Status Code na tela para te ajudar a debugar o Back-end!
-      if (!resposta.ok) {
-        throw new Error(`O Back-end recusou a conexão (Erro ${resposta.status}). Verifique a rota da API.`);
-      }
+      if (!resposta.ok) throw new Error(`Erro ${resposta.status} na API.`);
 
-      const dados = await resposta.json();
-      console.log("📡 Retorno do Match:", dados); // Veja no F12 o que o back mandou
+      const dadosApi = await resposta.json();
       
-      if (Array.isArray(dados)) {
-        setMatches(dados);
-      } else if (dados && dados.id) {
-        setMatches([dados]);
+      if (dadosApi.usuariosParecidos && Array.isArray(dadosApi.usuariosParecidos)) {
+        const leitoresMapeados = dadosApi.usuariosParecidos.map((item: any) => ({
+          id: item.usuario?.id,
+          nome: item.usuario?.nome,
+          cidade: item.usuario?.cidade,
+          fotoPerfil: item.usuario?.fotoPerfil
+        }));
+
+        setMatches(leitoresMapeados);
+        
+        // 2. SALVAR NO CACHE DE SESSÃO
+        sessionStorage.setItem("letrify-last-matches", JSON.stringify(leitoresMapeados));
+
       } else {
         setMatches([]);
+        sessionStorage.removeItem("letrify-last-matches");
       }
 
     } catch (err: any) {
@@ -66,7 +79,6 @@ export default function MatchPage() {
           </p>
         </div>
 
-        {/* O BOTÃO QUE ACIONA A MÁGICA */}
         <button 
           onClick={acionarRadar}
           disabled={carregando}
@@ -82,7 +94,7 @@ export default function MatchPage() {
         </button>
       </div>
 
-      {/* TELA INICIAL (Antes de clicar no botão) */}
+      {/* TELA INICIAL */}
       {!buscou && !carregando && (
          <div className="text-center py-20 opacity-50 border-2 border-dashed rounded-2xl" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
            <span className="text-5xl block mb-4">🌍</span>
