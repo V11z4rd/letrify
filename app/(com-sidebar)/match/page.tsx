@@ -83,7 +83,7 @@ export default function MatchPage() {
           onClick={acionarRadar}
           disabled={carregando}
           className="px-8 py-4 rounded-xl font-bold shadow-lg transition-transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-3"
-          style={{ backgroundColor: 'var(--cor-primaria)', color: 'var(--cor-fundo-app)' }}
+          style={{ backgroundColor: 'var(--cor-botao-primario)', color: 'var(--cor-botao-texo)' }}
         >
           {carregando ? (
             <span className="animate-spin text-xl">🧭</span>

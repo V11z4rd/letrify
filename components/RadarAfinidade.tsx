@@ -46,7 +46,7 @@ export default function RadarAfinidade({ usuario }: RadarAfinidadeProps) {
       <Link 
         href={`/perfil?id=${usuario.id}`}
         className="w-full py-2 rounded-lg font-bold text-sm transition-opacity opacity-90 group-hover:opacity-100 shadow flex items-center justify-center gap-2"
-        style={{ backgroundColor: 'var(--cor-primaria)', color: 'var(--cor-fundo-app)' }}
+        style={{ backgroundColor: 'var(--cor-botao-primario)', color: 'var(--cor-botao-texo)' }}
       >
         📖 Ver Perfil
       </Link>
