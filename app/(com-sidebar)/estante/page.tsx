@@ -1,4 +1,5 @@
 import EstanteUsuario from "@/components/EstanteUsuario";
+import { Suspense } from "react";
 
 export default function MatchPage() {
   return (
@@ -8,9 +9,9 @@ export default function MatchPage() {
         mas como o próprio Radar já tem um título lindão ("Conexões Literárias"), 
         nós podemos apenas plugar o componente direto! 
       */}
-      
+      <Suspense fallback={<div>Carregando estante...</div>}>
       <EstanteUsuario />
-      
+      </Suspense>
     </div>
   );
 }
