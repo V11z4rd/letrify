@@ -43,7 +43,7 @@ const leitoresMapeados = dadosApi.usuariosParecidos.map((item: any) => ({
 id: item.usuario?.id,
  nome: item.usuario?.nome,
 cidade: item.usuario?.cidade,
- fotoPerfil: item.usuario?.fotoPerfil
+ fotoPerfil: item.usuario?.fotoPerfil,
           topGeneros: item.estatisticas?.topTemas || item.topTemas || [],
           topAutores: item.estatisticas?.topAutores || item.topAutores || []
         }));
