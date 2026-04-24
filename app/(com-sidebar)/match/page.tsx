@@ -1,3 +1,5 @@
+"use client"
+
 import { useEffect, useState } from "react";
 import RadarAfinidade, { UsuarioMatch } from "@/components/RadarAfinidade";
 import { authService } from "@/app/lib/authService";
