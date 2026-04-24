@@ -1,6 +1,6 @@
 "use client";
 
-// O formato de cada opção dentro da caixinha
+
 interface Opcao {
   valor: string; // O que vai para o banco de dados (ex: "todos", "ninguem")
   rotulo: string; // O que o usuário lê na tela (ex: "Qualquer pessoa", "Ninguém")

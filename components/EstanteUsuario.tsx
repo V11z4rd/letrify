@@ -42,7 +42,7 @@ export default function EstanteUsuario() {
 
         const dados = await resposta.json();
         
-        // Garante que se a API mandar null em alguma categoria, a gente transforma em array vazio
+        // Garante que se a API mandar null em alguma categoria, transforma em array vazio
         setEstante({
           lendo: dados.lendo || [],
           lido: dados.lido || [],
@@ -59,7 +59,7 @@ export default function EstanteUsuario() {
     buscarEstante();
   }, []);
 
-  // Lógica de Filtro: Decide qual array vamos mostrar na tela
+  // Lógica de Filtro: Decide qual array mostrar na tela
   let livrosParaMostrar: LivroDados[] = [];
   
   if (filtroAtivo === "Todos") {
@@ -72,13 +72,13 @@ export default function EstanteUsuario() {
     livrosParaMostrar = estante.queroLer;
   }
 
-  // Abas do nosso menu
+  // Abas do menu
   const abas = ["Todos", "Lendo", "Lido", "Quero Ler"];
 
   return (
     <div className="w-full animate-fade-in">
       
-      {/* 1. O MENU DE FILTROS */}
+      {/* O MENU DE FILTROS */}
       <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mb-8 border-b pb-4" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
         {abas.map((aba) => {
           const isAtivo = filtroAtivo === aba;
@@ -104,7 +104,7 @@ export default function EstanteUsuario() {
         })}
       </div>
 
-      {/* 2. FEEDBACKS VISUAIS */}
+      {/* FEEDBACKS VISUAIS */}
       {carregando && (
         <div className="py-20 text-center opacity-50 font-bold animate-pulse" style={{ color: 'var(--cor-primaria)' }}>
           <span className="text-4xl block mb-4">📚</span>
@@ -130,12 +130,11 @@ export default function EstanteUsuario() {
         </div>
       )}
 
-      {/* 3. A GRADE DE LIVROS */}
+      {/* A GRADE DE LIVROS */}
       {!carregando && !erro && livrosParaMostrar.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {livrosParaMostrar.map((livro, index) => (
            <div key={`${livro.isbn || 'livro'}-${index}`} className="h-full">
-              {/* Reciclando o nosso Lego na versão simples (sem abrir o leque de botões) */}
               <CardLivro livro={livro} variante="estante" />
             </div>
           ))}

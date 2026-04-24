@@ -10,7 +10,7 @@ export default function MatchPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [buscou, setBuscou] = useState(false);
 
-  // 1. RECUPERAR DO CACHE AO ABRIR
+  // RECUPERAR DO CACHE AO ABRIR
   useEffect(() => {
     const cache = sessionStorage.getItem("letrify-last-matches");
     if (cache) {
@@ -41,16 +41,25 @@ export default function MatchPage() {
       const dadosApi = await resposta.json();
       
       if (dadosApi.usuariosParecidos && Array.isArray(dadosApi.usuariosParecidos)) {
-        const leitoresMapeados = dadosApi.usuariosParecidos.map((item: any) => ({
-          id: item.usuario?.id,
-          nome: item.usuario?.nome,
-          cidade: item.usuario?.cidade,
-          fotoPerfil: item.usuario?.fotoPerfil
+        
+        // 🎯 O CORAÇÃO DA SOLUÇÃO: O Mapeamento correto dos dados
+        const leitoresMapeados: UsuarioMatch[] = dadosApi.usuariosParecidos.map((item: any, index: number) => ({
+          // Como o JSON não mostrou o ID solto, deixamos um fallback seguro para o React não reclamar da Key
+          id: item.id || `leitor-${index}`, 
+          
+          // Entrando no objeto "perfil"
+          nome: item.perfil?.nome || "Leitor Anônimo",
+          fotoPerfil: item.perfil?.foto || null,
+          cidade: item.perfil?.cidade || "", // Mantive caso a API envie depois
+          
+          // Entrando no objeto "estatisticas"
+          topGeneros: item.estatisticas?.topTemas || [],
+          topAutores: item.estatisticas?.topAutores || []
         }));
 
         setMatches(leitoresMapeados);
         
-        // 2. SALVAR NO CACHE DE SESSÃO
+        // SALVAR NO CACHE DE SESSÃO
         sessionStorage.setItem("letrify-last-matches", JSON.stringify(leitoresMapeados));
 
       } else {
@@ -83,7 +92,7 @@ export default function MatchPage() {
           onClick={acionarRadar}
           disabled={carregando}
           className="px-8 py-4 rounded-xl font-bold shadow-lg transition-transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-3"
-          style={{ backgroundColor: 'var(--cor-botao-primario)', color: 'var(--cor-botao-texo)' }}
+          style={{ backgroundColor: 'var(--cor-botao-primario)', color: 'var(--cor-botao-texto)' }}
         >
           {carregando ? (
             <span className="animate-spin text-xl">🧭</span>
@@ -123,8 +132,8 @@ export default function MatchPage() {
       {/* A GRADE DE MATCHES */}
       {!carregando && !erro && matches.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-fade-in">
-          {matches.map((usuario, index) => (
-            <RadarAfinidade key={usuario.id || index} usuario={usuario} />
+          {matches.map((usuario) => (
+            <RadarAfinidade key={usuario.id} usuario={usuario} />
           ))}
         </div>
       )}

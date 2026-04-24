@@ -2,7 +2,7 @@
 
 interface InterruptorProps {
   titulo: string;
-  descricao?: string; // OPCIONAL: Para o charme e UX
+  descricao?: string; 
   ativo: boolean;
   aoAlternar: () => void;
   desativado?: boolean;
@@ -23,7 +23,7 @@ export default function Interruptor({
       style={{ 
         backgroundColor: 'var(--cor-fundo-card)', 
         borderColor: 'var(--cor-fundo-sidebar)',
-        // O cursor-not-allowed aqui garante o sinal de proibido em TODA a box!
+
         cursor: desativado ? 'not-allowed' : 'pointer'
       }}
       // Se tiver desativado, o clique na box inteira não faz nada

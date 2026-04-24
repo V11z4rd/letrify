@@ -2,24 +2,24 @@
 
 import { useEffect } from "react";
 
-/**
- * Componente invisível que roda no boot do App.
- * Ele lê o localStorage e aplica as variáveis CSS do tema salvo.
- */
+/*
+ Componente invisível que roda no boot do App.
+ Lê o localStorage e aplica as variáveis CSS do tema salvo.
+*/
 export default function ThemeManager() {
   useEffect(() => {
-    // Como estamos no navegador, garantimos que document existe
+    // Garante que isso só rode no navegador, já que localStorage não existe no servidor
     if (typeof window === "undefined") return;
 
-    // 1. Tenta buscar o tema salvo no navegador (Ex: { paleta: 1, escura: true })
+    // Tenta buscar o tema salvo no navegador (Ex: { paleta: 1, escura: true })
     const temaSalvo = localStorage.getItem("letrify_theme");
     
     if (temaSalvo) {
       try {
         const { paleta, escura } = JSON.parse(temaSalvo);
         
-        // 2. Aplica as classes e atributos no <html> (Root) do site
-        // Supondo que vocês usem data-theme ou classes do Tailwind:
+        // Aplica as classes e atributos no <html> (Root) do site
+        // Supondo que usem data-theme ou classes do Tailwind:
         document.documentElement.setAttribute("data-theme-palette", String(paleta)); // 0, 1, 2
         
         if (escura) {
@@ -36,5 +36,5 @@ export default function ThemeManager() {
     }
   }, []);
 
-  return null; // Não desenha nada
+  return null;
 }

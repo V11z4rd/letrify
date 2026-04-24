@@ -1,9 +1,9 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import CardLivro, { LivroDados } from "@/components/CardLivro"; // O nosso Lego!
+import CardLivro, { LivroDados } from "@/components/CardLivro"; 
 
-// 1. O DICIONÁRIO DE BOLSO (Tradutor de Gêneros)
+// O DICIONÁRIO DE BOLSO (Tradutor de Gêneros)
 const tradutorTemas: Record<string, string> = {
   "fantasia": "fantasy",
   "ficção": "fiction",
@@ -23,7 +23,6 @@ export default function BuscaLivrosPage() {
   const [carregando, setCarregando] = useState(false);
   const [buscaFeita, setBuscaFeita] = useState(false);
 
-  // O nosso estado agora é organizado por "Prateleiras"
   const [prateleiras, setPrateleiras] = useState({
     isbn: [] as LivroDados[],
     titulos: [] as LivroDados[],
@@ -37,7 +36,7 @@ export default function BuscaLivrosPage() {
       const res = await fetch(url);
       if (!res.ok) return [];
       const dados = await res.json();
-      return Array.isArray(dados) ? dados : [dados]; // Se for ISBN, devolve um objeto, então envelopamos em Array
+      return Array.isArray(dados) ? dados : [dados]; // Se for ISBN, devolve um objeto, então envelopa em Array
     } catch {
       return [];
     }
@@ -54,28 +53,27 @@ export default function BuscaLivrosPage() {
     // Zera as prateleiras antes de buscar
     setPrateleiras({ isbn: [], titulos: [], autores: [], temas: [] });
 
-    // 2. A BÚSSOLA ISBN
+    // A BÚSSOLA ISBN
     const apenasNumeros = textoBusca.replace(/\D/g, '');
     const isIsbn = apenasNumeros.length === 10 || apenasNumeros.length === 13;
 
     if (isIsbn) {
-      // É ISBN! Bate só na rota específica
       const livrosIsbn = await fetchSeguro(`https://letrify.fly.dev/api/livro/livroespecifico/${apenasNumeros}`);
       setPrateleiras(prev => ({ ...prev, isbn: livrosIsbn }));
       setCarregando(false);
       return;
     }
 
-    // 3. O TRADUTOR SILENCIOSO
+    // O TRADUTOR 
     const termoLimpo = textoBusca.toLowerCase().trim();
     const termoTema = tradutorTemas[termoLimpo] || textoBusca;
 
-    // 4. O MOTOR V8 (Busca Paralela)
+    // AS ROTAS DE BUSCA
     const urlTitulo = `https://letrify.fly.dev/api/livro/livrostitulo?titulo=${encodeURIComponent(textoBusca)}&quantidade=10`;
     const urlAutor = `https://letrify.fly.dev/api/livro/livrosautor?autor=${encodeURIComponent(textoBusca)}&quantidade=10`;
     const urlTema = `https://letrify.fly.dev/api/livro/livrostema?tema=${encodeURIComponent(termoTema)}&quantidade=10`;
 
-    // Atira nas 3 rotas ao mesmo tempo!
+    // Atira nas 3 rotas ao mesmo tempo e espera todas responderem (ou falharem)
     const [resultadosTitulos, resultadosAutores, resultadosTemas] = await Promise.all([
       fetchSeguro(urlTitulo),
       fetchSeguro(urlAutor),
@@ -103,7 +101,7 @@ export default function BuscaLivrosPage() {
   return (
     <div className="max-w-7xl mx-auto mt-8 px-4 pb-20 animate-fade-in">
       
-      {/* 1. O CABEÇALHO LIMPO (Estilo Google) */}
+      {/* O CABEÇALHO LIMPO (Estilo Google) */}
       <div className="mb-12 flex flex-col items-center text-center">
         <h1 className="text-4xl font-black mb-6" style={{ color: 'var(--cor-texto-principal)' }}>Explorar 🔍</h1>
         
@@ -141,7 +139,7 @@ export default function BuscaLivrosPage() {
         </div>
       </div>
 
-      {/* 2. FEEDBACK VISUAL */}
+      {/* FEEDBACK VISUAL */}
       {carregando && (
         <div className="flex flex-col items-center justify-center py-20 opacity-50">
           <span className="text-5xl animate-bounce mb-4">📚</span>
@@ -157,11 +155,11 @@ export default function BuscaLivrosPage() {
         </div>
       )}
 
-      {/* 3. AS PRATELEIRAS (Estilo Netflix / YouTube) */}
+      {/* AS PRATELEIRAS (Estilo Netflix / YouTube) */}
       {!carregando && buscaFeita && (
         <div className="space-y-12">
 
-          {/* PRATELEIRA FALSA: USUÁRIOS (Sempre visível por enquanto, como demonstração) */}
+          {/* PRATELEIRA FALSA: USUÁRIOS (Sempre visível como demonstração) */}
           <section>
             <h2 className="text-xl font-black mb-4 flex items-center gap-2" style={{ color: 'var(--cor-texto-principal)' }}>
               👥 Perfis Encontrados

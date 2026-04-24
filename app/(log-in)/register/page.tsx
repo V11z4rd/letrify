@@ -32,7 +32,7 @@ export default function CadastroPage() {
       await authService.cadastrar(nome, email, senha);
       setSucesso(true);
       
-      // Espera 2 segundinhos para a pessoa ler a mensagem de sucesso e manda pro login
+
       setTimeout(() => {
         router.push("/login");
       }, 2000);
