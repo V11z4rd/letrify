@@ -127,10 +127,9 @@ cidade: item.usuario?.cidade,
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-fade-in">
           {matches.map((usuario, index) => (
             <RadarAfinidade key={usuario.id || index} usuario={usuario} />
-          ))}
-        </div>
-      )}
-    const leitoresMapeados = dadosApi.usuariosParecidos.map((item: any) => {
+
+
+              const leitoresMapeados = dadosApi.usuariosParecidos.map((item: any) => {
   
   // 🚨 A LUPA DE INVESTIGAÇÃO: 
   // Isso vai cuspir exatamente o que o C# mandou, sem filtros!
@@ -145,6 +144,10 @@ cidade: item.usuario?.cidade,
     topAutores: item.estatisticas?.topAutores || item.topAutores || []
   };
 });
+          ))}
+        </div>
+      )}
+    
 
     </div>
   );
