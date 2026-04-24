@@ -1,6 +1,5 @@
 import Link from "next/link";
 
-// ➕ INCREMENTO 1: Nova interface para os temas/gêneros
 export interface TopTema {
   tema: string;
   quantidade: number;
@@ -11,7 +10,6 @@ export interface UsuarioMatch {
   nome: string;
   cidade: string;
   fotoPerfil: string | null;
-  // ➕ INCREMENTO 2: Adicionando os gêneros de forma opcional (?) para não quebrar nada
   topGeneros?: TopTema[]; 
 }
 
@@ -20,6 +18,10 @@ interface RadarAfinidadeProps {
 }
 
 export default function RadarAfinidade({ usuario }: RadarAfinidadeProps) {
+  // 🕵️ A NOSSA ARMADILHA PARA VER OS DADOS:
+  // Aperte F12 no navegador, vá na aba "Console" e veja o que aparece aqui!
+  console.log(`Dados do leitor ${usuario.nome}:`, usuario);
+
   return (
     <div 
       className="p-6 rounded-2xl border flex flex-col items-center text-center transition-transform hover:-translate-y-1 hover:shadow-xl bg-card-limpo group flex-1"
@@ -50,7 +52,7 @@ export default function RadarAfinidade({ usuario }: RadarAfinidadeProps) {
         📍 {usuario.cidade || "Localização oculta"}
       </p>
 
-      {/* ➕ INCREMENTO 3: O Pódio de Gêneros! */}
+      {/* O Pódio de Gêneros */}
       {usuario.topGeneros && usuario.topGeneros.length > 0 && (
         <div className="w-full mb-6 flex flex-wrap justify-center gap-2">
           {usuario.topGeneros.slice(0, 3).map((item, index) => (
@@ -69,14 +71,28 @@ export default function RadarAfinidade({ usuario }: RadarAfinidadeProps) {
         </div>
       )}
 
-      {/* BOTÃO DE AÇÃO */}
-      <Link 
-        href={`/perfil?id=${usuario.id}`}
-        className="w-full py-2 mt-auto rounded-lg font-bold text-sm transition-opacity opacity-90 group-hover:opacity-100 shadow flex items-center justify-center gap-2"
-        style={{ backgroundColor: 'var(--cor-botao-primario)', color: 'var(--cor-botao-texto)' }}
-      >
-        📖 Ver Perfil
-      </Link>
+      {/* ➕ RESTAURAÇÃO: Área de Botões (Gráfico + Perfil) */}
+      <div className="flex gap-2 w-full mt-auto">
+        {/* BOTÃO DO GRÁFICO DE TEIA */}
+        <button 
+          className="p-2 rounded-lg border font-bold text-sm transition-all hover:opacity-80 shadow flex items-center justify-center"
+          title="Ver Gráfico de Afinidade"
+          style={{ borderColor: 'var(--cor-primaria)', backgroundColor: 'transparent', color: 'var(--cor-texto-principal)' }}
+          onClick={() => alert(`Aqui abre o gráfico de teia do ${usuario.nome}!`)} // Substitua pela sua função de abrir o modal
+        >
+          🕸️
+        </button>
+
+        {/* BOTÃO DE VER PERFIL */}
+        <Link 
+          href={`/perfil?id=${usuario.id}`}
+          className="flex-1 py-2 rounded-lg font-bold text-sm transition-opacity opacity-90 group-hover:opacity-100 shadow flex items-center justify-center gap-2"
+          style={{ backgroundColor: 'var(--cor-botao-primario)', color: 'var(--cor-botao-texto)' }}
+        >
+          📖 Ver Perfil
+        </Link>
+      </div>
+
     </div>
   );
 }
