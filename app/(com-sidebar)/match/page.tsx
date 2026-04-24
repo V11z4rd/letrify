@@ -130,6 +130,21 @@ cidade: item.usuario?.cidade,
           ))}
         </div>
       )}
+    const leitoresMapeados = dadosApi.usuariosParecidos.map((item: any) => {
+  
+  // 🚨 A LUPA DE INVESTIGAÇÃO: 
+  // Isso vai cuspir exatamente o que o C# mandou, sem filtros!
+  console.log("DADO CRU DA API (Item único):", item); 
+
+  return {
+    id: item.usuario?.id,
+    nome: item.usuario?.nome,
+    cidade: item.usuario?.cidade,
+    fotoPerfil: item.usuario?.fotoPerfil,
+    topGeneros: item.estatisticas?.topTemas || item.topTemas || [],
+    topAutores: item.estatisticas?.topAutores || item.topAutores || []
+  };
+});
 
     </div>
   );
