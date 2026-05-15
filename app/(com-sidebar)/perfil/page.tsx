@@ -9,11 +9,12 @@ import useSWR from "swr";
 import CabecalhoPerfil, { SkeletonCabecalho } from "@/components/perfil/CabecalhoPerfil";
 import ResumoLateral from "@/components/perfil/ResumoLateral";
 import VitrineDestaques from "@/components/perfil/VitrineDestaques";
-import AbasDestaque from "@/components/perfil/AbasDestaques"; 
+import AbasDestaque from "@/components/perfil/AbasDestaques";
 
 // Libs e Services
 import { mapearPerfilDaApi } from "@/app/lib/usuarioService";
 import { authService } from "@/app/lib/authService";
+import ModalConexoes from "@/components/perfil/ModalConexoes";
 
 const fetcherUsuarioDaApi = async (url: string) => {
   try {
@@ -77,7 +78,7 @@ function ConteudoDoPerfil() {
           const res = await fetch(`https://letrify.fly.dev/api/seguidores/seguindo`, {
             headers: { "Authorization": `Bearer ${token}` }
           });
-          
+
           if (res.ok) {
             const quemEuSigo = await res.json();
             // Procura na lista se o ID do perfil que estou visitando está lá dentro.
@@ -95,19 +96,22 @@ function ConteudoDoPerfil() {
 
   const handleFollowToggle = async () => {
     const token = authService.getToken();
-    const resposta = await fetch(`https://letrify.fly.dev/api/usuario/seguir/${idParaBuscar}`, {
+    const resposta = await fetch(`https://letrify.fly.dev/api/seguidores/seguir/${idParaBuscar}`, {
       method: 'POST',
-      headers: { "Authorization": `Bearer ${token}` }
+      headers: {
+        "Authorization": `Bearer ${token}`,
+        "Content-Type": "application/json"
+      }
     });
-    
+
     if (!resposta.ok) {
       throw new Error("Falha ao seguir na API");
     }
-    
+
     // Atualiza o nosso estado local da gambiarra
     setIsSeguindo(!isSeguindo);
     // Atualiza o SWR silenciosamente para arrumar o número de seguidores
-    mutate(); 
+    mutate();
   };
 
   if (carregandoId) return <div className="p-8 text-center opacity-50">🔐 Validando sessão...</div>;
@@ -167,7 +171,7 @@ function ConteudoDoPerfil() {
           <div className="md:col-span-2 space-y-8">
             {/* O Novo Componente Limpo */}
             <AbasDestaque perfil={perfilMapeado} />
-            
+
             <VitrineDestaques userId={idParaBuscar as string} />
           </div>
 
@@ -182,17 +186,15 @@ function ConteudoDoPerfil() {
         </div>
       )}
 
+      // Lá no final do seu page.tsx
       {abaModalAberta && (
-        <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-black/70 backdrop-blur-sm animate-fade-in">
-           {/* Isso aqui é só um Placeholder provisório para você ver que funcionou. */}
-           <div className="bg-zinc-900 w-full max-w-md p-6 rounded-3xl border border-white/10 text-center relative">
-             <button onClick={() => setAbaModalAberta(null)} className="absolute top-4 right-6 font-bold">X</button>
-             <h2 className="text-xl font-bold mb-4">Modal de {abaModalAberta}</h2>
-             <p className="opacity-50 text-sm">Próxima etapa: desenhar a lista do Instagram aqui!</p>
-           </div>
-        </div>
+        <ModalConexoes
+          tipoInicial={abaModalAberta}
+          perfilId={idParaBuscar as string}
+          onClose={() => setAbaModalAberta(null)}
+        />
       )}
-      
+
     </div>
   );
 }
