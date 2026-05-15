@@ -186,7 +186,6 @@ function ConteudoDoPerfil() {
         </div>
       )}
 
-      // Lá no final do seu page.tsx
       {abaModalAberta && (
         <ModalConexoes
           tipoInicial={abaModalAberta}

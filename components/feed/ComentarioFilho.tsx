@@ -1,6 +1,7 @@
 "use client";
 
 // Chamaremos o mesmo menu de opções!
+import Link from "next/link"; // Adicionamos o Link aqui
 import MenuTresPontinhos from "../ui/MenuTresPontinhos";
 
 interface UsuarioChat {
@@ -32,8 +33,8 @@ export default function ComentarioFilho({ comentario, meuId, nomePai }: Comentar
       <div className="flex items-center justify-between mb-2">
         <div className="flex items-center gap-2">
           
-          {/* Avatar Menor */}
-          <div className="w-8 h-8 rounded-full bg-zinc-700 border border-zinc-600 overflow-hidden flex-shrink-0">
+          {/* FOTO CLICÁVEL */}
+          <Link href={`/perfil?id=${comentario.usuario.id}`} className="w-8 h-8 rounded-full bg-zinc-700 border border-zinc-600 overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity">
             {comentario.usuario?.fotoPerfil ? (
               <img src={comentario.usuario.fotoPerfil} alt={comentario.usuario.nome} className="w-full h-full object-cover" />
             ) : (
@@ -41,11 +42,15 @@ export default function ComentarioFilho({ comentario, meuId, nomePai }: Comentar
                 {comentario.usuario?.nome?.charAt(0).toUpperCase()}
               </div>
             )}
-          </div>
+          </Link>
           
           <div>
             <p className="font-bold text-xs text-zinc-200 flex items-center flex-wrap gap-1">
-              {comentario.usuario?.nome}
+              {/* NOME CLICÁVEL */}
+              <Link href={`/perfil?id=${comentario.usuario.id}`} className="hover:underline">
+                {comentario.usuario?.nome}
+              </Link>
+              
               {/* Contexto: respondendo @fulano */}
               <span className="text-[10px] font-normal text-zinc-500">
                 respondendo <span className="text-zinc-400">@{nomePai}</span>

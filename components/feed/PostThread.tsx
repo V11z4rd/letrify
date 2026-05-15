@@ -1,6 +1,7 @@
 "use client";
 
 import { useState } from "react";
+import Link from "next/link"; // Adicionamos o Link aqui
 // Vamos criar estes dois nos próximos passos
 import ComentarioFilho from "./ComentarioFilho";
 import MenuTresPontinhos from "../ui/MenuTresPontinhos";
@@ -86,7 +87,9 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
       {/* CABEÇALHO DO POST PAI */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
-          <div className="w-11 h-11 rounded-full bg-zinc-800 border-2 border-zinc-700/50 overflow-hidden flex-shrink-0">
+
+          {/* FOTO CLICÁVEL */}
+          <Link href={`/perfil?id=${post.usuario.id}`} className="w-11 h-11 rounded-full bg-zinc-800 border-2 border-zinc-700/50 overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity">
             {post.usuario?.fotoPerfil ? (
               <img src={post.usuario.fotoPerfil} alt={post.usuario.nome} className="w-full h-full object-cover" />
             ) : (
@@ -94,9 +97,13 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
                 {post.usuario?.nome?.charAt(0).toUpperCase()}
               </div>
             )}
-          </div>
+          </Link>
+          
           <div>
-            <p className="font-bold text-sm tracking-tight text-zinc-100">{post.usuario?.nome}</p>
+            {/* NOME CLICÁVEL */}
+            <Link href={`/perfil?id=${post.usuario.id}`} className="font-bold text-sm tracking-tight text-zinc-100 hover:underline">
+              {post.usuario?.nome}
+            </Link>
             <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mt-0.5">
               {new Date(post.dataPostagem).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
             </p>

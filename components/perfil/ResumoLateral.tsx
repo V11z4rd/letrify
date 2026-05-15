@@ -59,7 +59,9 @@ export default function ResumoLateral({ estante, totalGrupos, totalGuias, userId
         className="p-5 rounded-2xl border flex items-center justify-between transition-colors hover:bg-black/5 dark:hover:bg-white/5 cursor-pointer"
         style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
       >
-        <span className="font-bold text-sm" style={{ color: 'var(--cor-texto-principal)' }}>Grupos</span>
+        <Link href="/grupos" className="font-bold text-sm" style={{ color: 'var(--cor-texto-principal)' }}>
+          Grupos
+        </Link>
         <span className="text-xs font-extrabold px-2 py-1 rounded-md" style={{ backgroundColor: 'var(--cor-fundo-sidebar)', color: 'var(--cor-texto-secundario)' }}>
           {totalGrupos}
         </span>
