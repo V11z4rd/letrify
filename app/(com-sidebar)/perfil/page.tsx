@@ -10,6 +10,8 @@ import CabecalhoPerfil, { SkeletonCabecalho } from "@/components/perfil/Cabecalh
 import ResumoLateral from "@/components/perfil/ResumoLateral";
 import VitrineDestaques from "@/components/perfil/VitrineDestaques";
 import AbasDestaque from "@/components/perfil/AbasDestaques";
+import EditarLivroFavorito from "@/components/perfil/EditarLivroFavorito"; 
+import ListarLivros from "@/components/perfil/ListarLivros";
 
 // Libs e Services
 import { mapearPerfilDaApi } from "@/app/lib/usuarioService";
@@ -44,6 +46,7 @@ function ConteudoDoPerfil() {
   const idDaUrl = searchParams.get("id");
   const isPreview = searchParams.get("preview") === "visitante";
 
+  const [isEditando, setIsEditando] = useState(false);
   const [meuId, setMeuId] = useState<string | null>(null);
   const [carregandoId, setCarregandoId] = useState(true);
 
@@ -158,6 +161,8 @@ function ConteudoDoPerfil() {
         isSeguindoInicial={isSeguindo}
         onFollowClick={handleFollowToggle}
         onAbrirModal={setAbaModalAberta}
+        isEditorAbertoExterno={isEditando}
+        setIsEditorAbertoExterno={setIsEditando}
       />
 
       {perfilMapeado.isPrivado && !isDonoDoPerfil ? (
@@ -169,10 +174,20 @@ function ConteudoDoPerfil() {
       ) : (
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
           <div className="md:col-span-2 space-y-8">
-            {/* O Novo Componente Limpo */}
-            <AbasDestaque perfil={perfilMapeado} />
-
-            <VitrineDestaques userId={idParaBuscar as string} />
+            {/* Renderização Condicional com base no botão de Editar Perfil */}
+            {!isEditando ? (
+              <>
+                {/* O Novo Componente Limpo */}
+                <AbasDestaque perfil={perfilMapeado} />
+                <VitrineDestaques userId={idParaBuscar as string} />
+              </>
+            ) : (
+              <>
+                {/* Modo Edição Ativo: Substitui ambos os blocos ordenadamente */}
+                <EditarLivroFavorito perfilInicial={perfilMapeado} />
+                <ListarLivros onFechar={() => setIsEditando(false)} />
+              </>
+            )}
           </div>
 
           <div className="md:col-span-1">
@@ -181,6 +196,7 @@ function ConteudoDoPerfil() {
               totalGrupos={perfilMapeado.grupos}
               totalGuias={perfilMapeado.guias}
               userIdParaLink={idDaUrl}
+              isEditando={isEditando}
             />
           </div>
         </div>
