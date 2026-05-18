@@ -3,6 +3,17 @@
 
 Frontend da aplicação **Letrify** construído com Next.js (App Router), TypeScript e CSS (ou Tailwind).
 
+## Aviso
+Caso deseje replicar, remova os espiões do código para que as informações dos usuários não sejam constantemente impressas no console, além de checar a parte do [Backend do Projeto](https://github.com/JoaoGabrielFurtado/PI-Letrify).
+
+## Melhorias 
+- [] Gerenciamento de privacidade ir para o Backend
+- [] Gerenciamento de preferencias ir para o Backend
+- [] Polimento visual
+- [] Grupos (Clube do Livro / Campanhas de Leituras)
+- [] Chat particular
+- [] ...
+
 > 🚀 Projeto criado com `create-next-app` em `letrify-front`.
 
 ## ✅ Início rápido
@@ -63,12 +74,5 @@ npm run typecheck # checagem TypeScript
 - [Documentação Next.js](https://nextjs.org/docs)
 - [Tutorial Learn Next.js](https://nextjs.org/learn)
 - [Deploy Next.js](https://nextjs.org/docs/app/building-your-application/deploying)
-
-## 📦 Deploy
-
-1. Commit + push no repositório.
-2. Conecte no Vercel.
-3. Configure variáveis (`NEXT_PUBLIC_*`).
-4. Deploy automático a cada push.
 
 ---
