@@ -5,6 +5,7 @@ import Link from "next/link"; // Adicionamos o Link aqui
 // Vamos criar estes dois nos próximos passos
 import ComentarioFilho from "./ComentarioFilho";
 import MenuTresPontinhos from "../ui/MenuTresPontinhos";
+import BotaoCurtir from "./BotaoCurtir";
 
 // Replicando a tipagem para o componente saber o que está recebendo
 interface UsuarioChat {
@@ -20,6 +21,8 @@ interface MensagemChat {
   usuario: UsuarioChat;
   mensagemPaiId?: number | null;
   respostas: MensagemChat[];
+  totalCurtidas?: number;
+  euCurti?: boolean;
 }
 
 interface PostThreadProps {
@@ -119,14 +122,26 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
         {post.conteudo}
       </p>
       
-      {/* INDICADOR DE RESPOSTAS (Botão Expansor) */}
-      <button 
-        onClick={() => setExpandido(!expandido)}
-        className="text-xs font-bold text-blue-400 opacity-80 hover:opacity-100 transition-opacity flex items-center gap-2"
-      >
-        <span className="text-lg leading-none">{expandido ? "−" : "+"}</span>
-        {post.respostas?.length || 0} respostas
-      </button>
+        {/* BOTÃO DE CURTIR */}
+        <div className="ml-0 mt-3 flex items-center">
+          <BotaoCurtir
+            mensagemId={post.id} 
+            curtidasIniciais={post.totalCurtidas || 0} 
+            jaCurtidoInicial={post.euCurti || false}
+          />
+        </div>
+
+        
+          {/* INDICADOR DE RESPOSTAS (Botão Expansor) */}
+        <div className="ml-0 mt-3 flex items-center">
+          <button 
+            onClick={() => setExpandido(!expandido)}
+            className="text-xs font-bold text-blue-400 opacity-80 hover:opacity-100 transition-opacity flex items-center gap-2"
+          >
+            <span className="text-lg leading-none">{expandido ? "−" : "+"}</span>
+            {post.respostas?.length || 0} respostas
+          </button>
+        </div>
 
       {/* ÁREA EXPANDIDA (Fios, Input e Filhos) */}
       {expandido && (

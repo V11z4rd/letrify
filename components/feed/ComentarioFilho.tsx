@@ -3,6 +3,7 @@
 // Chamaremos o mesmo menu de opções!
 import Link from "next/link"; // Adicionamos o Link aqui
 import MenuTresPontinhos from "../ui/MenuTresPontinhos";
+import BotaoCurtir from "./BotaoCurtir";
 
 interface UsuarioChat {
   id: number;
@@ -15,6 +16,8 @@ interface MensagemChat {
   conteudo: string;
   dataPostagem: string;
   usuario: UsuarioChat;
+  totalCurtidas?: number;
+  euCurti?: boolean;
 }
 
 interface ComentarioFilhoProps {
@@ -71,6 +74,15 @@ export default function ComentarioFilho({ comentario, meuId, nomePai }: Comentar
       <p className="text-xs leading-relaxed text-zinc-300 whitespace-pre-wrap ml-10">
         {comentario.conteudo}
       </p>
+
+      {/* BOTÃO DE CURTIR PARA O FILHO */}
+      <div className="ml-10 mt-3 flex items-center">
+        <BotaoCurtir 
+          mensagemId={comentario.id} 
+          curtidasIniciais={comentario.totalCurtidas || 0} 
+          jaCurtidoInicial={comentario.euCurti || false}
+        />
+      </div>
       
     </div>
   );
