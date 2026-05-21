@@ -28,7 +28,7 @@ export default function ContaPage() {
       const token = authService.getToken();
       if (!token) throw new Error("Você não está autenticado. Faça login novamente.");
 
-      const resposta = await fetch("https://letrify.fly.dev/api/usuario/deletar", {
+      const resposta = await fetch("https://localhost:7281/api/usuario/deletar", {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`

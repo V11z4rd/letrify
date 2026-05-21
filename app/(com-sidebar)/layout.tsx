@@ -1,4 +1,7 @@
-import Sidebar from "../../components/Sidebar";
+import React from 'react';
+import Sidebar from "../../components/Sidebar"; 
+// 1. Importamos o Provider que criaremos no Contexto
+import { NotificacoesProvider } from "../../context/NotificacoesContext"; 
 
 export default function ComSidebarLayout({
   children,
@@ -6,14 +9,17 @@ export default function ComSidebarLayout({
   children: React.ReactNode;
 }) {
   return (
-    <div className="flex min-h-screen" style={{ backgroundColor: 'var(--cor-fundo)' }}>
-      {/* Aqui entra a nossa barra lateral fixa */}
-      <Sidebar />
-      
-      {/* Aqui entra a página ativa (ex: o "Bem-vindo ao Letrify") */}
-      <main className="flex-1 p-8">
-        {children}
-      </main>
-    </div>
+    // 2. Envolvemos a estrutura principal com o Provider das Notificações
+    <NotificacoesProvider>
+      <div className="flex min-h-screen" style={{ backgroundColor: 'var(--cor-fundo)' }}>
+        {/* A nossa barra lateral fixa */}
+        <Sidebar />
+
+        {/* A página ativa (ex: Feed, Perfil, etc) */}
+        <main className="flex-1 p-8">
+          {children}
+        </main>
+      </div>
+    </NotificacoesProvider>
   );
 }

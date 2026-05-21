@@ -39,7 +39,7 @@ export default function BotaoCriarPost() {
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("letrify_token") : null;
       
-      const resposta = await fetch("https://letrify.fly.dev/api/chat/enviar", {
+      const resposta = await fetch("https://localhost:7281/api/chat/enviar", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

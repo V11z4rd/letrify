@@ -51,7 +51,7 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("letrify_token") : null;
       
-      const respostaApi = await fetch("https://letrify.fly.dev/api/chat/enviar", {
+      const respostaApi = await fetch("https://localhost:7281/api/chat/enviar", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

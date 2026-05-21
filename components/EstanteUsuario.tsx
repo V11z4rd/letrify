@@ -52,7 +52,7 @@ export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
           throw new Error("Você precisa estar logado para ver sua estante.");
         }
 
-        const resposta = await fetch(`https://letrify.fly.dev/api/usuario/${idFinal}/livros`, {
+        const resposta = await fetch(`https://localhost:7281/api/usuario/${idFinal}/livros`, {
           headers: {
             "Authorization": token? `Bearer ${token}` : ""
           }

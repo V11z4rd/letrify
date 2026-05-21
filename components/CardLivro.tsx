@@ -37,7 +37,7 @@ export default function CardLivro({ livro, variante = "busca" }: CardLivroProps)
       const token = authService.getToken();
       if (!token) throw new Error("Faça login para salvar.");
 
-      const resposta = await fetch("https://letrify.fly.dev/api/usuario/meus-livros", {
+      const resposta = await fetch("https://localhost:7281/api/usuario/meus-livros", {
         method: "POST",
         headers: {
           "Content-Type": "application/json",

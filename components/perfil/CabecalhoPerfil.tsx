@@ -107,7 +107,7 @@ export default function CabecalhoPerfil({
         formData.append("foto", novosDados.fotoPerfil);
       }
 
-      const resposta = await fetch("https://letrify.fly.dev/api/usuario/editar", {
+      const resposta = await fetch("https://localhost:7281/api/usuario/editar", {
         method: "PUT",
         headers: { "Authorization": `Bearer ${token}` },
         body: formData

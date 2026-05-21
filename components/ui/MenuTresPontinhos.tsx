@@ -32,7 +32,7 @@ export default function MenuTresPontinhos({ idPost, isDono }: MenuProps) {
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("letrify_token") : null;
       
-      const resposta = await fetch(`https://letrify.fly.dev/api/chat/deletar/${idPost}`, {
+      const resposta = await fetch(`https://localhost:7281/api/chat/deletar/${idPost}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`

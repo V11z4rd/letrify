@@ -12,7 +12,7 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export default function VitrineDestaques({ userId }: VitrineDestaquesProps) {
   // Buscamos os livros do usuário
   const { data, error, isLoading } = useSWR(
-    userId ? `https://letrify.fly.dev/api/usuario/${userId}/livros` : null,
+    userId ? `https://localhost:7281/api/usuario/${userId}/livros` : null,
     fetcher
   );
 

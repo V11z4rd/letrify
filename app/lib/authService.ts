@@ -1,7 +1,7 @@
 // app/lib/authService.ts
 import { extrairIdDoToken } from "./jwt";
 
-const API_BASE_URL = "https://letrify.fly.dev/api/auth";
+const API_BASE_URL = "https://localhost:7281/api/auth";
 
 export const authService = {
   // 1. FAZER LOGIN REAL

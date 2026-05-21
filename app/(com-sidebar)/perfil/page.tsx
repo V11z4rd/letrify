@@ -78,7 +78,7 @@ function ConteudoDoPerfil() {
         try {
           const token = authService.getToken();
           // Puxa a MINHA lista de quem eu sigo
-          const res = await fetch(`https://letrify.fly.dev/api/seguidores/seguindo`, {
+          const res = await fetch(`https://localhost:7281/api/seguidores/seguindo`, {
             headers: { "Authorization": `Bearer ${token}` }
           });
 
@@ -99,7 +99,7 @@ function ConteudoDoPerfil() {
 
   const handleFollowToggle = async () => {
     const token = authService.getToken();
-    const resposta = await fetch(`https://letrify.fly.dev/api/seguidores/seguir/${idParaBuscar}`, {
+    const resposta = await fetch(`https://localhost:7281/api/seguidores/seguir/${idParaBuscar}`, {
       method: 'POST',
       headers: {
         "Authorization": `Bearer ${token}`,
