@@ -15,6 +15,7 @@ interface RespostaEstante {
 interface EstanteUsuarioProps {
   userId?: string;
 }
+const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
 export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
   const searchParams = useSearchParams();
@@ -52,7 +53,7 @@ export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
           throw new Error("Você precisa estar logado para ver sua estante.");
         }
 
-        const resposta = await fetch(`https://localhost:7281/api/usuario/${idFinal}/livros`, {
+        const resposta = await fetch(`${BASE_URL}/usuario/${idFinal}/livros`, {
           headers: {
             "Authorization": token? `Bearer ${token}` : ""
           }
@@ -98,6 +99,15 @@ export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
 
   // Abas do nosso menu
   const abas = ["Todos", "Lendo", "Lido", "Quero Ler"];
+
+  // Quando um livro é excluído pelo Card, removemos ele do estado local
+  const handleRemoverLivroDaTela = (livroId: number) => {
+    setEstante(prev => ({
+      lendo: prev.lendo.filter(l => l.id !== livroId),
+      lido: prev.lido.filter(l => l.id !== livroId),
+      queroLer: prev.queroLer.filter(l => l.id !== livroId)
+    }));
+  };
 
   return (
     <div className="w-full animate-fade-in">
@@ -157,11 +167,17 @@ export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
       {/* 3. A GRADE DE LIVROS */}
       {!carregando && !erro && livrosParaMostrar.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
-          {livrosParaMostrar.map((livro, index) => (
-           <div key={`${livro.isbn || 'livro'}-${index}`} className="h-full">
-              {/* Reciclando o nosso Lego na versão simples (sem abrir o leque de botões) */}
-              <CardLivro livro={livro} variante="estante" />
-            </div>
+          {livrosParaMostrar.map((livro) => (
+             <div key={livro.id} className="h-full">
+               {/* 1. Passamos a variante="estante"
+                  2. Passamos a função handleRemoverLivroDaTela como prop onRemove
+               */}
+               <CardLivro 
+                 livro={livro} 
+                 variante="estante" 
+                 onRemove={handleRemoverLivroDaTela} 
+               />
+             </div>
           ))}
         </div>
       )}

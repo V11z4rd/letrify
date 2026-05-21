@@ -28,7 +28,7 @@ export default function MatchPage() {
       const token = authService.getToken();
       if (!token) throw new Error("Logue para usar o Radar.");
 
-      const resposta = await fetch("https://localhost:7281/api/match", {
+      const resposta = await fetch("${BASE_URL}/match", {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,

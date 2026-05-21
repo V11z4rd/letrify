@@ -37,7 +37,7 @@ export default function FeedPage() {
     // 3. Função para buscar o histórico inicial (REST)
     const carregarHistorico = async () => {
       try {
-        const resposta = await fetch("https://localhost:7281/api/chat/listar?pagina=1&tamanhoPagina=50", {
+        const resposta = await fetch("${BASE_URL}/chat/listar?pagina=1&tamanhoPagina=50", {
           headers: { "Authorization": `Bearer ${token}` }
         });
 

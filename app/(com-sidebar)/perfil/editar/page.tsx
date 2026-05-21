@@ -58,7 +58,7 @@ export default function EditarPerfilPage() {
       const usuarioId = dadosDoToken?.[chaveId]; 
 
       if (usuarioId) {
-        fetch(`https://localhost:7281/api/usuario/${usuarioId}`, {
+        fetch(`${BASE_URL}/usuario/${usuarioId}`, {
           headers: { "Authorization": `Bearer ${token}` }
         })
           .then(res => res.ok ? res.json() : null)
@@ -107,7 +107,7 @@ export default function EditarPerfilPage() {
         formData.append("foto", fotoArquivo);
       }
 
-      const resposta = await fetch("https://localhost:7281/api/usuario/editar", {
+      const resposta = await fetch("${BASE_URL}/usuario/editar", {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${tokenSessao}`

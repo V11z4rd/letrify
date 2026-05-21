@@ -1,12 +1,11 @@
 "use client";
 
 import { useState } from "react";
-import Link from "next/link"; // Adicionamos o Link aqui
-// Vamos criar estes dois nos próximos passos
+import Link from "next/link";
 import ComentarioFilho from "./ComentarioFilho";
 import MenuTresPontinhos from "../ui/MenuTresPontinhos";
 
-// Replicando a tipagem para o componente saber o que está recebendo
+// Replicando a tipagem para o componente saber o que está a receber
 interface UsuarioChat {
   id: number;
   nome: string;
@@ -20,6 +19,7 @@ interface MensagemChat {
   usuario: UsuarioChat;
   mensagemPaiId?: number | null;
   respostas: MensagemChat[];
+  grupoId?: number | null; // Adicionada a propriedade para os posts de recrutamento
 }
 
 interface PostThreadProps {
@@ -36,6 +36,9 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
   const [erro, setErro] = useState<string | null>(null);
 
   const isDonoDoPost = meuId === post.usuario.id;
+  
+  // A nossa URL à prova de falhas
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
   const handleResponder = async () => {
     const textoLimpo = conteudoResposta.trim();
@@ -51,7 +54,7 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("letrify_token") : null;
       
-      const respostaApi = await fetch("https://localhost:7281/api/chat/enviar", {
+      const respostaApi = await fetch(`${BASE_URL}/chat/enviar`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -62,7 +65,7 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
       });
 
       if (respostaApi.status === 429) {
-        setErro("Aguarde um pouco antes de mandar outra resposta.");
+        setErro("Aguarde um pouco antes de enviar outra resposta.");
         return;
       }
 
@@ -105,7 +108,7 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
               {post.usuario?.nome}
             </Link>
             <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mt-0.5">
-              {new Date(post.dataPostagem).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+              {new Date(post.dataPostagem).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })}
             </p>
           </div>
         </div>
@@ -118,6 +121,28 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
       <p className="text-sm leading-relaxed text-zinc-300 mb-4 whitespace-pre-wrap">
         {post.conteudo}
       </p>
+
+      {/* BLOCO DE RECRUTAMENTO DE GRUPOS (SÓ APARECE SE TIVER GRUPOID) */}
+      {post.grupoId && (
+        <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-blue-900/30 to-transparent border border-blue-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 text-xl border border-blue-500/40">
+              📚
+            </div>
+            <div>
+              <p className="text-[10px] text-blue-400 font-black uppercase tracking-widest">Convite de Leitura</p>
+              <p className="text-sm text-zinc-200 font-bold">Junte-se a este clube literário!</p>
+            </div>
+          </div>
+          
+          <Link 
+            href={`/grupos/${post.grupoId}`} 
+            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-wider rounded-lg transition-colors text-center shadow-lg shadow-blue-500/20 flex-shrink-0"
+          >
+            Ver Clube →
+          </Link>
+        </div>
+      )}
       
       {/* INDICADOR DE RESPOSTAS (Botão Expansor) */}
       <button 

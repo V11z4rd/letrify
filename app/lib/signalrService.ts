@@ -34,6 +34,35 @@ class SignalRService {
     }
   }
 
+  public async entrarNoGrupo(grupoId: number) {
+    if (this.connection && this.connection.state === signalR.HubConnectionState.Connected) {
+      try {
+        await this.connection.invoke("EntrarSalaGrupo", grupoId.toString());
+        console.log(`📡 [SignalR] Entrou na sala do Grupo ${grupoId}`);
+      } catch (err) {
+        console.error("🚨 [SignalR] Erro ao entrar na sala:", err);
+      }
+    }
+  }
+
+  public async sairDoGrupo(grupoId: number) {
+    if (this.connection && this.connection.state === signalR.HubConnectionState.Connected) {
+      try {
+        await this.connection.invoke("SairSalaGrupo", grupoId.toString());
+        console.log(`🛑 [SignalR] Saiu da sala do Grupo ${grupoId}`);
+      } catch (err) {
+        console.error("🚨 [SignalR] Erro ao sair da sala:", err);
+      }
+    }
+  }
+
+  public onReceberMensagemGrupo(callback: (mensagem: any) => void) {
+    if (this.connection) {
+      this.connection.off("ReceberMensagemGrupo");
+      this.connection.on("ReceberMensagemGrupo", callback);
+    }
+  }
+
   // --- REGISTRO DE OUVINTES (LISTENERS) ---
 
   public onReceberNovaMensagem(callback: (mensagem: any) => void) {

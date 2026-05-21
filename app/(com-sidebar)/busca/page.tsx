@@ -60,7 +60,7 @@ export default function BuscaLivrosPage() {
 
     if (isIsbn) {
       // É ISBN! Bate só na rota específica
-      const livrosIsbn = await fetchSeguro(`https://localhost:7281/api/livro/livroespecifico/${apenasNumeros}`);
+      const livrosIsbn = await fetchSeguro(`${BASE_URL}/livro/livroespecifico/${apenasNumeros}`);
       setPrateleiras(prev => ({ ...prev, isbn: livrosIsbn }));
       setCarregando(false);
       return;
@@ -71,9 +71,9 @@ export default function BuscaLivrosPage() {
     const termoTema = tradutorTemas[termoLimpo] || textoBusca;
 
     // 4. O MOTOR V8 (Busca Paralela)
-    const urlTitulo = `https://localhost:7281/api/livro/livrostitulo?titulo=${encodeURIComponent(textoBusca)}&quantidade=10`;
-    const urlAutor = `https://localhost:7281/api/livro/livrosautor?autor=${encodeURIComponent(textoBusca)}&quantidade=10`;
-    const urlTema = `https://localhost:7281/api/livro/livrostema?tema=${encodeURIComponent(termoTema)}&quantidade=10`;
+    const urlTitulo = `${BASE_URL}/livro/livrostitulo?titulo=${encodeURIComponent(textoBusca)}&quantidade=10`;
+    const urlAutor = `${BASE_URL}/livro/livrosautor?autor=${encodeURIComponent(textoBusca)}&quantidade=10`;
+    const urlTema = `${BASE_URL}/livro/livrostema?tema=${encodeURIComponent(termoTema)}&quantidade=10`;
 
     // Atira nas 3 rotas ao mesmo tempo!
     const [resultadosTitulos, resultadosAutores, resultadosTemas] = await Promise.all([

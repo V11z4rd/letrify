@@ -1,149 +1,131 @@
 "use client";
 
-import { useState, useRef, useEffect } from "react";
+import { useState, useEffect } from "react";
+import { authService } from "@/app/lib/authService";
+import { grupoService, GrupoResumo } from "@/app/lib/grupoService";
 
-export default function BotaoCriarPost() {
-  const [aberto, setAberto] = useState(false);
+export default function BotaoCriarPost({ onPostCreated }: { onPostCreated?: () => void }) {
   const [conteudo, setConteudo] = useState("");
   const [enviando, setEnviando] = useState(false);
-  const [erro, setErro] = useState<string | null>(null);
 
-  // Referência para focar no textarea assim que o modal abrir
-  const textareaRef = useRef<HTMLTextAreaElement>(null);
+  // --- LÓGICA DE RECRUTAMENTO ---
+  const [isRecrutamento, setIsRecrutamento] = useState(false);
+  const [grupos, setGrupos] = useState<GrupoResumo[]>([]);
+  const [grupoSelecionado, setGrupoSelecionado] = useState<string>("");
+  const [carregandoGrupos, setCarregandoGrupos] = useState(false);
 
+  // Carrega a lista de grupos apenas se o utilizador quiser fazer um recrutamento
   useEffect(() => {
-    if (aberto && textareaRef.current) {
-      textareaRef.current.focus();
+    if (isRecrutamento && grupos.length === 0) {
+      setCarregandoGrupos(true);
+      grupoService.listarTodos()
+        .then(setGrupos)
+        .catch(console.error)
+        .finally(() => setCarregandoGrupos(false));
     }
-  }, [aberto]);
+  }, [isRecrutamento]);
 
-  const fecharModal = () => {
-    setAberto(false);
-    setConteudo("");
-    setErro(null);
-  };
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
-  const handleEnviar = async () => {
-    const textoLimpo = conteudo.trim();
-    
-    // Validações de segurança antes de bater na API
-    if (textoLimpo.length === 0) return;
-    if (textoLimpo.length > 150) {
-      setErro("Você ultrapassou o limite de 150 caracteres.");
-      return;
-    }
+  const handlePublicar = async (e: React.FormEvent) => {
+    e.preventDefault();
+    if (!conteudo.trim() || enviando) return;
 
     setEnviando(true);
-    setErro(null);
-
     try {
-      const token = typeof window !== "undefined" ? localStorage.getItem("letrify_token") : null;
+      const token = authService.getToken();
       
-      const resposta = await fetch("https://localhost:7281/api/chat/enviar", {
+      // Monta o payload base
+      const payload: any = { conteudo: conteudo.trim() };
+      
+      // Se for recrutamento e tiver um grupo selecionado, anexa o ID
+      if (isRecrutamento && grupoSelecionado) {
+        payload.grupoId = Number(grupoSelecionado);
+      }
+
+      const resposta = await fetch(`${BASE_URL}/chat`, {
         method: "POST",
         headers: {
-          "Content-Type": "application/json",
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
         },
-        // Como é um post inicial do Feed (Pai), o MensagemPaiId vai nulo
-        body: JSON.stringify({ conteudo: textoLimpo, mensagemPaiId: null }) 
+        body: JSON.stringify(payload)
       });
 
-      // Capturando a proteção Anti-Spam (Rate Limiting)
-      if (resposta.status === 429) {
-        setErro("Calma aí, velocista! Aguarde um minuto antes de postar novamente.");
-        return;
-      }
+      if (!resposta.ok) throw new Error("Erro ao publicar.");
 
-      if (!resposta.ok) {
-        const dadosErro = await resposta.json();
-        setErro(dadosErro.erro || "Falha ao enviar a mensagem. Tente novamente.");
-        return;
-      }
-
-      // Sucesso! Limpa o form e fecha o modal.
-      // O SignalR no page.tsx vai capturar a mensagem e exibir na tela instantaneamente.
-      fecharModal();
-
-    } catch (err) {
-      setErro("Erro de conexão. Verifique sua internet.");
+      // Limpa os estados após sucesso
+      setConteudo("");
+      setIsRecrutamento(false);
+      setGrupoSelecionado("");
+      
+      if (onPostCreated) onPostCreated(); // Avisa a página do feed para recarregar
+      
+    } catch (err: any) {
+      alert(err.message);
     } finally {
       setEnviando(false);
     }
   };
 
   return (
-    <>
-      {/* BOTÃO FLUTUANTE (FAB) */}
-      <button 
-        onClick={() => setAberto(true)}
-        className="fixed bottom-8 right-8 w-14 h-14 bg-blue-600 rounded-full shadow-2xl shadow-blue-500/30 flex items-center justify-center text-white text-3xl font-light hover:scale-105 active:scale-95 transition-all z-40"
-        aria-label="Criar novo post"
-      >
-        +
-      </button>
+    <div className="bg-zinc-900/60 border border-white/5 rounded-3xl p-5 sm:p-6 mb-8 shadow-sm">
+      <form onSubmit={handlePublicar} className="flex flex-col gap-4">
+        
+        <textarea
+          value={conteudo}
+          onChange={(e) => setConteudo(e.target.value)}
+          placeholder="O que está a ler ou a pensar hoje?"
+          className="w-full bg-transparent text-zinc-100 placeholder-zinc-500 text-lg resize-none outline-none min-h-[80px]"
+          maxLength={500}
+        />
 
-      {/* MODAL / OVERLAY */}
-      {aberto && (
-        <div className="fixed inset-0 z-50 flex items-end sm:items-center justify-center p-4 sm:p-0">
-          
-          {/* Fundo escuro com desfoque */}
-          <div 
-            className="absolute inset-0 bg-black/60 backdrop-blur-sm animate-fade-in" 
-            onClick={fecharModal}
-          ></div>
-
-          {/* Caixa do Formulário */}
-          <div className="relative w-full max-w-lg bg-zinc-900 border border-zinc-800 rounded-3xl p-6 shadow-2xl animate-slide-up sm:animate-zoom-in">
+        {/* ÁREA DO RECRUTAMENTO (Dropdown) */}
+        {isRecrutamento && (
+          <div className="bg-blue-900/10 border border-blue-500/20 rounded-xl p-4 animate-fade-in flex flex-col gap-2">
+            <label className="text-xs font-bold text-blue-400 uppercase tracking-wider flex justify-between">
+              <span>Selecione o Clube para Divulgar</span>
+              <button type="button" onClick={() => setIsRecrutamento(false)} className="text-zinc-500 hover:text-white">✕ Fechar</button>
+            </label>
             
-            <div className="flex justify-between items-center mb-4">
-              <h2 className="text-lg font-bold">Novo Post</h2>
-              <button 
-                onClick={fecharModal}
-                className="w-8 h-8 flex items-center justify-center rounded-full bg-white/5 hover:bg-white/10 transition-colors text-sm font-bold opacity-60 hover:opacity-100"
+            {carregandoGrupos ? (
+              <span className="text-sm text-zinc-500 italic">A carregar clubes...</span>
+            ) : (
+              <select 
+                value={grupoSelecionado}
+                onChange={(e) => setGrupoSelecionado(e.target.value)}
+                className="w-full bg-zinc-900 border border-white/10 text-sm text-white rounded-lg p-2.5 outline-none focus:border-blue-500"
               >
-                ✕
-              </button>
-            </div>
-
-            <textarea
-              ref={textareaRef}
-              value={conteudo}
-              onChange={(e) => {
-                setConteudo(e.target.value);
-                if (erro) setErro(null); // Limpa o erro quando o usuário volta a digitar
-              }}
-              placeholder="O que você está lendo ou pensando agora?"
-              className="w-full h-32 bg-zinc-800/50 border border-white/5 rounded-2xl p-4 text-white resize-none outline-none focus:border-blue-500/50 focus:bg-zinc-800 transition-all"
-              maxLength={150}
-              disabled={enviando}
-            />
-
-            {/* Mensagem de Erro (Rate Limit ou API) */}
-            {erro && (
-              <p className="text-red-400 text-xs font-semibold mt-2 animate-pulse">{erro}</p>
+                <option value="" disabled>-- Escolha um clube --</option>
+                {grupos.map(g => (
+                  <option key={g.id} value={g.id}>{g.nome}</option>
+                ))}
+              </select>
             )}
-
-            <div className="flex justify-between items-center mt-4">
-              
-              {/* Contador de Caracteres */}
-              <span className={`text-xs font-mono font-bold ${conteudo.length >= 150 ? "text-red-500" : "text-zinc-500"}`}>
-                {conteudo.length}/150
-              </span>
-
-              {/* Botão Enviar */}
-              <button
-                onClick={handleEnviar}
-                disabled={conteudo.trim().length === 0 || conteudo.length > 150 || enviando}
-                className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white text-sm font-bold rounded-full transition-colors"
-              >
-                {enviando ? "Enviando..." : "Publicar"}
-              </button>
-            </div>
-
           </div>
+        )}
+
+        <div className="flex items-center justify-between pt-3 border-t border-white/5">
+          {/* Botão de Toggle do Recrutamento */}
+          <button 
+            type="button" 
+            onClick={() => setIsRecrutamento(!isRecrutamento)}
+            className={`text-sm font-bold flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors ${
+              isRecrutamento ? "bg-blue-500/20 text-blue-400" : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
+            }`}
+          >
+            📚 Convidar para Clube
+          </button>
+
+          <button
+            type="submit"
+            disabled={enviando || !conteudo.trim() || (isRecrutamento && !grupoSelecionado)}
+            className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white text-sm font-bold rounded-xl transition-all shadow-md"
+          >
+            {enviando ? "A enviar..." : "Publicar"}
+          </button>
         </div>
-      )}
-    </>
+      </form>
+    </div>
   );
 }

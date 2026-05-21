@@ -11,7 +11,7 @@ const api = axios.create({
 // Captura o token de forma segura no Next.js
 const getAuthToken = () => {
     if (typeof window !== 'undefined') {
-        return localStorage.getItem('letrify_token'); 
+        return localStorage.getItem('letrify_token');
     }
     return null;
 };

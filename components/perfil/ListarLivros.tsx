@@ -50,7 +50,7 @@ export default function ListarLivros({ onSelecionarLivro, onFechar }: ListarLivr
       setErro(null);
 
       try {
-        let url = "https://localhost:7281/api/livro";
+        let url = "${BASE_URL}/livro";
         const params = new URLSearchParams({
           pagina: "1",
           quantidade: "15"
