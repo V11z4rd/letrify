@@ -54,20 +54,30 @@ export default function ModalCriarGrupo({ onClose }: ModalCriarGrupoProps) {
       formData.append("status", status);
       
       if (fotoCapa) {
-        // O Back-end costuma esperar "foto" ou "fotoCapa", 
-        // ajustamos para "fotoCapa" assumindo o nome da propriedade no C#
         formData.append("fotoCapa", fotoCapa); 
       }
 
       // Chama o nosso serviço
       const novoGrupo = await grupoService.criar(formData);
+      
+      // LOG DE DEBUG: Isso vai te ajudar a ver no Console (F12) o que o Back-end realmente enviou
+      console.log("Retorno do Back-end ao criar grupo:", novoGrupo);
 
-      // Sucesso! Redireciona o líder para a sala recém-criada
-      router.push(`/grupos/${novoGrupo.id}`);
+      // VERIFICAÇÃO DE SEGURANÇA
+      if (novoGrupo && novoGrupo.id) {
+        // O Back-end mandou o ID certo! Redireciona para a sala VIP.
+        router.push(`/grupos/${novoGrupo.id}`);
+      } else {
+        // O Back-end não mandou o ID, mas criou com sucesso. 
+        // Em vez de crashar indo para /undefined, nós fechamos o modal e recarregamos a vitrine.
+        alert("Clube fundado com sucesso! (ID não retornado automaticamente)");
+        onClose();
+        window.location.reload(); // Recarrega para a vitrine puxar a lista atualizada
+      }
       
     } catch (err: any) {
       setErro(err.message || "Erro ao criar o clube. Tente novamente.");
-      setCarregando(false); // Só desliga o loading se der erro, pois se der sucesso a página vai mudar
+      setCarregando(false); 
     }
   };
 

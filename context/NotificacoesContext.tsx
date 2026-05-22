@@ -19,7 +19,7 @@ interface NotificacoesContextType {
 const NotificacoesContext = createContext<NotificacoesContextType | undefined>(undefined);
 
 // Apontando para o Hub do SignalR na porta 5265
-const SIGNALR_HUB_URL = process.env.NEXT_PUBLIC_SIGNALR_HUB_URL || 'https://localhost:7281/hubs/notificacoes';
+const SIGNALR_HUB_URL = 'https://letrify.fly.dev/hubs/notificacoes';
 
 export const NotificacoesProvider = ({ children }: { children: ReactNode }) => {
     const [notificacoes, setNotificacoes] = useState<Notificacao[]>([]);
