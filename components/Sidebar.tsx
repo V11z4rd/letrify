@@ -11,7 +11,8 @@ import {
   MagnifyingGlassIcon as SearchOutline, 
   BookOpenIcon as BookOutline, 
   UserIcon as UserOutline, 
-  Cog6ToothIcon as CogOutline 
+  Cog6ToothIcon as CogOutline,
+  SparklesIcon as SparklesOutline // Importado para o Premium
 } from '@heroicons/react/24/outline';
 
 import { 
@@ -21,7 +22,8 @@ import {
   MagnifyingGlassIcon as SearchSolid, 
   BookOpenIcon as BookSolid, 
   UserIcon as UserSolid, 
-  Cog6ToothIcon as CogSolid 
+  Cog6ToothIcon as CogSolid,
+  SparklesIcon as SparklesSolid // Importado para o Premium
 } from '@heroicons/react/24/solid';
 
 export default function Sidebar() {
@@ -78,6 +80,11 @@ export default function Sidebar() {
         
         <Link href="/estante" title="Estante" className="group">
           {renderIcon('/estante', BookSolid, BookOutline)}
+        </Link>
+        
+        {/* Ícone do Letrify Pro / Premium */}
+        <Link href="/Premium" title="Seja Premium" className="group">
+          {renderIcon('/premium', SparklesSolid, SparklesOutline)}
         </Link>
         
         {/* Componente customizado de Notificações */}
