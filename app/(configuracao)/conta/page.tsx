@@ -69,7 +69,7 @@ export default function ContaPage() {
         throw new Error("Sessão inválida. Por favor, realize o login novamente.");
       }
 
-      const resposta = await fetch(`https://letrify.fly.dev/api/usuario/premium/${usuarioId}`, {
+      const resposta = await fetch(`https://letrify.fly.dev/api/usuario/tornar-premium`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -78,7 +78,7 @@ export default function ContaPage() {
         // CORREÇÃO: "ativar" como false para desativar o plano
         body: JSON.stringify({ ativar: false })
       });
-      
+
       if (!resposta.ok) {
         throw new Error("Não foi possível desativar a assinatura. Tente novamente.");
       }
