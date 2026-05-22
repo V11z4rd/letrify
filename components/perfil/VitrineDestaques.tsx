@@ -55,18 +55,27 @@ export default function VitrineDestaques({ userId, isPremium }: VitrineDestaques
     }).slice(0, 12); 
   }, [data]);
 
-  function CardAnalisePremium({ userId, isPremium }: { userId: string, isPremium: boolean }) {
+  // COMPONENTE INTERNO: CARD DA IA PREMIUM
+  function CardAnalisePremium({ isPremium }: { isPremium: boolean }) {
     if (!isPremium) return null; // Só mostra se for premium
 
-    const { data, error, isLoading } = useSWR(`${process.env.NEXT_PUBLIC_API_URL}/api/premium/analise`, fetcher);
+    const { data, error, isLoading } = useSWR(
+      isPremium ? `${BASE_URL}/api/premium/analise` : null, 
+      fetcher
+    );
 
-    // Se der erro na IA, apenas não mostra o card, não estraga o visual
+    // Se der erro na IA, apenas não mostra o card, não quebra o layout
     if (error || !data) return null;
-    if (isLoading) return <div className="p-4 mt-6 animate-pulse bg-zinc-100 dark:bg-zinc-800 rounded-2xl">IA analisando perfil...</div>;
-    if (!data) return null;
+    if (isLoading) {
+      return (
+        <div className="p-4 mt-2 animate-pulse bg-black/[0.04] dark:bg-white/[0.04] rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 h-24 flex items-center justify-center text-xs font-medium opacity-60">
+          IA analisando perfil literário...
+        </div>
+      );
+    }
 
     return (
-      <div className="mt-6 p-6 rounded-2xl border border-dashed border-[var(--cor-primaria)] bg-[var(--cor-fundo-card)]">
+      <div className="p-6 rounded-2xl border border-dashed bg-[var(--cor-fundo-card)] transition-all" style={{ borderColor: 'var(--cor-primaria)' }}>
         <h3 className="flex items-center gap-2 font-black text-xs uppercase tracking-widest mb-3" style={{ color: 'var(--cor-primaria)' }}>
           <AcademicCapIcon className="w-5 h-5" /> Análise Literária Premium
         </h3>
@@ -77,7 +86,7 @@ export default function VitrineDestaques({ userId, isPremium }: VitrineDestaques
     );
   }
 
-  // SKELETON DE CARREGAMENTO
+  // SKELETON DE CARREGAMENTO GERAL
   if (isLoading) {
     return (
       <div 
@@ -99,7 +108,7 @@ export default function VitrineDestaques({ userId, isPremium }: VitrineDestaques
 
   if (error || (livrosParaExibir.length === 0 && !livroFavorito)) return null;
 
-  // 🌟 Descobre a capa do favorito via ISBN ou fallback de strings salvas
+  // Descobre a capa do favorito via ISBN ou fallback de strings salvas
   const urlCapaFavorito = livroFavorito
     ? livroFavorito.isbn 
       ? `https://covers.openlibrary.org/b/isbn/${livroFavorito.isbn}-M.jpg`
@@ -107,20 +116,20 @@ export default function VitrineDestaques({ userId, isPremium }: VitrineDestaques
     : "";
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-6 mt-6">
+      
+      {/* 👑 SEÇÃO DA IA: Aparece no topo se o usuário for Premium */}
+      <CardAnalisePremium isPremium={isPremium} />
       
       {/* 🌟 SEÇÃO: LIVRO FAVORITO */}
       {livroFavorito && (
         <div 
-          className="mt-6 p-5 rounded-2xl border flex flex-col sm:flex-row items-center gap-5 transition-all relative overflow-hidden"
+          className="p-5 rounded-2xl border flex flex-col sm:flex-row items-center gap-5 transition-all relative overflow-hidden"
           style={{ 
             backgroundColor: 'var(--cor-fundo-card)', 
             borderColor: 'var(--cor-fundo-sidebar)' 
           }}
         >
-
-          <CardAnalisePremium userId={userId} isPremium={isPremium} />
-
           <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--cor-primaria)] opacity-[0.03] rounded-full blur-2xl pointer-events-none"></div>
           
           {/* Container de Capa igual ao da vitrine de baixo */}
