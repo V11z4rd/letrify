@@ -20,15 +20,26 @@ import ModalConexoes from "@/components/perfil/ModalConexoes";
 
 const fetcherUsuarioDaApi = async (url: string) => {
   try {
-    const token = authService.getToken();
+    const token = 
+      authService.getToken() || 
+      (typeof window !== 'undefined' ? localStorage.getItem('letrify_token') : null);
     const cabecalhos: HeadersInit = { "Content-Type": "application/json" };
 
-    if (token) cabecalhos["Authorization"] = `Bearer ${token}`;
+    if (token) {
+      cabecalhos["Authorization"] = `Bearer ${token.trim()}`;
+    } else {
+      console.warn("Aviso: Nenum token foi encontrado para autenticar a requisição.");
+    }
 
     const resposta = await fetch(`https://letrify.fly.dev${url}`, {
       method: "GET",
       headers: cabecalhos,
     });
+
+    // Se der 401, gera um aviso mais claro para o desenvolvedor rastrear
+    if (resposta.status === 401) {
+      console.error("Erro 401: Sessão expirada ou Token Inválido/Ausente.");
+    }
 
     if (!resposta.ok) throw new Error(`Erro na API: ${resposta.status}`);
 

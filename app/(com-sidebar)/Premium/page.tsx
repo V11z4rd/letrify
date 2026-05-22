@@ -12,12 +12,56 @@ import {
 
 export default function PremiumPage() {
   const [carregando, setCarregando] = useState(false);
+  
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
   const lidarComAssinatura = async () => {
     setCarregando(true);
     // Aqui entra a chamada para a sua API (/api/usuario/assinar ou integração com Stripe/MercadoPago)
-    setTimeout(() => setCarregando(false), 2000);
+    
+    try {
+      // 1. Pegar o Token do usuário
+      const token = typeof window !== 'undefined' ? localStorage.getItem('letrify_token') : null;
+      
+      // 2. Pegar o ID do usuário (ajuste a chave conforme você salva no seu login, ex: 'letrify_user_id' ou decodificado)
+      const usuarioId = typeof window !== 'undefined' ? localStorage.getItem('letrify_user_id') : null;
+      
+      if (!token || !usuarioId) {
+        alert("Você precisa estar logado para assinar o Letrify Pro.");
+        setCarregando(false);
+        return;
+      }
+
+      // ROTA CORRIGIDA: /api/usuario/premium/{id}
+      const resposta = await fetch(`${BASE_URL}/usuario/premium/${usuarioId}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        // BODY CORRIGIDO: Exigido pela especificação da API
+        body: JSON.stringify({ activar: true }) 
+      });
+      
+      if (resposta.ok) {
+        alert("Parabéns! Agora você é um leitor Premium Letrify! 🎉");
+        window.location.reload();
+      } else {
+        const erroData = await resposta.json().catch(() => ({}));
+        alert(erroData.erro || "Ocorreu um erro ao processar sua assinatura.");
+      }
+      
+    } catch (err) {
+      console.error(err);
+      alert("Erro de conexão com o servidor. Tente novamente mais tarde.");
+    } finally {
+      setCarregando(false);
+    }
   };
+
+
+    
+
 
   const diferenciais = [
     {

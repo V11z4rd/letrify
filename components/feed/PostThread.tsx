@@ -1,10 +1,9 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useMemo } from "react";
 import Link from "next/link";
 import ComentarioFilho from "./ComentarioFilho";
 import MenuTresPontinhos from "../ui/MenuTresPontinhos";
-// Heroicons para trazer a identidade moderna do Letrify
 import { 
   ChatBubbleLeftRightIcon, 
   UserGroupIcon, 
@@ -26,6 +25,9 @@ interface MensagemChat {
   mensagemPaiId?: number | null;
   respostas: MensagemChat[];
   grupoId?: number | null;
+  GrupoId?: number | null;
+  grupo_id?: number | null;
+  grupo?: { id: number } | number | null;
 }
 
 interface PostThreadProps {
@@ -43,6 +45,26 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
   const isDonoDoPost = meuId === post.usuario.id;
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
+  // MAPEAMENTO INTELIGENTE: Captura o ID do grupo independentemente de como o backend o devolveu
+  const idDoGrupo = useMemo(() => {
+    if (!post) return null;
+    
+    // Testa todas as variações possíveis de retorno de chaves estrangeiras relacionais
+    const rawId = post.grupoId || post.GrupoId || post.grupo_id;
+    if (rawId) return Number(rawId);
+
+    // Se o backend retornou o objeto do grupo inteiro populado ({ grupo: { id: 12 } })
+    if (post.grupo && typeof post.grupo === 'object' && 'id' in post.grupo) {
+      return Number(post.grupo.id);
+    }
+    
+    if (typeof post.grupo === 'number') {
+      return post.grupo;
+    }
+
+    return null;
+  }, [post]);
+
   const handleResponder = async () => {
     const textoLimpo = conteudoResposta.trim();
     if (textoLimpo.length === 0) return;
@@ -57,7 +79,6 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("letrify_token") : null;
       
-      // Corrigido para utilizar a variável de ambiente BASE_URL dinâmica
       const respostaApi = await fetch(`${BASE_URL}/chat/enviar`, {
         method: "POST",
         headers: {
@@ -142,19 +163,19 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
         {post.conteudo}
       </p>
 
-      {/* BLOCO DE RECRUTAMENTO DE CLUBES (VISUAL PREMIUM REESTILIZADO) */}
-      {post.grupoId && (
+      {/* BLOCO DE RECRUTAMENTO DE CLUBES (VISUAL PREMIUM) */}
+      {idDoGrupo ? (
         <div 
           className="mb-5 p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all"
           style={{ 
             backgroundColor: 'var(--cor-fundo-app)', 
-            borderColor: 'rgba(var(--cor-primaria-rgb, 59, 130, 246), 0.2)' 
+            borderColor: 'rgba(59, 130, 246, 0.2)' 
           }}
         >
           <div className="flex items-center gap-3">
             <div 
               className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border"
-              style={{ backgroundColor: 'rgba(var(--cor-primaria-rgb, 59, 130, 246), 0.1)', borderColor: 'rgba(var(--cor-primaria-rgb, 59, 130, 246), 0.3)' }}
+              style={{ backgroundColor: 'rgba(59, 130, 246, 0.1)', borderColor: 'rgba(59, 130, 246, 0.3)' }}
             >
               <UserGroupIcon className="w-5 h-5 stroke-[2]" style={{ color: 'var(--cor-primaria)' }} />
             </div>
@@ -165,7 +186,7 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
           </div>
           
           <Link 
-            href={`/grupos/${post.grupoId}`} 
+            href={`/grupos/${idDoGrupo}`} 
             className="px-4 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:scale-[1.01] active:scale-95"
             style={{ backgroundColor: 'var(--cor-destaque)', color: '#ffffff' }}
           >
@@ -173,8 +194,8 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
             <ArrowRightIcon className="w-3.5 h-3.5 stroke-[2.5]" />
           </Link>
         </div>
-      )}
-      
+      ) : null}
+
       {/* SELETOR INDICADOR DE RESPOSTAS */}
       <button 
         onClick={() => setExpandido(!expandido)}
@@ -188,13 +209,12 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
         <span>{post.respostas?.length || 0} respostas</span>
       </button>
 
-      {/* ÁREA EXPANDIDA (RAMIFICAÇÃO E SUB-POSTS) */}
+      {/* ÁREA EXPANDIDA */}
       {expandido && (
         <div 
           className="mt-5 ml-5 pl-5 border-l-2 relative transition-all animate-fade-in"
           style={{ borderColor: 'var(--cor-fundo-sidebar)' }}
         >
-          
           {/* INPUT DE RESPOSTA EXPANDIDO */}
           <div className="mb-5 relative">
             <div className="absolute -left-5 top-5 w-5 border-t-2" style={{ borderColor: 'var(--cor-fundo-sidebar)' }} />
@@ -236,7 +256,7 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
             </div>
           </div>
 
-          {/* FLUXO DINÂMICO DOS COMENTÁRIOS FILHOS */}
+          {/* COMENTÁRIOS FILHOS */}
           <div className="flex flex-col gap-4">
             {post.respostas && post.respostas.length > 0 ? (
               post.respostas.map((resposta) => (
@@ -255,7 +275,6 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
               </p>
             )}
           </div>
-
         </div>
       )}
 
