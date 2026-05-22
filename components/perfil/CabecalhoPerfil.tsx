@@ -10,7 +10,7 @@ import {
   UserPlusIcon, 
   CheckIcon 
 } from "@heroicons/react/24/outline";
-import { BadgePremium } from "./Premuim";
+import { BadgePremium } from "./Premium";
 
 export function SkeletonCabecalho() {
   return (

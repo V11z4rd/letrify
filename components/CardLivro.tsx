@@ -24,6 +24,8 @@ export default function CardLivro({ livro, variante = "busca", onRemove }: CardL
   const [carregandoStatus, setCarregandoStatus] = useState<string | null>(null);
   const [sucessoNoBotao, setSucessoNoBotao] = useState<string | null>(null);
 
+  const [erroCapa, setErroCapa] = useState(false);
+
   const tituloFinal = livro.titulo || "Título Desconhecido";
   const autorFinal = livro.autor || (livro.autores && livro.autores.join(", ")) || livro.autorPrincipal || "Autor Desconhecido";
   const isbnFinal = livro.isbn && livro.isbn !== 'Sem ISBN' ? livro.isbn.trim() : null;
@@ -121,19 +123,31 @@ export default function CardLivro({ livro, variante = "busca", onRemove }: CardL
         </div>
       )}
 
-      <div className="h-64 flex items-center justify-center p-4 bg-black/5 dark:bg-white/5 relative">
-        {isbnFinal ? (
+      {/* ÁREA DA CAPA DO LIVRO */}
+      <div className="h-64 flex items-center justify-center p-4 bg-black/5 dark:bg-white/5 relative border-b border-black/5 dark:border-white/5">
+        {isbnFinal && !erroCapa ? (
           <img 
             src={`https://covers.openlibrary.org/b/isbn/${isbnFinal}-M.jpg`} 
-            alt={`Capa`} 
-            className="h-full object-contain shadow-md rounded"
-            onError={(e) => {
-              e.currentTarget.style.display = 'none';
-              e.currentTarget.parentElement!.innerHTML = '<span class="text-5xl opacity-20"><svg class="w-12 h-12" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="1.5" d="M12 6.253v13m0-13C10.832 5.477 9.246 5 7.5 5S4.168 5.477 3 6.253v13C4.168 18.477 5.754 18 7.5 18s3.332.477 4.5 1.253m0-13C13.168 5.477 14.754 5 16.5 5c1.747 0 3.332.477 4.5 1.253v13C19.832 18.477 18.247 18 16.5 18c-1.746 0-3.332.477-4.5 1.253"></path></svg></span>';
-            }}
+            alt={`Capa de ${tituloFinal}`} 
+            className="h-full object-contain shadow-md rounded transition-transform duration-300 hover:scale-105"
+            onError={() => setErroCapa(true)} // Se a API da OpenLibrary falhar, ativamos o estado de erro!
           />
         ) : (
-          <BookOpenIcon className="w-16 h-16 opacity-20" />
+          /* NOSSA CAPA SUBSTITUTA (FALLBACK) */
+          <div className="flex flex-col items-center justify-center text-center p-4 w-full h-full rounded-md shadow-inner bg-gradient-to-br from-black/10 to-transparent dark:from-white/10 border border-dashed border-zinc-500/30 relative overflow-hidden">
+            <BookOpenIcon className="w-12 h-12 mb-3 opacity-20 absolute top-4 right-4" />
+            
+            <span className="text-sm font-black line-clamp-5 leading-tight opacity-90 z-10" style={{ color: 'var(--cor-texto-principal)' }}>
+              {tituloFinal}
+            </span>
+            
+            <div className="absolute bottom-4 flex flex-col items-center">
+              <div className="w-8 h-1 bg-zinc-500/30 rounded-full mb-2"></div>
+              <span className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold opacity-80">
+                Capa Indisponível
+              </span>
+            </div>
+          </div>
         )}
       </div>
       
