@@ -10,12 +10,21 @@ import {
   TrophyIcon, 
   UserGroupIcon, 
   TagIcon,
-  BookOpenIcon
+  BookOpenIcon,
+  StarIcon // 🌟 Ícone estrela para o fallback
 } from "@heroicons/react/24/outline";
 
 interface AbasDestaqueProps {
   perfil: {
-    favorito: { titulo: string; autor: string } | null;
+    // 🌟 Tipagem atualizada para aceitar o ISBN do seu objeto de console.log
+    favorito: { 
+      titulo: string; 
+      autorPrincipal?: string; // Campo real que sua API manda
+      autor?: string; // Campo alternativo
+      isbn?: string; 
+      capaUrl?: string; 
+      capa?: string; 
+    } | null;
     topAutores: { nome: string; valor: number }[];
     topTemas: { nome: string; valor: number }[];
   };
@@ -95,6 +104,18 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
     { id: "temas", label: "Gêneros", icone: TagIcon }
   ] as const;
 
+  // 🌟 MÁGICA DA CAPA: Resolve a imagem baseada na resposta oficial do Letrify pelo ISBN
+  const urlCapaFavorito = perfil.favorito
+    ? perfil.favorito.isbn 
+      ? `https://covers.openlibrary.org/b/isbn/${perfil.favorito.isbn}-M.jpg`
+      : perfil.favorito.capaUrl || perfil.favorito.capa || ""
+    : "";
+
+  // Captura o nome mapeado para o autor (autorPrincipal vindo do seu back-end)
+  const autorFavorito = perfil.favorito 
+    ? perfil.favorito.autorPrincipal || perfil.favorito.autor || "Autor não informado"
+    : "";
+
   return (
     <section 
       className="rounded-3xl border p-6 shadow-xl transition-all duration-300"
@@ -129,30 +150,48 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
         {/* ABA LIVRO FAVORITO */}
         {abaAtiva === "livro" && (
           perfil.favorito ? (
-            <div className="text-center animate-fade-in group">
+            <div className="text-center animate-fade-in group relative">
               
-              {/* Capa de Livro 3D Letrify */}
+              {/* Efeito sutil de brilho atrás para destacar o favorito */}
+              <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-10 w-40 h-40 bg-[var(--cor-primaria)] opacity-5 rounded-full blur-3xl pointer-events-none"></div>
+
+              {/* Contêiner da Capa Inteligente com Fallback embutido */}
               <div 
-                className="w-36 h-52 rounded-2xl shadow-xl mb-5 mx-auto flex items-center justify-center border transition-all duration-300 relative overflow-hidden group-hover:-translate-y-1 group-hover:shadow-2xl"
+                className="w-36 h-52 rounded-2xl shadow-xl mb-5 mx-auto flex items-center justify-center border transition-all duration-300 relative overflow-hidden group-hover:-translate-y-1 group-hover:shadow-2xl bg-zinc-200 dark:bg-zinc-800"
                 style={{ 
-                  backgroundColor: 'var(--cor-fundo-app)', 
                   borderColor: 'var(--cor-fundo-sidebar)' 
                 }}
                 onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
                 onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-fundo-sidebar)'}
               >
-                <div className="absolute top-0 left-0 bottom-0 w-2 bg-black/[0.12] dark:bg-black/[0.3] z-10 border-r border-black/[0.05]" />
-                <div className="absolute inset-0 bg-gradient-to-t from-black/[0.2] dark:from-black/[0.5] to-transparent z-0" />
-                <span className="text-[9px] uppercase font-black tracking-[0.35em] opacity-15 rotate-90 select-none" style={{ color: 'var(--cor-texto-principal)' }}>
-                  LETRIFY
-                </span>
+                {/* 🌟 Inserindo lombada e efeitos de profundidade por cima de tudo */}
+                <div className="absolute top-0 left-0 bottom-0 w-2 bg-black/[0.12] dark:bg-black/[0.3] z-20 border-r border-black/[0.05]" />
+                <div className="absolute inset-0 bg-gradient-to-t from-black/[0.2] dark:from-black/[0.5] to-transparent z-10 pointer-events-none" />
+
+                {urlCapaFavorito ? (
+                  <img 
+                    src={urlCapaFavorito}
+                    alt={perfil.favorito.titulo}
+                    className="w-full h-full object-cover relative z-1"
+                    onError={(e) => {
+                      // Se falhar o carregamento (404 no ISBN), esconde a tag img e mostra o fallback
+                      (e.target as HTMLImageElement).style.display = 'none';
+                    }}
+                  />
+                ) : null}
+
+                {/* 🌟 FALLBACK PREMIUM: Só fica visível se a imagem real falhar ou não existir. Adeus preto absoluto! */}
+                <div className="absolute inset-0 flex flex-col items-center justify-center p-4 opacity-15 select-none z-0 bg-zinc-300 dark:bg-zinc-700">
+                  <StarIcon className="w-8 h-8 stroke-[1.5] fill-zinc-100 dark:fill-zinc-900" style={{ color: 'var(--cor-texto-principal)' }} />
+                  <span className="text-[10px] uppercase font-black tracking-widest mt-1.5 opacity-60" style={{ color: 'var(--cor-texto-principal)' }}>LETRIFY</span>
+                </div>
               </div>
 
               <h4 className="text-xl font-black tracking-tight max-w-[240px] mx-auto line-clamp-2" style={{ color: 'var(--cor-texto-principal)' }}>
                 {perfil.favorito.titulo}
               </h4>
               <p className="text-xs font-bold mt-1.5 opacity-80" style={{ color: 'var(--cor-primaria)' }}>
-                {perfil.favorito.autor}
+                {autorFavorito}
               </p>
             </div>
           ) : (

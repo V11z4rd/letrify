@@ -1,12 +1,13 @@
 "use client";
 
 import { useMemo } from "react";
+import Link from "next/link";
 import useSWR from "swr";
-// Importações estratégicas do Heroicons
 import { 
   SparklesIcon, 
   BookOpenIcon, 
-  ChevronRightIcon 
+  ChevronRightIcon,
+  StarIcon
 } from "@heroicons/react/24/outline";
 
 interface VitrineDestaquesProps {
@@ -18,11 +19,20 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 export default function VitrineDestaques({ userId }: VitrineDestaquesProps) {
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
-  // Buscamos os livros do usuário utilizando a BASE_URL dinâmica
+  // 1. BUSCA OS LIVROS DAS PRATELEIRAS DO USUÁRIO
   const { data, error, isLoading } = useSWR(
     userId ? `${BASE_URL}/usuario/${userId}/livros` : null,
     fetcher
   );
+
+  // 2. BUSCA OS DADOS DE PERFIL DO USUÁRIO
+  const { data: dadosUsuario } = useSWR(
+    userId ? `${BASE_URL}/usuario/${userId}` : null,
+    fetcher
+  );
+
+  // Captura o objeto do livro favorito
+  const livroFavorito = dadosUsuario?.favorito || null;
 
   const livrosParaExibir = useMemo(() => {
     if (!data) return [];
@@ -34,16 +44,16 @@ export default function VitrineDestaques({ userId }: VitrineDestaquesProps) {
       ...(data.queroLer || [])
     ];
     
-    // Remove duplicatas por ID para evitar quebras de chave no React
-    const idsUnicos = new Set();
+    const chavesUnicas = new Set();
     return todos.filter(livro => {
-      if (!livro?.id || idsUnicos.has(livro.id)) return false;
-      idsUnicos.add(livro.id);
+      const chave = livro?.isbn || livro?.id;
+      if (!chave || chavesUnicas.has(chave)) return false;
+      chavesUnicas.add(chave);
       return true;
     }).slice(0, 12); 
   }, [data]);
 
-  // 1. SKELETON DE CARREGAMENTO ADAPTADO AO GLÓBALS
+  // SKELETON DE CARREGAMENTO
   if (isLoading) {
     return (
       <div 
@@ -63,97 +73,155 @@ export default function VitrineDestaques({ userId }: VitrineDestaquesProps) {
     );
   }
 
-  if (error || livrosParaExibir.length === 0) return null;
+  if (error || (livrosParaExibir.length === 0 && !livroFavorito)) return null;
+
+  // 🌟 Descobre a capa do favorito via ISBN ou fallback de strings salvas
+  const urlCapaFavorito = livroFavorito
+    ? livroFavorito.isbn 
+      ? `https://covers.openlibrary.org/b/isbn/${livroFavorito.isbn}-M.jpg`
+      : livroFavorito.capaUrl || livroFavorito.capa || ""
+    : "";
 
   return (
-    <div 
-      className="mt-6 p-6 rounded-2xl border transition-all" 
-      style={{ 
-        backgroundColor: 'var(--cor-fundo-card)', 
-        borderColor: 'var(--cor-fundo-sidebar)' 
-      }}
-    >
-      {/* CABEÇALHO DA VITRINE */}
-      <div className="flex items-center justify-between mb-6 border-b pb-3" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-        <h2 className="text-base font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto-principal)' }}>
-          <SparklesIcon className="w-5 h-5 stroke-[2.5]" style={{ color: 'var(--cor-primaria)' }} /> 
-          Vitrine de Leituras
-        </h2>
-        <span className="text-[10px] font-bold uppercase tracking-wider opacity-40" style={{ color: 'var(--cor-texto-principal)' }}>
-          Recentes
-        </span>
-      </div>
-
-      {/* GRID DE LIVROS */}
-      <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 animate-fade-in">
-        {livrosParaExibir.map((livro, i) => (
-          <div key={livro.id || i} className="group relative flex flex-col items-center cursor-pointer">
-            
-            {/* CAPA DO LIVRO */}
-            <div 
-              className="relative aspect-[2/3] w-full rounded-xl overflow-hidden shadow-sm border transition-all duration-300 group-hover:scale-102 group-hover:shadow-xl"
-              style={{ 
-                backgroundColor: 'var(--cor-fundo-app)',
-                borderColor: 'var(--cor-fundo-sidebar)'
-              }}
-            >
-              {livro.capa ? (
-                <img 
-                  src={livro.capa} 
-                  alt={livro.titulo}
-                  className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
-                  loading="lazy"
-                />
-              ) : (
-                /* FALLBACK PREMIUM USANDO HEROICONS COMPATÍVEL COM TEMAS */
-                <div className="w-full h-full flex flex-col items-center justify-center p-4 opacity-30 text-center gap-2">
-                  <BookOpenIcon className="w-8 h-8 stroke-[1.5]" style={{ color: 'var(--cor-texto-principal)' }} />
-                  <span className="text-[9px] font-bold uppercase tracking-wider leading-tight">Sem Capa</span>
-                </div>
-              )}
-              
-              {/* OVERLAY VISUAL INTERATIVO */}
-              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-2.5">
-                <span 
-                  className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md w-max text-white"
-                  style={{ backgroundColor: 'var(--cor-destaque)' }}
-                >
-                  {livro.status || 'Leitura'}
-                </span>
-              </div>
-            </div>
-
-            {/* INFO DO LIVRO */}
-            <div className="mt-2.5 w-full text-center px-1">
-              <p 
-                className="text-xs font-bold line-clamp-1 transition-colors duration-200" 
-                style={{ color: 'var(--cor-texto-principal)' }}
-                /* Efeito de hover dinâmico baseado na sua cor primária */
-                onMouseEnter={(e) => e.currentTarget.style.color = 'var(--cor-primaria)'}
-                onMouseLeave={(e) => e.currentTarget.style.color = 'var(--cor-texto-principal)'}
-              >
-                {livro.titulo}
-              </p>
-              <p className="text-[10px] font-medium opacity-50 truncate mt-0.5" style={{ color: 'var(--cor-texto-secundario)' }}>
-                {livro.autor}
-              </p>
-            </div>
-
-          </div>
-        ))}
-      </div>
-
-      {/* RODAPÉ DA VITRINE */}
-      <div className="mt-6 pt-4 border-t flex justify-center" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-        <button 
-          className="text-xs font-bold py-2 px-5 rounded-full flex items-center gap-1.5 transition-all hover:bg-black/[0.03] dark:hover:bg-white/[0.03] active:scale-95"
-          style={{ color: 'var(--cor-primaria)' }}
+    <div className="space-y-6">
+      
+      {/* 🌟 SEÇÃO: LIVRO FAVORITO */}
+      {livroFavorito && (
+        <div 
+          className="mt-6 p-5 rounded-2xl border flex flex-col sm:flex-row items-center gap-5 transition-all relative overflow-hidden"
+          style={{ 
+            backgroundColor: 'var(--cor-fundo-card)', 
+            borderColor: 'var(--cor-fundo-sidebar)' 
+          }}
         >
-          <span>Ver Estante Completa</span>
-          <ChevronRightIcon className="w-3.5 h-3.5 stroke-[3]" />
-        </button>
-      </div>
+          <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--cor-primaria)] opacity-[0.03] rounded-full blur-2xl pointer-events-none"></div>
+          
+          {/* Container de Capa igual ao da vitrine de baixo */}
+          <div className="w-24 h-36 rounded-xl overflow-hidden shadow-md shrink-0 bg-black/5 dark:bg-white/5 border border-black/10 dark:border-white/10 relative flex items-center justify-center">
+            {urlCapaFavorito ? (
+              <img 
+                src={urlCapaFavorito}
+                alt={livroFavorito.titulo}
+                className="w-full h-full object-cover"
+                onError={(e) => { 
+                  (e.target as HTMLImageElement).style.display = 'none'; 
+                }}
+              />
+            ) : null}
+            
+            {/* Fallback caso a imagem do favorito falhe ou não exista */}
+            <div className="absolute inset-0 z-[-1] flex flex-col items-center justify-center p-4 opacity-30 text-center gap-1.5 bg-zinc-200 dark:bg-zinc-800">
+              <BookOpenIcon className="w-6 h-6 stroke-[1.5]" style={{ color: 'var(--cor-texto-principal)' }} />
+              <span className="text-[8px] font-bold uppercase tracking-wider">Sem Capa</span>
+            </div>
+          </div>
 
+          <div className="flex flex-col text-center sm:text-left flex-1 space-y-1">
+            <span className="text-[10px] font-black uppercase tracking-widest flex items-center justify-center sm:justify-start gap-1.5" style={{ color: 'var(--cor-primaria)' }}>
+              <StarIcon className="w-3.5 h-3.5 fill-current" /> Livro Favorito
+            </span>
+            <h3 className="text-lg font-black tracking-tight" style={{ color: 'var(--cor-texto-principal)' }}>
+              {livroFavorito.titulo}
+            </h3>
+            <p className="text-xs opacity-60 font-medium" style={{ color: 'var(--cor-texto-secundario)' }}>
+              by {livroFavorito.autorPrincipal || livroFavorito.autor || "Autor não informado"}
+            </p>
+          </div>
+        </div>
+      )}
+
+      {/* VITRINE PRINCIPAL DE LEITURAS */}
+      <div 
+        className="p-6 rounded-2xl border transition-all" 
+        style={{ 
+          backgroundColor: 'var(--cor-fundo-card)', 
+          borderColor: 'var(--cor-fundo-sidebar)' 
+        }}
+      >
+        <div className="flex items-center justify-between mb-6 border-b pb-3" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+          <h2 className="text-base font-bold flex items-center gap-2" style={{ color: 'var(--cor-texto-principal)' }}>
+            <SparklesIcon className="w-5 h-5 stroke-[2.5]" style={{ color: 'var(--cor-primaria)' }} /> 
+            Vitrine de Leituras
+          </h2>
+          <span className="text-[10px] font-bold uppercase tracking-wider opacity-40" style={{ color: 'var(--cor-texto-principal)' }}>
+            Recentes
+          </span>
+        </div>
+
+        {/* GRID DE LIVROS */}
+        <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 xl:grid-cols-6 gap-4 animate-fade-in">
+          {livrosParaExibir.map((livro, i) => {
+            const urlCapaFinal = livro.isbn 
+              ? `https://covers.openlibrary.org/b/isbn/${livro.isbn}-M.jpg` 
+              : livro.capa || (livro as any).capaUrl || "";
+
+            const autorFinal = (livro as any).autorPrincipal || livro.autor || "Autor não informado";
+
+            return (
+              <div key={livro.isbn || livro.id || i} className="group relative flex flex-col items-center cursor-pointer">
+                
+                <div 
+                  className="relative aspect-[2/3] w-full rounded-xl overflow-hidden shadow-sm border transition-all duration-300 group-hover:scale-102 group-hover:shadow-xl bg-black/5 dark:bg-white/5"
+                  style={{ borderColor: 'var(--cor-fundo-sidebar)' }}
+                >
+                  {urlCapaFinal ? (
+                    <img 
+                      src={urlCapaFinal} 
+                      alt={livro.titulo}
+                      className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                      loading="lazy"
+                      onError={(e) => {
+                        (e.target as HTMLImageElement).style.display = 'none';
+                      }}
+                    />
+                  ) : null}
+
+                  <div className="absolute inset-0 z-[-1] flex flex-col items-center justify-center p-4 opacity-30 text-center gap-1.5">
+                    <BookOpenIcon className="w-7 h-7 stroke-[1.5]" style={{ color: 'var(--cor-texto-principal)' }} />
+                    <span className="text-[8px] font-bold uppercase tracking-wider leading-tight">Sem Capa</span>
+                  </div>
+                  
+                  <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-200 flex flex-col justify-end p-2.5">
+                    <span 
+                      className="text-[9px] font-black uppercase tracking-wider px-2 py-0.5 rounded-md w-max text-white"
+                      style={{ backgroundColor: 'var(--cor-destaque)' }}
+                    >
+                      {livro.status || 'Leitura'}
+                    </span>
+                  </div>
+                </div>
+
+                <div className="mt-2.5 w-full text-center px-1">
+                  <p 
+                    className="text-xs font-bold line-clamp-1 transition-colors duration-200" 
+                    style={{ color: 'var(--cor-texto-principal)' }}
+                    onMouseEnter={(e) => e.currentTarget.style.color = 'var(--cor-primaria)'}
+                    onMouseLeave={(e) => e.currentTarget.style.color = 'var(--cor-texto-principal)'}
+                  >
+                    {livro.titulo}
+                  </p>
+                  <p className="text-[10px] font-medium opacity-50 truncate mt-0.5" style={{ color: 'var(--cor-texto-secundario)' }}>
+                    {autorFinal}
+                  </p>
+                </div>
+
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="mt-6 pt-4 border-t flex justify-center" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+          <Link 
+            href={`/estante?id=${userId}`}
+            className="text-xs font-bold py-2 px-5 rounded-full flex items-center gap-1.5 transition-all hover:bg-black/[0.03] dark:hover:bg-white/[0.03] active:scale-95"
+            style={{ color: 'var(--cor-primaria)' }}
+          >
+            <span>Ver Estante Completa</span>
+            <ChevronRightIcon className="w-3.5 h-3.5 stroke-[3]" />
+          </Link>
+        </div>
+
+      </div>
     </div>
   );
 }

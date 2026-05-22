@@ -191,7 +191,14 @@ function ConteudoDoPerfil() {
               <>
                 {/* Modo Edição Ativo: Substitui ambos os blocos ordenadamente */}
                 <EditarLivroFavorito perfilInicial={perfilMapeado} />
-                <ListarLivros onFechar={() => setIsEditando(false)} />
+                <ListarLivros 
+                  onFechar={() => {
+                    setIsEditando(false);
+                    // O mutate() força o SWR a recarregar os dados do perfil imediatamente 
+                    // após o fechamento da tela de edição
+                    mutate(); 
+                  }} 
+                />
               </>
             )}
           </div>
