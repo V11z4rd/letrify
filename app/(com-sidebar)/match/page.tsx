@@ -10,6 +10,8 @@ export default function MatchPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [buscou, setBuscou] = useState(false);
 
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
+
   // 1. RECUPERAR DO CACHE AO ABRIR
   useEffect(() => {
     const cache = sessionStorage.getItem("letrify-last-matches");
@@ -28,7 +30,7 @@ export default function MatchPage() {
       const token = authService.getToken();
       if (!token) throw new Error("Logue para usar o Radar.");
 
-      const resposta = await fetch("${BASE_URL}/match", {
+      const resposta = await fetch(`https://letrify.fly.dev/api/match`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,

@@ -11,8 +11,11 @@ const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
 export default function VitrineDestaques({ userId }: VitrineDestaquesProps) {
   // Buscamos os livros do usuário
+
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
+
   const { data, error, isLoading } = useSWR(
-    userId ? `${BASE_URL}/usuario/${userId}/livros` : null,
+    userId ? `https://letrify.fly.dev/api/usuario/${userId}/livros` : null,
     fetcher
   );
 

@@ -39,7 +39,7 @@ export default function CardLivro({ livro, variante = "busca", onRemove }: CardL
       const token = authService.getToken();
       if (!token) throw new Error("Faça login para salvar.");
 
-      const resposta = await fetch(`${BASE_URL}/usuario/meus-livros`, {
+      const resposta = await fetch(`https://letrify.fly.dev/api/usuario/meus-livros`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
@@ -83,7 +83,7 @@ export default function CardLivro({ livro, variante = "busca", onRemove }: CardL
     setCarregandoStatus("Remover");
     try {
       const token = authService.getToken();
-      const resposta = await fetch(`${BASE_URL}/usuario/meus-livros/${livro.id}`, {
+      const resposta = await fetch(`https://letrify.fly.dev/api/usuario/meus-livros/${livro.id}`, {
         method: "DELETE",
         headers: { "Authorization": `Bearer ${token}` }
       });

@@ -43,7 +43,7 @@ export default function BotaoCriarPost({ onPostCreated }: { onPostCreated?: () =
         payload.grupoId = Number(grupoSelecionado);
       }
 
-      const resposta = await fetch(`${BASE_URL}/chat`, {
+      const resposta = await fetch(`https://letrify.fly.dev/api/chat`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,

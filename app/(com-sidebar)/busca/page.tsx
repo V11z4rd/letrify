@@ -23,6 +23,8 @@ export default function BuscaLivrosPage() {
   const [carregando, setCarregando] = useState(false);
   const [buscaFeita, setBuscaFeita] = useState(false);
 
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
+
   // O nosso estado agora é organizado por "Prateleiras"
   const [prateleiras, setPrateleiras] = useState({
     isbn: [] as LivroDados[],
@@ -60,7 +62,7 @@ export default function BuscaLivrosPage() {
 
     if (isIsbn) {
       // É ISBN! Bate só na rota específica
-      const livrosIsbn = await fetchSeguro(`${BASE_URL}/livro/livroespecifico/${apenasNumeros}`);
+      const livrosIsbn = await fetchSeguro(`https://letrify.fly.dev/api/livro/livroespecifico/${apenasNumeros}`);
       setPrateleiras(prev => ({ ...prev, isbn: livrosIsbn }));
       setCarregando(false);
       return;
@@ -71,9 +73,9 @@ export default function BuscaLivrosPage() {
     const termoTema = tradutorTemas[termoLimpo] || textoBusca;
 
     // 4. O MOTOR V8 (Busca Paralela)
-    const urlTitulo = `${BASE_URL}/livro/livrostitulo?titulo=${encodeURIComponent(textoBusca)}&quantidade=10`;
-    const urlAutor = `${BASE_URL}/livro/livrosautor?autor=${encodeURIComponent(textoBusca)}&quantidade=10`;
-    const urlTema = `${BASE_URL}/livro/livrostema?tema=${encodeURIComponent(termoTema)}&quantidade=10`;
+    const urlTitulo = `https://letrify.fly.dev/api/livro/livrostitulo?titulo=${encodeURIComponent(textoBusca)}&quantidade=10`;
+    const urlAutor = `https://letrify.fly.dev/api/livro/livrosautor?autor=${encodeURIComponent(textoBusca)}&quantidade=10`;
+    const urlTema = `https://letrify.fly.dev/api/livro/livrostema?tema=${encodeURIComponent(termoTema)}&quantidade=10`;
 
     // Atira nas 3 rotas ao mesmo tempo!
     const [resultadosTitulos, resultadosAutores, resultadosTemas] = await Promise.all([

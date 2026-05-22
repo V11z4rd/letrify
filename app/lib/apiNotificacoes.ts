@@ -1,7 +1,7 @@
 import axios from 'axios';
 
 // Apontando para a porta correta do seu backend C#
-const API_URL = process.env.NEXT_PUBLIC_API_URL;
+const API_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
 const api = axios.create({
     baseURL: API_URL,

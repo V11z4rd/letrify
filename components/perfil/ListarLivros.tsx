@@ -25,6 +25,8 @@ export default function ListarLivros({ onSelecionarLivro, onFechar }: ListarLivr
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
+
   // Lista de temas preparada por nós (Letrify)
   const temasPredefinidos = [
     "Mistério", "Filosofia", "Romance", "História", 
@@ -50,7 +52,7 @@ export default function ListarLivros({ onSelecionarLivro, onFechar }: ListarLivr
       setErro(null);
 
       try {
-        let url = "${BASE_URL}/livro";
+        let url = `https://letrify.fly.dev/api/livro`;
         const params = new URLSearchParams({
           pagina: "1",
           quantidade: "15"

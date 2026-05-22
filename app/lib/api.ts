@@ -1,12 +1,13 @@
 // app/lib/api.ts
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev";
+// Colocamos a URL oficial de volta para não depender do .env da equipe
+const BASE_URL = "https://letrify.fly.dev/api";
 
 export const apiFetch = async (endpoint: string, options: RequestInit = {}) => {
     // Garante que o formato da URL fique correto
-    const url = endpoint.startsWith("http") ? endpoint : `${BASE_URL}${endpoint}`;
+    const url = endpoint.startsWith("http") ? endpoint : `https://letrify.fly.dev/api${endpoint}`;
     
-    // Aqui você pode até centralizar a lógica de injetar o token JWT automaticamente!
+    // Injeta o token JWT automaticamente
     const token = typeof window !== 'undefined' ? localStorage.getItem('letrify_token') : null;
     
     const headers = {

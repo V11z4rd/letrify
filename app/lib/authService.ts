@@ -1,9 +1,9 @@
 // app/lib/authService.ts
 import { extrairIdDoToken } from "./jwt";
 
-const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
-const API_BASE_URL = '${BASE_URL}/auth';
+
+const API_BASE_URL = `https://letrify.fly.dev/api/auth`;
 
 export const authService = {
   // 1. FAZER LOGIN REAL
@@ -17,12 +17,12 @@ export const authService = {
     if (!resposta.ok) throw new Error("E-mail ou senha incorretos.");
 
     const dados = await resposta.json();
-    
+
     if (dados.token) {
       // ✅ OPERAÇÃO HACKER INICIADA ✅
       // 1. Guarda o token
       localStorage.setItem("letrify_token", dados.token);
-      
+
       // 2. Descriptografa o token, rouba o ID e guarda o ID separado!
       const userId = extrairIdDoToken(dados.token);
       if (userId) {
@@ -30,7 +30,7 @@ export const authService = {
       }
       // ✅ OPERAÇÃO HACKER CONCLUÍDA COM SUCESSO ✅
     }
-    
+
     return dados;
   },
 

@@ -53,6 +53,8 @@ function ConteudoDoPerfil() {
   const [isSeguindo, setIsSeguindo] = useState(false);
   const [abaModalAberta, setAbaModalAberta] = useState<"Seguidores" | "Seguindo" | null>(null);
 
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
+
   useEffect(() => {
     const idNoCofre = authService.getUserId();
     if (idNoCofre) {
@@ -78,7 +80,7 @@ function ConteudoDoPerfil() {
         try {
           const token = authService.getToken();
           // Puxa a MINHA lista de quem eu sigo
-          const res = await fetch(`${BASE_URL}/seguidores/seguindo`, {
+          const res = await fetch(`https://letrify.fly.dev/api/seguidores/seguindo`, {
             headers: { "Authorization": `Bearer ${token}` }
           });
 
@@ -99,7 +101,7 @@ function ConteudoDoPerfil() {
 
   const handleFollowToggle = async () => {
     const token = authService.getToken();
-    const resposta = await fetch(`${BASE_URL}/seguidores/seguir/${idParaBuscar}`, {
+    const resposta = await fetch(`https://letrify.fly.dev/api/seguidores/seguir/${idParaBuscar}`, {
       method: 'POST',
       headers: {
         "Authorization": `Bearer ${token}`,

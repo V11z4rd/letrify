@@ -2,7 +2,7 @@ import { authService } from "./authService";
 
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
-const API_BASE_URL = '${BASE_URL}/grupos';
+const API_BASE_URL = `https://letrify.fly.dev/api/grupos`;
 
 // ----------------------------------------------------------------------
 // 1. INTERFACES (Tipagem de Dados)

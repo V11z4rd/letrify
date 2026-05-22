@@ -42,6 +42,8 @@ export default function EditarPerfilPage() {
   const [modalAberto, setModalAberto] = useState(false);
   const [tokenSessao, setTokenSessao] = useState("");
 
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
+
   // 1. Busca os dados reais ao entrar
   useEffect(() => {
     const rawAuth = localStorage.getItem("letrify-auth");
@@ -58,7 +60,7 @@ export default function EditarPerfilPage() {
       const usuarioId = dadosDoToken?.[chaveId]; 
 
       if (usuarioId) {
-        fetch(`${BASE_URL}/usuario/${usuarioId}`, {
+        fetch(`https://letrify.fly.dev/api/usuario/${usuarioId}`, {
           headers: { "Authorization": `Bearer ${token}` }
         })
           .then(res => res.ok ? res.json() : null)
@@ -107,7 +109,7 @@ export default function EditarPerfilPage() {
         formData.append("foto", fotoArquivo);
       }
 
-      const resposta = await fetch("${BASE_URL}/usuario/editar", {
+      const resposta = await fetch(`https://letrify.fly.dev/api/usuario/editar`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${tokenSessao}`

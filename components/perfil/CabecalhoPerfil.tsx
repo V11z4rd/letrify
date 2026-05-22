@@ -66,6 +66,8 @@ export default function CabecalhoPerfil({
   const [seguindo, setSeguindo] = useState(isSeguindoInicial);
   const [contSeguidores, setContSeguidores] = useState(estatisticas?.seguidores || 0);
 
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
+
   // Se as props mudarem (ex: usuário navegou para outro perfil), atualiza os estados
   useEffect(() => {
     setSeguindo(isSeguindoInicial);
@@ -107,7 +109,7 @@ export default function CabecalhoPerfil({
         formData.append("foto", novosDados.fotoPerfil);
       }
 
-      const resposta = await fetch("${BASE_URL}/usuario/editar", {
+      const resposta = await fetch(`https://letrify.fly.dev/api/usuario/editar`, {
         method: "PUT",
         headers: { "Authorization": `Bearer ${token}` },
         body: formData

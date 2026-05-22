@@ -21,6 +21,8 @@ export default function ModalConexoes({ tipoInicial, perfilId, onClose }: ModalP
   const [usuarios, setUsuarios] = useState<UsuarioLista[]>([]);
   const [carregando, setCarregando] = useState(true);
 
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
+
   useEffect(() => {
     const buscarLista = async () => {
       setCarregando(true);
@@ -28,7 +30,7 @@ export default function ModalConexoes({ tipoInicial, perfilId, onClose }: ModalP
         const token = authService.getToken();
         const rota = abaAtiva === "Seguidores" ? "seguidores" : "seguindo";
         
-        const res = await fetch(`${BASE_URL}/seguidores/${rota}/${perfilId}`, {
+        const res = await fetch(`https://letrify.fly.dev/api/seguidores/${rota}/${perfilId}`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
 

@@ -27,6 +27,8 @@ export default function FeedPage() {
   const [carregando, setCarregando] = useState(true);
   const [meuId, setMeuId] = useState<number | null>(null);
 
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
+
   useEffect(() => {
     const idString = authService.getUserId();
     if (idString) setMeuId(parseInt(idString, 10));
@@ -37,7 +39,7 @@ export default function FeedPage() {
     // 3. Função para buscar o histórico inicial (REST)
     const carregarHistorico = async () => {
       try {
-        const resposta = await fetch("${BASE_URL}/chat/listar?pagina=1&tamanhoPagina=50", {
+        const resposta = await fetch(`https://letrify.fly.dev/api/chat/listar?pagina=1&tamanhoPagina=50`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
 

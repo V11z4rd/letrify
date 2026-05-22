@@ -9,6 +9,8 @@ export default function ContaPage() {
   const [carregando, setCarregando] = useState(false);
   const [erro, setErro] = useState("");
 
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
+
   // 1. FUNÇÃO DE SAIR (LOGOUT)
   const handleLogout = () => {
     authService.logout(); // Limpa o token do localStorage
@@ -28,7 +30,7 @@ export default function ContaPage() {
       const token = authService.getToken();
       if (!token) throw new Error("Você não está autenticado. Faça login novamente.");
 
-      const resposta = await fetch("${BASE_URL}/usuario/deletar", {
+      const resposta = await fetch(`https://letrify.fly.dev/api/usuario/deletar`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`

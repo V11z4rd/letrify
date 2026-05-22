@@ -12,6 +12,8 @@ export default function MenuTresPontinhos({ idPost, isDono }: MenuProps) {
   const [excluindo, setExcluindo] = useState(false);
   const menuRef = useRef<HTMLDivElement>(null);
 
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
+
   // Fecha o menu se o usuário clicar fora dele
   useEffect(() => {
     function clicarFora(event: MouseEvent) {
@@ -32,7 +34,7 @@ export default function MenuTresPontinhos({ idPost, isDono }: MenuProps) {
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("letrify_token") : null;
       
-      const resposta = await fetch(`${BASE_URL}/chat/deletar/${idPost}`, {
+      const resposta = await fetch(`https://letrify.fly.dev/api/chat/deletar/${idPost}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`

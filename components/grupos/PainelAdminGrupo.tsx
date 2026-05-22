@@ -27,7 +27,7 @@ export default function PainelAdminGrupo({ grupoId }: PainelAdminProps) {
     setCarregando(true);
     try {
       const token = authService.getToken();
-      const res = await fetch(`${BASE_URL}/grupos/${grupoId}/solicitacoes`, {
+      const res = await fetch(`https://letrify.fly.dev/api/grupos/${grupoId}/solicitacoes`, {
         headers: { "Authorization": `Bearer ${token}` }
       });
       if (res.ok) {
@@ -49,7 +49,7 @@ export default function PainelAdminGrupo({ grupoId }: PainelAdminProps) {
     setProcessandoId(usuarioId);
     try {
       const token = authService.getToken();
-      const res = await fetch(`${BASE_URL}/grupos/${grupoId}/solicitacoes/${usuarioId}/responder`, {
+      const res = await fetch(`https://letrify.fly.dev/api/grupos/${grupoId}/solicitacoes/${usuarioId}/responder`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
