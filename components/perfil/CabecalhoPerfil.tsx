@@ -1,6 +1,7 @@
 "use client";
 import { useState, useEffect } from "react";
 import EditorPerfil from "./EditorPerfil";
+import { CheckBadgeIcon } from "@heroicons/react/24/solid";
 import { authService } from "@/app/lib/authService";
 // Ícones indispensáveis do Heroicons para ações e metadados de perfil
 import { 
@@ -9,6 +10,7 @@ import {
   UserPlusIcon, 
   CheckIcon 
 } from "@heroicons/react/24/outline";
+import { BadgePremium } from "./Premuim";
 
 export function SkeletonCabecalho() {
   return (
@@ -37,10 +39,11 @@ interface CabecalhoProps {
   descricao: string;
   fotoPerfil: string;
   bannerUrl: string;
+  isPremium: boolean;
   estatisticas: { seguindo: number; seguidores: number };
   isDonoDoPerfil: boolean;
   isSeguindoInicial?: boolean; 
-  onFollowClick?: () => Promise<void>; 
+  onFollowClick?: () => Promise<void>;
   onAbrirModal?: (tipo: "Seguidores" | "Seguindo") => void; 
   isEditorAbertoExterno: boolean;
   setIsEditorAbertoExterno: (aberto: boolean) => void;
@@ -58,7 +61,8 @@ export default function CabecalhoPerfil({
   onFollowClick,
   onAbrirModal,
   isEditorAbertoExterno,
-  setIsEditorAbertoExterno
+  setIsEditorAbertoExterno,
+  isPremium = false
 }: CabecalhoProps) {
   
   const [dadosPerfil, setDadosPerfil] = useState({
@@ -66,7 +70,8 @@ export default function CabecalhoPerfil({
     cidade: initialCidade,
     descricao: initialDescricao,
     fotoPerfil: initialFoto,
-    bannerUrl: initialBanner
+    bannerUrl: initialBanner,
+    isPremium: false
   });
 
   const [seguindo, setSeguindo] = useState(isSeguindoInicial);
@@ -78,6 +83,18 @@ export default function CabecalhoPerfil({
     setSeguindo(isSeguindoInicial);
     setContSeguidores(estatisticas?.seguidores || 0);
   }, [isSeguindoInicial, estatisticas?.seguidores]);
+
+  useEffect(() => {
+    setDadosPerfil(prev => ({
+      ...prev,
+      nome: initialNome,
+      cidade: initialCidade,
+      descricao: initialDescricao,
+      fotoPerfil: initialFoto,
+      bannerUrl: initialBanner,
+      isPremium: isPremium // Garante que a atualização externa reflita aqui
+    }));
+  }, [initialNome, initialCidade, initialDescricao, initialFoto, initialBanner, isPremium]);
 
   const handleBotaoSeguir = async () => {
     if (!onFollowClick) return;
@@ -182,8 +199,10 @@ export default function CabecalhoPerfil({
               {/* CONTEÚDO PRINCIPAL */}
               <div className="flex-1 mt-4 md:mt-3.5 flex flex-col justify-between">
                 <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start md:items-center gap-4">
-                  <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--cor-texto-principal)' }}>
+                  <h1 className="text-3xl font-black tracking-tight flex items-center" style={{ color: 'var(--cor-texto-principal)' }}>
                     {dadosPerfil.nome}
+                    {/* Se o objeto usuário vier com 'isPremium: true' */}
+                    {dadosPerfil.isPremium && <BadgePremium />}
                   </h1>
               
                   {isDonoDoPerfil ? (

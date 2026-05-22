@@ -169,6 +169,7 @@ function ConteudoDoPerfil() {
         onAbrirModal={setAbaModalAberta}
         isEditorAbertoExterno={isEditando}
         setIsEditorAbertoExterno={setIsEditando}
+        isPremium={perfilMapeado.isPremium}
       />
 
       {perfilMapeado.isPrivado && !isDonoDoPerfil ? (
@@ -185,7 +186,9 @@ function ConteudoDoPerfil() {
               <>
                 {/* O Novo Componente Limpo */}
                 <AbasDestaque perfil={perfilMapeado} />
-                <VitrineDestaques userId={idParaBuscar as string} />
+                <VitrineDestaques 
+                  userId={idParaBuscar as string} 
+                  isPremium={perfilMapeado.isPremium} />
               </>
             ) : (
               <>

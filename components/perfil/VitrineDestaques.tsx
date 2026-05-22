@@ -3,6 +3,7 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import useSWR from "swr";
+import { AcademicCapIcon } from "@heroicons/react/24/outline";
 import { 
   SparklesIcon, 
   BookOpenIcon, 
@@ -12,11 +13,12 @@ import {
 
 interface VitrineDestaquesProps {
   userId: string;
+  isPremium: boolean;
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-export default function VitrineDestaques({ userId }: VitrineDestaquesProps) {
+export default function VitrineDestaques({ userId, isPremium }: VitrineDestaquesProps) {
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
   // 1. BUSCA OS LIVROS DAS PRATELEIRAS DO USUÁRIO
@@ -52,6 +54,28 @@ export default function VitrineDestaques({ userId }: VitrineDestaquesProps) {
       return true;
     }).slice(0, 12); 
   }, [data]);
+
+  function CardAnalisePremium({ userId, isPremium }: { userId: string, isPremium: boolean }) {
+    if (!isPremium) return null; // Só mostra se for premium
+
+    const { data, error, isLoading } = useSWR(`${process.env.NEXT_PUBLIC_API_URL}/api/premium/analise`, fetcher);
+
+    // Se der erro na IA, apenas não mostra o card, não estraga o visual
+    if (error || !data) return null;
+    if (isLoading) return <div className="p-4 mt-6 animate-pulse bg-zinc-100 dark:bg-zinc-800 rounded-2xl">IA analisando perfil...</div>;
+    if (!data) return null;
+
+    return (
+      <div className="mt-6 p-6 rounded-2xl border border-dashed border-[var(--cor-primaria)] bg-[var(--cor-fundo-card)]">
+        <h3 className="flex items-center gap-2 font-black text-xs uppercase tracking-widest mb-3" style={{ color: 'var(--cor-primaria)' }}>
+          <AcademicCapIcon className="w-5 h-5" /> Análise Literária Premium
+        </h3>
+        <p className="text-xs leading-relaxed opacity-80" style={{ color: 'var(--cor-texto-principal)' }}>
+          {data.textoAnalise}
+        </p>
+      </div>
+    );
+  }
 
   // SKELETON DE CARREGAMENTO
   if (isLoading) {
@@ -94,6 +118,9 @@ export default function VitrineDestaques({ userId }: VitrineDestaquesProps) {
             borderColor: 'var(--cor-fundo-sidebar)' 
           }}
         >
+
+          <CardAnalisePremium userId={userId} isPremium={isPremium} />
+
           <div className="absolute top-0 right-0 w-32 h-32 bg-[var(--cor-primaria)] opacity-[0.03] rounded-full blur-2xl pointer-events-none"></div>
           
           {/* Container de Capa igual ao da vitrine de baixo */}

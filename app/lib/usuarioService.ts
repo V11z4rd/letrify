@@ -25,6 +25,7 @@ export function mapearPerfilDaApi(dadosApi: any) {
     bannerUrl: BANNER_PADRAO, 
     cidade: dadosApi.cidade || "", 
     descricao: dadosApi.descricao || "",
+    isPremium: !!dadosApi.isPremium || !!perfil?.isPremium,
 
     // 2. Estatísticas do Cabeçalho
     estatisticas: {
