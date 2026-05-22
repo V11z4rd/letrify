@@ -1,8 +1,12 @@
 "use client";
 
 import { useState, useEffect } from "react";
+import { 
+  PaintBrushIcon,
+  CheckIcon,
+  ArrowPathIcon
+} from "@heroicons/react/24/outline";
 
-// O nosso "banco de dados" de paletas
 const paletasDeCores = [
   { 
     id: 0, 
@@ -25,11 +29,9 @@ const paletasDeCores = [
 ];
 
 export default function PersonalizacaoPage() {
-  // Estados corretos
   const [temaAtivo, setTemaAtivo] = useState(0);
   const [salvando, setSalvando] = useState(false);
 
-  // Lê o cache ao abrir a tela para marcar a bolinha certa
   useEffect(() => {
     const temaSalvo = localStorage.getItem("letrify_theme");
     if (temaSalvo) {
@@ -42,14 +44,10 @@ export default function PersonalizacaoPage() {
     }
   }, []);
 
-  // A função que o usuário chama ao clicar na bolinha
   const handleMudarTema = (id: number) => {
     setTemaAtivo(id);
-    
-    // 1. Define se é modo escuro baseado no ID (O ID 2 é o nosso tema noturno)
     const isEscuro = id === 2;
 
-    // 2. Atualiza visualmente na hora (injetando no HTML)
     document.documentElement.setAttribute("data-theme-palette", String(id));
     if (isEscuro) {
       document.documentElement.classList.add("dark");
@@ -57,61 +55,66 @@ export default function PersonalizacaoPage() {
       document.documentElement.classList.remove("dark");
     }
     
-    // 3. Salva no cache do navegador (Para o ThemeManager ler depois)
     localStorage.setItem("letrify_theme", JSON.stringify({
       paleta: id,
       escura: isEscuro
     }));
 
-    // Efeito visual de salvamento
     setSalvando(true);
-    setTimeout(() => setSalvando(false), 600);
+    setTimeout(() => setSalvando(false), 800);
   };
 
   return (
-    <div className="max-w-4xl mx-auto pb-20 animate-fade-in space-y-10">
+    <div className="max-w-4xl mx-auto pt-6 px-4 pb-24 animate-fade-in space-y-10">
       
+      {/* CABEÇALHO DA PÁGINA */}
       <div>
         <h1 className="text-3xl font-black mb-2" style={{ color: 'var(--cor-texto-principal)' }}>Personalização</h1>
-        <p className="text-sm" style={{ color: 'var(--cor-texto-secundario)' }}>
+        <p className="text-xs sm:text-sm font-medium opacity-60" style={{ color: 'var(--cor-texto-secundario)' }}>
           Ajuste a aparência do Letrify para combinar com o seu estilo de leitura.
         </p>
       </div>
 
       {/* BLOCO DE PALETA DE CORES */}
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--cor-primaria)' }}>Paleta de Cores</h2>
+        <div className="flex items-center justify-between min-h-[24px]">
+          <h2 className="text-xs font-black uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--cor-primaria)' }}>
+            <PaintBrushIcon className="w-4 h-4 stroke-[2.5]" />
+            <span>Paleta de Cores</span>
+          </h2>
+          
           {salvando && (
-            <span className="text-xs font-bold animate-pulse" style={{ color: 'var(--cor-primaria)' }}>
-              Salvando localmente...
-            </span>
+            <div className="flex items-center gap-1.5 text-xs font-black uppercase tracking-wider animate-pulse" style={{ color: 'var(--cor-primaria)' }}>
+              <ArrowPathIcon className="w-3.5 h-3.5 animate-spin stroke-[2.5]" />
+              <span>Aplicando...</span>
+            </div>
           )}
         </div>
         
         <div 
-          className="p-8 rounded-2xl border"
+          className="p-6 sm:p-8 rounded-2xl border transition-all duration-300"
           style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
         >
-          <div className="flex flex-wrap gap-10 items-center justify-center sm:justify-start">
+          {/* Ajustado o gap para ser responsivo (gap-6 no mobile / gap-10 no sm) */}
+          <div className="flex flex-wrap gap-6 sm:gap-10 items-center justify-center sm:justify-start">
             {paletasDeCores.map((paleta) => {
               const isAtivo = temaAtivo === paleta.id;
 
               return (
-                <div key={paleta.id} className="flex flex-col items-center gap-4">
+                <div key={paleta.id} className="flex flex-col items-center gap-3 shrink-0">
                   
                   {/* O Círculo Colorido (Botão) */}
                   <button
                     onClick={() => handleMudarTema(paleta.id)}
-                    className={`w-24 h-24 rounded-full shadow-lg transition-all duration-300 overflow-hidden relative ${
-                      isAtivo ? 'scale-110 ring-4 ring-offset-4' : 'hover:scale-105 hover:shadow-xl'
+                    className={`w-20 h-20 sm:w-24 sm:h-24 rounded-full shadow-md transition-all duration-300 overflow-hidden relative border active:scale-95 flex items-center justify-center ${
+                      isAtivo 
+                        ? 'scale-105 shadow-xl' 
+                        : 'hover:scale-105 hover:shadow-lg opacity-80 hover:opacity-100'
                     }`}
                     style={{ 
-                      // O anel puxa a cor primária da paleta
-                      '--tw-ring-color': paleta.corPrimaria,
-                      // O offset puxa a cor de fundo do App para o contraste perfeito
-                      '--tw-ring-offset-color': 'var(--cor-fundo-app)',
-                    } as React.CSSProperties}
+                      borderColor: isAtivo ? paleta.corPrimaria : 'var(--cor-fundo-sidebar)',
+                      boxShadow: isAtivo ? `0 0 0 4px var(--cor-fundo-app), 0 0 0 7px ${paleta.corPrimaria}` : ''
+                    }}
                     aria-label={`Selecionar tema ${paleta.nome}`}
                   >
                     {/* Metade Esquerda (Cor de Fundo) */}
@@ -120,14 +123,18 @@ export default function PersonalizacaoPage() {
                     {/* Metade Direita (Cor Primária) */}
                     <div className="absolute inset-y-0 right-0 w-1/2" style={{ backgroundColor: paleta.corPrimaria }}></div>
                     
-                    {/* Detalhe central vítreo */}
-                    <div className="absolute inset-0 m-auto w-8 h-8 rounded-full bg-white/20 backdrop-blur-sm border border-white/40 shadow-inner"></div>
+                    {/* Detalhe central vítreo com o CheckIcon se ativo */}
+                    <div className="absolute inset-0 m-auto w-8 h-8 rounded-full bg-white/20 dark:bg-black/20 backdrop-blur-md border border-white/30 dark:border-white/10 shadow-inner flex items-center justify-center">
+                      {isAtivo && (
+                        <CheckIcon className="w-4 h-4 text-white drop-shadow-md stroke-[3] animate-scale-up" />
+                      )}
+                    </div>
                   </button>
                   
                   {/* Nome do Tema */}
                   <span 
-                    className={`text-sm font-bold transition-colors ${isAtivo ? 'opacity-100' : 'opacity-50'}`} 
-                    style={{ color: isAtivo ? 'var(--cor-primaria)' : 'var(--cor-texto-principal)' }}
+                    className="text-xs font-black uppercase tracking-wider transition-colors mt-1" 
+                    style={{ color: isAtivo ? 'var(--cor-primaria)' : 'var(--cor-texto-secundario)' }}
                   >
                     {paleta.nome}
                   </span>

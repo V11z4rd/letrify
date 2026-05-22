@@ -4,8 +4,15 @@ import { useState, useEffect } from "react";
 import Link from "next/link";
 import Interruptor from "@/components/Interruptor";
 import CaixaSelecao from "@/components/CaixaSelecao";
+import { 
+  ShieldCheckIcon, 
+  EyeIcon, 
+  LockClosedIcon, 
+  ArrowPathIcon,
+  ChatBubbleLeftRightIcon,
+  UserGroupIcon
+} from "@heroicons/react/24/outline";
 
-// Constante separada para organização
 const OPCOES_INTERACAO = [
   { valor: "todos", rotulo: "Qualquer pessoa" },
   { valor: "seguidores", rotulo: "Apenas Seguidores" },
@@ -15,7 +22,6 @@ const OPCOES_INTERACAO = [
 export default function PrivacidadePage() {
   const [carregando, setCarregando] = useState(true);
   
-  // ESTADOS (Sincronizados com o localStorage)
   const [contaPrivada, setContaPrivada] = useState(false);
   const [ocultarBuscas, setOcultarBuscas] = useState(false);
   const [mostrarEstante, setMostrarEstante] = useState(true);
@@ -24,7 +30,6 @@ export default function PrivacidadePage() {
   const [quemPodeMensagem, setQuemPodeMensagem] = useState("todos");
   const [quemPodeGrupo, setQuemPodeGrupo] = useState("seguidores");
 
-  // Carrega do Banco Falso (localStorage) ao abrir
   useEffect(() => {
     const dadosSalvos = localStorage.getItem("letrify-privacidade");
     if (dadosSalvos) {
@@ -40,7 +45,6 @@ export default function PrivacidadePage() {
     setCarregando(false);
   }, []);
 
-  // Salva no Banco Falso (localStorage) a cada clique
   const salvarPreferencia = (chave: string, valor: any) => {
     const novasPreferencias = {
       contaPrivada, ocultarBuscas, mostrarEstante, mostrarResenhas, 
@@ -48,9 +52,7 @@ export default function PrivacidadePage() {
       [chave]: valor 
     };
     
-    // --- SIMULADOR DE SALVAMENTO NO BANCO ---
     localStorage.setItem("letrify-privacidade", JSON.stringify(novasPreferencias));
-    // ----------------------------------------
     
     if (chave === 'contaPrivada') setContaPrivada(valor);
     if (chave === 'ocultarBuscas') setOcultarBuscas(valor);
@@ -61,65 +63,88 @@ export default function PrivacidadePage() {
     if (chave === 'quemPodeGrupo') setQuemPodeGrupo(valor);
   };
 
-  if (carregando) return <div className="animate-pulse p-10 text-center opacity-50">🔒 Carregando os teus segredos...</div>;
+  if (carregando) {
+    return (
+      <div 
+        className="flex flex-col items-center justify-center py-32 text-xs font-black uppercase tracking-widest gap-3 animate-pulse"
+        style={{ color: 'var(--cor-texto-secundario)' }}
+      >
+        <ArrowPathIcon className="w-6 h-6 animate-spin" style={{ color: 'var(--cor-primaria)' }} />
+        <span>Sincronizando suas chaves de segurança...</span>
+      </div>
+    );
+  }
 
   return (
-    <div className="animate-fade-in space-y-10 max-w-4xl mx-auto pb-20">
+    <div className="max-w-4xl mx-auto pt-6 px-4 pb-32 animate-fade-in space-y-10">
       
+      {/* CABEÇALHO */}
       <div>
         <h1 className="text-3xl font-black mb-2" style={{ color: 'var(--cor-texto-principal)' }}>Privacidade</h1>
-        <p className="text-sm" style={{ color: 'var(--cor-texto-secundario)' }}>
+        <p className="text-xs sm:text-sm font-medium opacity-60" style={{ color: 'var(--cor-texto-secundario)' }}>
           Controle quem pode ver o seu perfil e interagir com você no Letrify.
         </p>
       </div>
 
       {/* BLOCO 1: VISIBILIDADE GLOBAL */}
       <section className="space-y-4">
-        <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--cor-primaria)' }}>Visibilidade Global</h2>
+        <h2 className="text-xs font-black uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--cor-primaria)' }}>
+          <ShieldCheckIcon className="w-4 h-4 stroke-[2.5]" />
+          <span>Visibilidade Global</span>
+        </h2>
         
-        <Interruptor 
-          titulo="Conta Privada"
-          descricao="Apenas os seguidores aprovados poderão ver as suas resenhas, guias e estante."
-          ativo={contaPrivada}
-          aoAlternar={() => salvarPreferencia('contaPrivada', !contaPrivada)}
-        />
+        <div className="space-y-3">
+          <Interruptor 
+            titulo="Conta Privada"
+            descricao="Apenas os seguidores aprovados poderão ver as suas resenhas, guias e estante."
+            ativo={contaPrivada}
+            aoAlternar={() => salvarPreferencia('contaPrivada', !contaPrivada)}
+          />
 
-        <Interruptor 
-          titulo="Ocultar das buscas"
-          descricao="O seu perfil não aparecerá quando outros utilizadores pesquisarem pelo seu nome."
-          ativo={ocultarBuscas}
-          aoAlternar={() => salvarPreferencia('ocultarBuscas', !ocultarBuscas)}
-        />
+          <Interruptor 
+            titulo="Ocultar das buscas"
+            descricao="O seu perfil não aparecerá quando outros utilizadores pesquisarem pelo seu nome."
+            ativo={ocultarBuscas}
+            aoAlternar={() => salvarPreferencia('ocultarBuscas', !ocultarBuscas)}
+          />
+        </div>
       </section>
 
-      {/* BLOCO 2: O QUE MOSTRAR NO PERFIL (A MÁGICA DO CADEADO ESTÁ AQUI) */}
-      {/* O relative aqui é crucial para o cadeado se basear NESTA seção inteira! */}
+      {/* BLOCO 2: DETALHES DO PERFIL COM OVERLAY SEGURO */}
       <section className="space-y-4">
+        <h2 className="text-xs font-black uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--cor-primaria)' }}>
+          <LockClosedIcon className="w-4 h-4 stroke-[2.5]" />
+          <span>Componentes do Perfil</span>
+        </h2>
         
-        <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--cor-primaria)' }}>O que mostrar no Perfil?</h2>
-        <div className="relative flex flex-col gap-4 w-full">
-        <p></p>
-        {/* O CADEADO GIGANTE E CORRIGIDO */}
-        
+        <div className="relative flex flex-col gap-3 w-full">
           {contaPrivada && (
             <div 
-             className="absolute inset-0 z-10 flex flex-col items-center justify-center rounded-2xl backdrop-blur-[2px] mt-0 border-2 border-dashed gap-3 p-10" 
-             style={{ 
-                backgroundColor: 'rgba(var(--cor-fundo-app-rgb), 0.7)', // Fundo translúcido do próprio tema
-               borderColor: 'var(--cor-texto-secundario)',
-               cursor: 'not-allowed' // Sinal de proibido no cadeado inteiro!
+              className="absolute inset-x-0 -top-2 -bottom-2 z-10 flex flex-col items-center justify-center rounded-2xl backdrop-blur-[3px] border border-dashed transition-all p-4 text-center" 
+              style={{ 
+                backgroundColor: 'rgba(var(--cor-fundo-app-rgb, 245, 241, 232), 0.75)', 
+                borderColor: 'var(--cor-fundo-sidebar)',
+                cursor: 'not-allowed'
               }}
             >
-              <span className="text-4xl">🔒</span>
-              <div className="bg-white dark:bg-black px-6 py-3 rounded-xl shadow-lg flex flex-col items-center text-center gap-2">
-               <span className="font-extrabold text-sm" style={{ color: 'var(--cor-texto-principal)' }}>A sua conta já é privada.</span>
-               <span className="text-xs max-w-xs" style={{ color: 'var(--cor-texto-secundario)' }}>Todas as opções abaixo estão ocultas para visitantes por padrão.</span>
+              <div 
+                className="p-5 rounded-2xl border max-w-sm shadow-xl animate-scale-up flex flex-col items-center gap-3"
+                style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
+              >
+                <div className="w-10 h-10 rounded-xl flex items-center justify-center bg-red-500/10 text-red-500">
+                  <LockClosedIcon className="w-5 h-5 stroke-[2.5]" />
+                </div>
+                <div className="flex flex-col gap-1">
+                  <span className="font-extrabold text-sm" style={{ color: 'var(--cor-texto-principal)' }}>Sua estante já está blindada</span>
+                  <span className="text-xs font-medium opacity-60" style={{ color: 'var(--cor-texto-secundario)' }}>
+                    Como a sua conta global é privada, o detalhamento individual foi desativado por segurança.
+                  </span>
+                </div>
               </div>
             </div>
           )}
 
-          {/* Os Legos agora com as descrições de volta */}
-         <Interruptor 
+          <Interruptor 
             titulo="Mostrar Estante de Livros"
             descricao="Permite que qualquer pessoa veja os livros que leu ou quer ler."
             ativo={mostrarEstante}
@@ -140,39 +165,43 @@ export default function PrivacidadePage() {
             aoAlternar={() => salvarPreferencia('mostrarConexoes', !mostrarConexoes)}
             desativado={contaPrivada}
           />
-          <p></p>
         </div>
       </section>
 
       {/* BLOCO 3: INTERAÇÕES E CONTATO */}
       <section className="space-y-4">
-        <h2 className="text-sm font-bold uppercase tracking-wider" style={{ color: 'var(--cor-primaria)' }}>Interações e Contato</h2>
+        <h2 className="text-xs font-black uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--cor-primaria)' }}>
+          <ChatBubbleLeftRightIcon className="w-4 h-4 stroke-[2.5]" />
+          <span>Interações e Contato</span>
+        </h2>
         
-        <CaixaSelecao 
-          titulo="Quem pode enviar Mensagens Diretas?"
-          descricao="Defina quem pode iniciar uma conversa privada consigo."
-          opcoes={OPCOES_INTERACAO}
-          valorSelecionado={quemPodeMensagem}
-          aoMudar={(valor) => salvarPreferencia('quemPodeMensagem', valor)}
-        />
+        <div className="space-y-3">
+          <CaixaSelecao 
+            titulo="Quem pode enviar Mensagens Diretas?"
+            descricao="Defina quem pode iniciar uma conversa privada consigo."
+            opcoes={OPCOES_INTERACAO}
+            valorSelecionado={quemPodeMensagem}
+            aoMudar={(valor) => salvarPreferencia('quemPodeMensagem', valor)}
+          />
 
-        <CaixaSelecao 
-          titulo="Quem pode te convidar para Grupos/Clubes?"
-          descricao="Defina quem pode enviar convites para comunidades."
-          opcoes={OPCOES_INTERACAO}
-          valorSelecionado={quemPodeGrupo}
-          aoMudar={(valor) => salvarPreferencia('quemPodeGrupo', valor)}
-        />
-        
+          <CaixaSelecao 
+            titulo="Quem pode te convidar para Grupos/Clubes?"
+            descricao="Defina quem pode enviar convites para comunidades."
+            opcoes={OPCOES_INTERACAO}
+            valorSelecionado={quemPodeGrupo}
+            aoMudar={(valor) => salvarPreferencia('quemPodeGrupo', valor)}
+          />
+        </div>
       </section>
     
       {/* BOTÃO FLUTUANTE DE VISITANTE */}
       <Link 
         href="/perfil?preview=visitante"
-        className="fixed bottom-8 right-8 z-50 px-6 py-3 rounded-full font-bold shadow-lg hover:scale-105 transition-transform"
-        style={{ backgroundColor: 'var(--cor-destaque)', color: 'var(--cor-botao-texto)' }}
+        className="fixed bottom-6 right-6 z-50 px-5 h-12 rounded-full font-black text-xs uppercase tracking-wider shadow-lg hover:scale-105 active:scale-95 transition-all flex items-center gap-2"
+        style={{ backgroundColor: 'var(--cor-destaque)', color: '#ffffff' }}
       >
-        👁️ Ver como Visitante
+        <EyeIcon className="w-4 h-4 stroke-[2.5]" />
+        <span>Ver como Visitante</span>
       </Link>
 
     </div>
