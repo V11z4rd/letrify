@@ -9,6 +9,7 @@ import {
   ChartBarIcon, 
   ShieldCheckIcon 
 } from "@heroicons/react/24/outline";
+import { authService } from "@/app/lib/authService"; // Importado para garantir a captura do ID do usuário
 
 export default function PremiumPage() {
   const [carregando, setCarregando] = useState(false);
@@ -17,14 +18,15 @@ export default function PremiumPage() {
 
   const lidarComAssinatura = async () => {
     setCarregando(true);
-    // Aqui entra a chamada para a sua API (/api/usuario/assinar ou integração com Stripe/MercadoPago)
     
     try {
-      // 1. Pegar o Token do usuário
+      // 1. Pegar o Token do usuário de forma segura
       const token = typeof window !== 'undefined' ? localStorage.getItem('letrify_token') : null;
       
-      // 2. Pegar o ID do usuário (ajuste a chave conforme você salva no seu login, ex: 'letrify_user_id' ou decodificado)
-      const usuarioId = typeof window !== 'undefined' ? localStorage.getItem('letrify_user_id') : null;
+      // 2. Pegar o ID do usuário usando o service como fallback seguro
+      const usuarioId = 
+        (typeof window !== 'undefined' ? localStorage.getItem('letrify_user_id') : null) || 
+        authService.getUserId();
       
       if (!token || !usuarioId) {
         alert("Você precisa estar logado para assinar o Letrify Pro.");
@@ -32,15 +34,15 @@ export default function PremiumPage() {
         return;
       }
 
-      // ROTA CORRIGIDA: /api/usuario/premium/{id}
+      // Requisição para a rota correta da sua especificação da API
       const resposta = await fetch(`${BASE_URL}/usuario/premium/${usuarioId}`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         },
-        // BODY CORRIGIDO: Exigido pela especificação da API
-        body: JSON.stringify({ activar: true }) 
+        // CORREÇÃO: "ativar" em português para bater com o seu backend
+        body: JSON.stringify({ ativar: true }) 
       });
       
       if (resposta.ok) {
@@ -58,10 +60,6 @@ export default function PremiumPage() {
       setCarregando(false);
     }
   };
-
-
-    
-
 
   const diferenciais = [
     {
@@ -147,7 +145,6 @@ export default function PremiumPage() {
             className="rounded-3xl border p-8 shadow-2xl relative overflow-hidden transition-all duration-300"
             style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-primaria)' }}
           >
-            {/* Efeito de iluminação no card de preço */}
             <div className="absolute -top-12 -right-12 w-32 h-32 bg-[var(--cor-primaria)] opacity-10 rounded-full blur-2xl pointer-events-none"></div>
             
             <div className="mb-6">

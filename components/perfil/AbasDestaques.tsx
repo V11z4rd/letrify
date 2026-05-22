@@ -10,10 +10,12 @@ import {
   UserGroupIcon, 
   TagIcon,
   BookOpenIcon,
-  StarIcon 
+  StarIcon,
+  SparklesIcon,
+  ArrowPathIcon
 } from "@heroicons/react/24/outline";
+import { authService } from "@/app/lib/authService";
 
-// INTERFACE ATUALIZADA - Reflete fielmente o JSON real da sua API
 interface AbasDestaqueProps {
   perfil: {
     nome?: string;
@@ -48,10 +50,25 @@ interface AbasDestaqueProps {
   };
 }
 
-export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
-  const [abaAtiva, setAbaAtiva] = useState<"livro" | "autores" | "temas">("livro");
+// Interface auxiliar para tipar a resposta do Gemini vinda da sua API
+interface AnalisePremiumData {
+  analise: string;
+  recomendacoes: {
+    titulo: string;
+    autor: string;
+    justificativa: string;
+  }[];
+}
 
-  // 1. TRATAMENTO DOS AUTORES (Lendo direto da raiz conforme o seu JSON)
+export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
+  const [abaAtiva, setAbaAtiva] = useState<"livro" | "autores" | "temas" | "premium_ia">("livro");
+  
+  // Estados para gerenciar a funcionalidade exclusiva Premium (Gemini)
+  const [carregandoIA, setCarregandoIA] = useState(false);
+  const [dadosIA, setDadosIA] = useState<AnalisePremiumData | null>(null);
+  const [erroIA, setErroIA] = useState<string | null>(null);
+
+  // 1. TRATAMENTO DOS AUTORES
   const dadosAutores = useMemo(() => {
     const listaRaw = perfil?.topAutores || [];
     return listaRaw.map((a) => ({
@@ -60,7 +77,7 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
     })).filter(item => item.nome !== "Ignorado");
   }, [perfil]);
 
-  // 2. TRATAMENTO DOS TEMAS / GÊNEROS (Lendo direto da raiz conforme o seu JSON)
+  // 2. TRATAMENTO DOS TEMAS / GÊNEROS
   const dadosTemas = useMemo(() => {
     const listaRaw = perfil?.topTemas || [];
     return listaRaw.map((t) => ({
@@ -68,6 +85,37 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
       valor: Number(t.valor || 0)
     })).filter(item => item.nome !== "Indefinido");
   }, [perfil]);
+
+  // Função para consultar a API do Gemini exclusiva para usuários Premium
+  const buscarAnaliseLiterariaIA = async () => {
+    setCarregandoIA(true);
+    setErroIA(null);
+    try {
+      const token = authService.getToken() || (typeof window !== 'undefined' ? localStorage.getItem('letrify_token') : null);
+      if (!token) throw new Error("Você precisa estar autenticado para realizar esta análise.");
+
+      const resposta = await fetch("https://letrify.fly.dev/api/premium/analise", {
+        method: "GET",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        }
+      });
+
+      if (resposta.status === 403 || resposta.status === 401) {
+        throw new Error("Acesso negado. Esta funcionalidade é exclusiva para membros Letrify Pro.");
+      }
+
+      if (!resposta.ok) throw new Error("Não foi possível gerar os dados com a Inteligência Artificial.");
+
+      const data = await resposta.json();
+      setDadosIA(data);
+    } catch (err: any) {
+      setErroIA(err.message || "Erro de conexão com o servidor.");
+    } finally {
+      setCarregandoIA(false);
+    }
+  };
 
   // RENDERIZADOR INTELIGENTE (TEIA OU LISTA CONSOANTE A QUANTIDADE)
   const renderizarDadosAba = (dados: { nome: string; valor: number }[], tipo: string) => {
@@ -80,7 +128,6 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
       );
     }
 
-    // Se tiver 3 ou mais itens, monta a teia (Radar)
     if (dados.length >= 3) {
       return (
         <div className="w-full h-[320px] animate-fade-in flex items-center justify-center relative">
@@ -148,7 +195,6 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
       );
     }
 
-    // Se tiver menos de 3 itens (1 ou 2), exibe em cartões elegantes
     return (
       <div className="w-full space-y-2.5 animate-fade-in px-4 py-4 max-w-md mx-auto">
         {dados.map((item, idx) => (
@@ -173,11 +219,21 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
     );
   };
 
-  const configuracaoAbas = [
-    { id: "livro", label: "Destaque", icone: TrophyIcon },
-    { id: "autores", label: "Autores", icone: UserGroupIcon },
-    { id: "temas", label: "Gêneros", icone: TagIcon }
-  ] as const;
+  // GERAÇÃO DINÂMICA DE CONFIGURAÇÃO DE ABAS BASEADO NO PREMIUM
+  const configuracaoAbas = useMemo(() => {
+    const abasBase = [
+      { id: "livro", label: "Destaque", icone: TrophyIcon },
+      { id: "autores", label: "Autores", icone: UserGroupIcon },
+      { id: "temas", label: "Gêneros", icone: TagIcon }
+    ];
+
+    // Se o usuário logado do perfil for premium, injeta a nova aba silenciosamente na barra
+    if (perfil.isPremium) {
+      abasBase.push({ id: "premium_ia", label: "IA Pro", icone: SparklesIcon });
+    }
+
+    return abasBase;
+  }, [perfil.isPremium]);
 
   const urlCapaFavorito = perfil.favorito
     ? perfil.favorito.isbn 
@@ -191,7 +247,7 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
 
   return (
     <section 
-      className="rounded-3xl border p-6 shadow-xl transition-all duration-300 w-full"
+      className="rounded-3xl border p-6 shadow-xl transition-all duration-300 w-full relative overflow-hidden"
       style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
     >
       {/* SELETOR DE ABAS */}
@@ -202,7 +258,7 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
           return (
             <button
               key={tab.id}
-              onClick={() => setAbaAtiva(tab.id)}
+              onClick={() => setAbaAtiva(tab.id as any)}
               className="pb-3 px-4 text-[10px] uppercase tracking-widest font-black flex items-center gap-2 border-b-2 -mb-[2px] transition-all duration-200 relative whitespace-nowrap"
               style={{ 
                 color: isActive ? 'var(--cor-primaria)' : 'var(--cor-texto-secundario)',
@@ -212,6 +268,9 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
             >
               <IconeComponente className="w-4 h-4 stroke-[2]" />
               <span>{tab.label}</span>
+              {tab.id === "premium_ia" && (
+                <span className="text-[8px] bg-amber-500 text-black px-1.5 py-0.5 rounded-md font-black tracking-normal ml-0.5">PRO</span>
+              )}
             </button>
           );
         })}
@@ -229,8 +288,6 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
               <div 
                 className="w-36 h-52 rounded-2xl shadow-xl mb-5 mx-auto flex items-center justify-center border transition-all duration-300 relative overflow-hidden group-hover:-translate-y-1 group-hover:shadow-2xl bg-zinc-200 dark:bg-zinc-800"
                 style={{ borderColor: 'var(--cor-fundo-sidebar)' }}
-                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
-                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-fundo-sidebar)'}
               >
                 <div className="absolute top-0 left-0 bottom-0 w-2 bg-black/[0.12] dark:bg-black/[0.3] z-20 border-r border-black/[0.05]" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/[0.2] dark:from-black/[0.5] to-transparent z-10 pointer-events-none" />
@@ -272,6 +329,94 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
 
         {/* ABA TEMAS */}
         {abaAtiva === "temas" && renderizarDadosAba(dadosTemas, "Temas")}
+
+        {/* ABA EXCLUSIVA PREMIUM COM ECOSSISTEMA GEMINI */}
+        {abaAtiva === "premium_ia" && (
+          <div className="w-full animate-fade-in flex flex-col items-center text-center">
+            {!dadosIA && !carregandoIA && (
+              <div className="max-w-md py-6 flex flex-col items-center gap-4">
+                <div className="w-12 h-12 bg-gradient-to-tr from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center text-black shadow-lg">
+                  <SparklesIcon className="w-6 h-6 stroke-[2]" />
+                </div>
+                <div>
+                  <h3 className="font-black text-base tracking-tight mb-1" style={{ color: 'var(--cor-texto-principal)' }}>Análise Literária Inteligente</h3>
+                  <p className="text-xs font-medium opacity-60 leading-relaxed" style={{ color: 'var(--cor-texto-secundario)' }}>
+                    O Letrify Pro coleta as estatísticas complexas de leitura estruturadas na sua estante e aciona a inteligência da **Google Gemini** para decodificar o seu perfil literário e projetar sugestões sob medida.
+                  </p>
+                </div>
+                <button
+                  onClick={buscarAnaliseLiterariaIA}
+                  className="px-6 py-3 rounded-xl font-black text-xs uppercase tracking-wider text-white shadow-md bg-gradient-to-r from-amber-500 to-amber-600 transition-transform active:scale-[0.98] hover:opacity-95"
+                >
+                  Acionar Gemini AI
+                </button>
+              </div>
+            )}
+
+            {carregandoIA && (
+              <div className="flex flex-col items-center gap-3 py-12">
+                <ArrowPathIcon className="w-8 h-8 animate-spin text-amber-500 stroke-[2.5]" />
+                <p className="text-xs font-black uppercase tracking-widest text-amber-500 animate-pulse">Gemini decodificando sua estante...</p>
+              </div>
+            )}
+
+            {erroIA && (
+              <div className="max-w-md py-6 text-center">
+                <p className="text-red-500 text-xs font-bold mb-3">🚨 {erroIA}</p>
+                <button 
+                  onClick={buscarAnaliseLiterariaIA}
+                  className="text-xs font-black uppercase tracking-wider text-amber-500 hover:underline"
+                >
+                  Tentar Novamente
+                </button>
+              </div>
+            )}
+
+            {dadosIA && !carregandoIA && (
+              <div className="w-full text-left space-y-6 animate-fade-in px-1">
+                {/* RELATÓRIO DO COMPORTAMENTO */}
+                <div className="p-5 rounded-2xl border" style={{ backgroundColor: 'var(--cor-fundo-sidebar)', borderColor: 'var(--cor-fundo-sidebar)' }}>
+                  <h4 className="text-xs font-black uppercase tracking-widest text-amber-500 mb-2 flex items-center gap-1.5">
+                    <SparklesIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+                    <span>Diagnóstico da IA</span>
+                  </h4>
+                  <p className="text-xs sm:text-sm leading-relaxed font-medium opacity-90 whitespace-pre-wrap" style={{ color: 'var(--cor-texto-principal)' }}>
+                    {dadosIA.analise}
+                  </p>
+                </div>
+
+                {/* RECOMENDAÇÕES EXCLUSIVAS */}
+                <div className="space-y-3">
+                  <h4 className="text-xs font-black uppercase tracking-widest opacity-50 px-1" style={{ color: 'var(--cor-texto-principal)' }}>
+                    Recomendações Cirúrgicas do Gemini
+                  </h4>
+                  
+                  <div className="grid grid-cols-1 gap-3">
+                    {dadosIA.recomendacoes?.map((livro, index) => (
+                      <div 
+                        key={index}
+                        className="p-4 rounded-2xl border border-dashed transition-all hover:bg-zinc-500/[0.02]"
+                        style={{ borderColor: 'var(--cor-fundo-sidebar)' }}
+                      >
+                        <div className="flex justify-between items-baseline gap-2 mb-1.5">
+                          <span className="font-black text-sm" style={{ color: 'var(--cor-texto-principal)' }}>
+                            {livro.titulo}
+                          </span>
+                          <span className="text-[10px] font-bold opacity-60 shrink-0" style={{ color: 'var(--cor-primaria)' }}>
+                            {livro.autor}
+                          </span>
+                        </div>
+                        <p className="text-xs font-medium opacity-60 leading-relaxed" style={{ color: 'var(--cor-texto-secundario)' }}>
+                          {livro.justificativa}
+                        </p>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+            )}
+          </div>
+        )}
       </div>
     </section>
   );

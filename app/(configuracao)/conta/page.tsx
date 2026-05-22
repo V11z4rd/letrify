@@ -8,12 +8,14 @@ import {
   ShieldExclamationIcon, 
   UserMinusIcon,
   LockClosedIcon,
-  ArrowPathIcon
+  ArrowPathIcon,
+  SparklesIcon
 } from "@heroicons/react/24/outline";
 
 export default function ContaPage() {
   const router = useRouter();
   const [carregando, setCarregando] = useState(false);
+  const [carregandoPremium, setCarregandoPremium] = useState(false);
   const [erro, setErro] = useState("");
 
   const handleLogout = () => {
@@ -49,6 +51,45 @@ export default function ContaPage() {
     } catch (err: any) {
       setErro(err.message);
       setCarregando(false);
+    }
+  };
+
+  const handleDesativarPremium = async () => {
+    const confirmar = window.confirm("Deseja realmente cancelar sua assinatura Letrify Pro? Você perderá o acesso instantâneo aos gráficos de teia e estantes ilimitadas.");
+    if (!confirmar) return;
+
+    setCarregandoPremium(true);
+    setErro("");
+
+    try {
+      const token = authService.getToken();
+      const usuarioId = authService.getUserId() || (typeof window !== 'undefined' ? localStorage.getItem('letrify_user_id') : null);
+
+      if (!token || !usuarioId) {
+        throw new Error("Sessão inválida. Por favor, realize o login novamente.");
+      }
+
+      const resposta = await fetch(`https://letrify.fly.dev/api/usuario/premium/${usuarioId}`, {
+        method: "PUT",
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        // CORREÇÃO: "ativar" como false para desativar o plano
+        body: JSON.stringify({ ativar: false })
+      });
+      
+      if (!resposta.ok) {
+        throw new Error("Não foi possível desativar a assinatura. Tente novamente.");
+      }
+
+      alert("Sua assinatura Letrify Pro foi desativada com sucesso. 💔");
+      window.location.reload();
+
+    } catch (err: any) {
+      setErro(err.message);
+    } finally {
+      setCarregandoPremium(false);
     }
   };
 
@@ -91,7 +132,6 @@ export default function ContaPage() {
           <span>Sessão Ativa</span>
         </h2>
         
-        {/* Ajustado de flex direto para flex-col sm:flex-row para não quebrar no mobile */}
         <div className="p-6 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all" style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}>
           <div className="flex flex-col">
             <span className="font-extrabold text-sm" style={{ color: 'var(--cor-texto-principal)' }}>Encerrar Sessão</span>
@@ -115,30 +155,58 @@ export default function ContaPage() {
           <span>Zona de Perigo</span>
         </h2>
         
-        <div className="p-6 rounded-2xl border border-red-500/20 bg-red-500/[0.02] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all hover:border-red-500/30">
-          <div className="flex flex-col max-w-lg">
-            <span className="font-extrabold text-sm text-red-500">Excluir conta permanentemente</span>
-            <span className="text-xs font-medium opacity-60 mt-1" style={{ color: 'var(--cor-texto-secundario)' }}>
-              Ao prosseguir, você perderá acesso imediato a todos os seus dados armazenados, livros favoritados, estatísticas e resenhas críticas. Esta ação não poderá ser desfeita.
-            </span>
+        <div className="space-y-4">
+          {/* EXCLUIR CONTA */}
+          <div className="p-6 rounded-2xl border border-red-500/20 bg-red-500/[0.02] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all hover:border-red-500/30">
+            <div className="flex flex-col max-w-lg">
+              <span className="font-extrabold text-sm text-red-500">Excluir conta permanentemente</span>
+              <span className="text-xs font-medium opacity-60 mt-1" style={{ color: 'var(--cor-texto-secundario)' }}>
+                Ao prosseguir, você perderá acesso imediato a todos os seus dados armazenados, livros favoritados, estatísticas e resenhas críticas. Esta ação não poderá ser desfeita.
+              </span>
+            </div>
+            
+            <button 
+              onClick={handleExcluirConta}
+              disabled={carregando}
+              className="w-full md:w-auto min-w-[140px] h-10 px-5 rounded-xl font-black text-xs uppercase tracking-wider bg-red-500 text-white transition-all duration-200 active:scale-95 hover:bg-red-600 disabled:opacity-40 flex items-center justify-center gap-2 shadow-sm shrink-0"
+            >
+              {carregando ? (
+                <ArrowPathIcon className="w-3.5 h-3.5 animate-spin stroke-[3]" />
+              ) : (
+                <>
+                  <UserMinusIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Excluir Conta</span>
+                </>
+              )}
+            </button>
           </div>
-          
-          {/* Botão com loader integrado para evitar cliques duplos durante o processamento */}
-          <button 
-            onClick={handleExcluirConta}
-            disabled={carregando}
-            className="w-full md:w-auto min-w-[140px] h-10 px-5 rounded-xl font-black text-xs uppercase tracking-wider bg-red-500 text-white transition-all duration-200 active:scale-95 hover:bg-red-600 disabled:opacity-40 flex items-center justify-center gap-2 shadow-sm shrink-0"
-          >
-            {carregando ? (
-              <ArrowPathIcon className="w-3.5 h-3.5 animate-spin stroke-[3]" />
-            ) : (
-              <>
-                <UserMinusIcon className="w-3.5 h-3.5 stroke-[2.5]" />
-                <span>Excluir Conta</span>
-              </>
-            )}
-          </button>
+
+          {/* DESATIVAR PREMIUM (NOVO) */}
+          <div className="p-6 rounded-2xl border border-amber-500/20 bg-amber-500/[0.02] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all hover:border-amber-500/30">
+            <div className="flex flex-col max-w-lg">
+              <span className="font-extrabold text-sm text-amber-500">Cancelar Assinatura Letrify Pro</span>
+              <span className="text-xs font-medium opacity-60 mt-1" style={{ color: 'var(--cor-texto-secundario)' }}>
+                Seu perfil voltará ao plano gratuito. Você perderá os emblemas especiais, a estante sem limites e os gráficos de radar personalizados imediatamente.
+              </span>
+            </div>
+            
+            <button 
+              onClick={handleDesativarPremium}
+              disabled={carregandoPremium}
+              className="w-full md:w-auto min-w-[140px] h-10 px-5 rounded-xl font-black text-xs uppercase tracking-wider bg-amber-600 text-white transition-all duration-200 active:scale-95 hover:bg-amber-700 disabled:opacity-40 flex items-center justify-center gap-2 shadow-sm shrink-0"
+            >
+              {carregandoPremium ? (
+                <ArrowPathIcon className="w-3.5 h-3.5 animate-spin stroke-[3]" />
+              ) : (
+                <>
+                  <SparklesIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+                  <span>Cancelar Pro</span>
+                </>
+              )}
+            </button>
+          </div>
         </div>
+
       </section>
 
     </div>
