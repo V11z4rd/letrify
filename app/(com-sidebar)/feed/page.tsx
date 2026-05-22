@@ -1,12 +1,11 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { signalRService } from "@/app/lib/signalrService";
-import { authService } from "@/app/lib/authService"; // Ajuste para o caminho correto do seu authService
+import { authService } from "@/app/lib/authService";
 import BotaoCriarPost from "@/components/feed/BotaoCriarPost";
 import PostThread from "@/components/feed/PostThread";
 
-// 1. Interfaces baseadas no retorno do seu Back-end
 interface UsuarioChat {
   id: number;
   nome: string;
@@ -29,49 +28,66 @@ export default function FeedPage() {
 
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
-  useEffect(() => {
-    const idString = authService.getUserId();
-    if (idString) setMeuId(parseInt(idString, 10));
-    // 2. Busca o token (ajuste para o método que você usa no authService)
+  // Busca o histórico inicial e serve de atualização forçada
+  const carregarHistorico = useCallback(async () => {
     const token = typeof window !== "undefined" ? localStorage.getItem("letrify_token") : null;
     if (!token) return;
 
-    // 3. Função para buscar o histórico inicial (REST)
-    const carregarHistorico = async () => {
-      try {
-        const resposta = await fetch(`https://letrify.fly.dev/api/chat/listar?pagina=1&tamanhoPagina=50`, {
-          headers: { "Authorization": `Bearer ${token}` }
-        });
+    try {
+      const resposta = await fetch(`${BASE_URL}/chat/listar?pagina=1&tamanhoPagina=50`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      });
 
-        if (resposta.ok) {
-          const dados = await resposta.json();
-          setMensagens(dados);
-        }
-      } catch (error) {
-        console.error("Erro ao carregar o feed inicial:", error);
-      } finally {
-        setCarregando(false);
+      if (resposta.ok) {
+        const dados = await resposta.json();
+        setMensagens(dados);
+      }
+    } catch (error) {
+      console.error("Erro ao carregar o feed inicial:", error);
+    } finally {
+      setCarregando(false);
+    }
+  }, [BASE_URL]);
+
+  // 🟢 ADICIONADO: Ouvinte do evento customizado invisível do navegador
+  // Captura ações disparadas de dentro de subcomponentes como o PostThread e o MenuTresPontinhos
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.addEventListener("atualizar_feed_global", carregarHistorico);
+    }
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("atualizar_feed_global", carregarHistorico);
       }
     };
+  }, [carregarHistorico]);
+
+  useEffect(() => {
+    const idString = authService.getUserId();
+    if (idString) setMeuId(parseInt(idString, 10));
+    
+    const token = typeof window !== "undefined" ? localStorage.getItem("letrify_token") : null;
+    if (!token) return;
 
     carregarHistorico();
 
-    // 4. Conecta no SignalR e registra os ouvintes
+    // Conecta ao SignalR Hub
     signalRService.iniciarConexao(token);
 
-    // OUVINTE A: Nova Mensagem Recebida
+    // OUVINTE A: Nova Mensagem ou Resposta
     signalRService.onReceberNovaMensagem((novaMensagem: MensagemChat) => {
       setMensagens((estadoAnterior) => {
-        // Se NÃO tem pai, é um Post Principal novo -> Vai pro topo do Feed
+        // Se for Post Principal (Sem Pai)
         if (!novaMensagem.mensagemPaiId) {
-          // Garantimos que respostas seja um array vazio para não quebrar a tela
+          if (estadoAnterior.some(m => m.id === novaMensagem.id)) return estadoAnterior;
           const mensagemFormatada = { ...novaMensagem, respostas: [] };
           return [mensagemFormatada, ...estadoAnterior];
         }
 
-        // Se TEM pai, é um Comentário -> Procuramos o pai e injetamos dentro dele
+        // Se for Resposta (Tem Pai) -> Procura o container pai e injeta na thread
         return estadoAnterior.map((postPai) => {
           if (postPai.id === novaMensagem.mensagemPaiId) {
+            if (postPai.respostas?.some(r => r.id === novaMensagem.id)) return postPai;
             return {
               ...postPai,
               respostas: [...(postPai.respostas || []), novaMensagem]
@@ -82,13 +98,13 @@ export default function FeedPage() {
       });
     });
 
-    // OUVINTE B: Mensagem Deletada
+    // OUVINTE B: Remoção em Tempo Real
     signalRService.onMensagemDeletada((idDeletado: number) => {
       setMensagens((estadoAnterior) => {
-        // Passo 1: Remove se for um Post Principal
+        // Remove do feed se for um post principal
         const feedSemOPai = estadoAnterior.filter((post) => post.id !== idDeletado);
-
-        // Passo 2: Remove se for uma Resposta dentro de algum Post Principal
+        
+        // Remove de dentro das respostas se for um comentário filho
         return feedSemOPai.map((post) => ({
           ...post,
           respostas: post.respostas ? post.respostas.filter((resp) => resp.id !== idDeletado) : []
@@ -96,38 +112,55 @@ export default function FeedPage() {
       });
     });
 
-    // 5. Cleanup: Desconecta ao sair da página para não vazar memória
     return () => {
       signalRService.pararConexao();
     };
-  }, []);
+  }, [carregarHistorico]);
 
   if (carregando) {
-    return <div className="p-8 text-center opacity-50 flex items-center justify-center min-h-screen">📡 Sintonizando o feed...</div>;
+    return (
+      <div 
+        className="p-8 text-center text-xs uppercase tracking-widest font-black flex items-center justify-center min-h-screen"
+        style={{ color: 'var(--cor-texto-secundario)' }}
+      >
+        📡 Sintonizando o feed...
+      </div>
+    );
   }
 
   return (
     <div className="max-w-2xl mx-auto w-full pt-8 pb-24 relative min-h-screen">
-      <h1 className="text-2xl font-black tracking-tight mb-6 px-4">Feed Global</h1>
+      <h1 
+        className="text-2xl font-black tracking-tight mb-6 px-4"
+        style={{ color: 'var(--cor-texto-principal)' }}
+      >
+        Feed Global
+      </h1>
+
+      {/* ÁREA DO EDITOR DE POSTAGEM */}
+      <div className="px-4 mb-6">
+        <BotaoCriarPost onPostCreated={carregarHistorico} />
+      </div>
 
       {/* ÁREA DE POSTS */}
       <div className="flex flex-col gap-6 px-4">
         {mensagens.length === 0 ? (
-          <p className="text-center opacity-50 py-10">O feed está silencioso hoje. Seja o primeiro a postar!</p>
+          <p 
+            className="text-center font-medium text-sm opacity-40 py-12 italic"
+            style={{ color: 'var(--cor-texto-principal)' }}
+          >
+            O feed está silencioso hoje. Seja o primeiro a postar!
+          </p>
         ) : (
           mensagens.map((post) => (
             <PostThread
               key={post.id}
               post={post}
-              // Precisaremos pegar o id do usuário logado no começo do feed para passar aqui
               meuId={meuId}
             />
           ))
         )}
       </div>
-
-      {/* PLACEHOLDER: O Botão Flutuante que criaremos depois */}
-      <BotaoCriarPost />
     </div>
   );
 }

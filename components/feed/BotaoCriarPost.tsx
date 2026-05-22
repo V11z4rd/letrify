@@ -3,6 +3,12 @@
 import { useState, useEffect } from "react";
 import { authService } from "@/app/lib/authService";
 import { grupoService, GrupoResumo } from "@/app/lib/grupoService";
+// Ícones do Heroicons para transformar a experiência do editor de posts
+import { 
+  UserGroupIcon, 
+  PaperAirplaneIcon, 
+  XMarkIcon 
+} from "@heroicons/react/24/outline";
 
 export default function BotaoCriarPost({ onPostCreated }: { onPostCreated?: () => void }) {
   const [conteudo, setConteudo] = useState("");
@@ -14,7 +20,6 @@ export default function BotaoCriarPost({ onPostCreated }: { onPostCreated?: () =
   const [grupoSelecionado, setGrupoSelecionado] = useState<string>("");
   const [carregandoGrupos, setCarregandoGrupos] = useState(false);
 
-  // Carrega a lista de grupos apenas se o utilizador quiser fazer um recrutamento
   useEffect(() => {
     if (isRecrutamento && grupos.length === 0) {
       setCarregandoGrupos(true);
@@ -23,7 +28,7 @@ export default function BotaoCriarPost({ onPostCreated }: { onPostCreated?: () =
         .catch(console.error)
         .finally(() => setCarregandoGrupos(false));
     }
-  }, [isRecrutamento]);
+  }, [isRecrutamento, grupos.length]);
 
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
@@ -35,15 +40,16 @@ export default function BotaoCriarPost({ onPostCreated }: { onPostCreated?: () =
     try {
       const token = authService.getToken();
       
-      // Monta o payload base
       const payload: any = { conteudo: conteudo.trim() };
       
-      // Se for recrutamento e tiver um grupo selecionado, anexa o ID
-      if (isRecrutamento && grupoSelecionado) {
+      if (isRecrutamento && grupoSelecionado && Number(grupoSelecionado) > 0) {
         payload.grupoId = Number(grupoSelecionado);
+      } else {
+        payload.grupoId = null; // Garante que o C# receba nulo em posts comuns
       }
 
-      const resposta = await fetch(`https://letrify.fly.dev/api/chat`, {
+      // Corrigido para utilizar a variável dinâmica global BASE_URL
+      const resposta = await fetch(`${BASE_URL}/chat/enviar`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -52,77 +58,119 @@ export default function BotaoCriarPost({ onPostCreated }: { onPostCreated?: () =
         body: JSON.stringify(payload)
       });
 
-      if (!resposta.ok) throw new Error("Erro ao publicar.");
+      if (!resposta.ok) {
+        throw new Error(`Erro na API Letrify (Status: ${resposta.status})`);
+      }
 
-      // Limpa os estados após sucesso
       setConteudo("");
       setIsRecrutamento(false);
       setGrupoSelecionado("");
       
-      if (onPostCreated) onPostCreated(); // Avisa a página do feed para recarregar
+      if (onPostCreated) onPostCreated();
       
     } catch (err: any) {
-      alert(err.message);
+      console.error("Falha ao enviar publicação:", err.message);
     } finally {
       setEnviando(false);
     }
   };
 
   return (
-    <div className="bg-zinc-900/60 border border-white/5 rounded-3xl p-5 sm:p-6 mb-8 shadow-sm">
+    <div 
+      className="rounded-3xl border p-5 sm:p-6 mb-8 shadow-md transition-all duration-300"
+      style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
+    >
       <form onSubmit={handlePublicar} className="flex flex-col gap-4">
         
         <textarea
           value={conteudo}
           onChange={(e) => setConteudo(e.target.value)}
           placeholder="O que está a ler ou a pensar hoje?"
-          className="w-full bg-transparent text-zinc-100 placeholder-zinc-500 text-lg resize-none outline-none min-h-[80px]"
+          className="w-full bg-transparent text-base sm:text-lg resize-none outline-none min-h-[90px] font-medium placeholder:opacity-40"
+          style={{ color: 'var(--cor-texto-principal)' }}
           maxLength={500}
         />
 
-        {/* ÁREA DO RECRUTAMENTO (Dropdown) */}
+        {/* ÁREA DO RECRUTAMENTO (Dropdown Adaptável) */}
         {isRecrutamento && (
-          <div className="bg-blue-900/10 border border-blue-500/20 rounded-xl p-4 animate-fade-in flex flex-col gap-2">
-            <label className="text-xs font-bold text-blue-400 uppercase tracking-wider flex justify-between">
-              <span>Selecione o Clube para Divulgar</span>
-              <button type="button" onClick={() => setIsRecrutamento(false)} className="text-zinc-500 hover:text-white">✕ Fechar</button>
+          <div 
+            className="border rounded-2xl p-4 animate-fade-in flex flex-col gap-3 transition-all"
+            style={{ 
+              backgroundColor: 'var(--cor-fundo-app)', 
+              borderColor: 'var(--cor-fundo-sidebar)' 
+            }}
+          >
+            <label className="text-[10px] uppercase tracking-widest font-black flex justify-between items-center" style={{ color: 'var(--cor-primaria)' }}>
+              <span>Vincular Clube de Leitura</span>
+              <button 
+                type="button" 
+                onClick={() => { setIsRecrutamento(false); setGrupoSelecionado(""); }} 
+                className="flex items-center gap-1 opacity-50 hover:opacity-100 transition-opacity"
+                style={{ color: 'var(--cor-texto-principal)' }}
+              >
+                <XMarkIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Fechar</span>
+              </button>
             </label>
             
             {carregandoGrupos ? (
-              <span className="text-sm text-zinc-500 italic">A carregar clubes...</span>
+              <span className="text-xs font-medium opacity-50 italic" style={{ color: 'var(--cor-texto-principal)' }}>
+                Buscando seus clubes ativos...
+              </span>
             ) : (
               <select 
                 value={grupoSelecionado}
                 onChange={(e) => setGrupoSelecionado(e.target.value)}
-                className="w-full bg-zinc-900 border border-white/10 text-sm text-white rounded-lg p-2.5 outline-none focus:border-blue-500"
+                className="w-full text-xs font-bold rounded-xl p-3 outline-none border cursor-pointer transition-all"
+                style={{ 
+                  backgroundColor: 'var(--cor-fundo-card)', 
+                  borderColor: 'var(--cor-fundo-sidebar)',
+                  color: 'var(--cor-texto-principal)'
+                }}
               >
-                <option value="" disabled>-- Escolha um clube --</option>
+                <option value="" disabled style={{ backgroundColor: 'var(--cor-fundo-card)' }}>-- Escolha um clube da lista --</option>
                 {grupos.map(g => (
-                  <option key={g.id} value={g.id}>{g.nome}</option>
+                  <option key={g.id} value={g.id} style={{ backgroundColor: 'var(--cor-fundo-card)' }}>{g.nome}</option>
                 ))}
               </select>
             )}
           </div>
         )}
 
-        <div className="flex items-center justify-between pt-3 border-t border-white/5">
-          {/* Botão de Toggle do Recrutamento */}
+        <div className="flex items-center justify-between pt-3 border-t" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+          
+          {/* Botão de Toggle do Clube — Cores Corrigidas */}
           <button 
             type="button" 
             onClick={() => setIsRecrutamento(!isRecrutamento)}
-            className={`text-sm font-bold flex items-center gap-2 px-3 py-1.5 rounded-lg transition-colors ${
-              isRecrutamento ? "bg-blue-500/20 text-blue-400" : "text-zinc-400 hover:bg-white/5 hover:text-zinc-200"
-            }`}
+            className="text-[10px] uppercase tracking-widest font-black flex items-center gap-2 px-4 py-2.5 rounded-xl transition-all duration-200 active:scale-95"
+            style={{ 
+              backgroundColor: isRecrutamento ? 'rgba(var(--cor-primaria-rgb, 59, 130, 246), 0.15)' : 'var(--cor-fundo-app)', 
+              color: isRecrutamento ? 'var(--cor-primaria)' : 'var(--cor-texto-principal)', // Força cor escura/legível no tema claro
+              opacity: isRecrutamento ? 1 : 0.7
+            }}
           >
-            📚 Convidar para Clube
+            <UserGroupIcon className="w-4 h-4 stroke-[2.5]" />
+            <span>Divulgar Clube</span>
           </button>
 
+          {/* Botão Publicar — Lógica Dinâmica de Estados */}
           <button
             type="submit"
             disabled={enviando || !conteudo.trim() || (isRecrutamento && !grupoSelecionado)}
-            className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-600 text-white text-sm font-bold rounded-xl transition-all shadow-md"
+            className="px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl flex items-center gap-2 transition-all duration-200 shadow-sm active:scale-95 disabled:scale-100 disabled:cursor-not-allowed"
+            style={{ 
+              // Se estiver bloqueado, fica cinza sutil. Se ativo, ganha a cor de destaque do Letrify
+              backgroundColor: (!conteudo.trim() || enviando) ? 'var(--cor-fundo-sidebar)' : 'var(--cor-destaque)', 
+              
+              // Se estiver bloqueado, o texto fica opaco. Se ativo, fica BRANCO sólido para contrastar
+              color: (!conteudo.trim() || enviando) ? 'var(--cor-texto-secundario)' : '#ffffff',
+              
+              opacity: (!conteudo.trim() || enviando) ? 0.5 : 1
+            }}
           >
-            {enviando ? "A enviar..." : "Publicar"}
+            <PaperAirplaneIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>{enviando ? "Enviando" : "Publicar"}</span>
           </button>
         </div>
       </form>

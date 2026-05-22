@@ -3,6 +3,13 @@
 import { useEffect, useState } from "react";
 import RadarAfinidade, { UsuarioMatch } from "@/components/RadarAfinidade";
 import { authService } from "@/app/lib/authService";
+import { 
+  SignalIcon, 
+  ExclamationTriangleIcon, 
+  GlobeAmericasIcon, 
+  SunIcon,
+  ArrowPathIcon 
+} from "@heroicons/react/24/outline";
 
 export default function MatchPage() {
   const [matches, setMatches] = useState<UsuarioMatch[]>([]);
@@ -10,9 +17,7 @@ export default function MatchPage() {
   const [erro, setErro] = useState<string | null>(null);
   const [buscou, setBuscou] = useState(false);
 
-  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
-
-  // 1. RECUPERAR DO CACHE AO ABRIR
+  // 1. RECUPERAR DO CACHE AO ABRIR 
   useEffect(() => {
     const cache = sessionStorage.getItem("letrify-last-matches");
     if (cache) {
@@ -50,11 +55,9 @@ export default function MatchPage() {
           fotoPerfil: item.usuario?.fotoPerfil
         }));
 
+        // 2. SALVAR NO CACHE DE SESSÃO 
         setMatches(leitoresMapeados);
-        
-        // 2. SALVAR NO CACHE DE SESSÃO
         sessionStorage.setItem("letrify-last-matches", JSON.stringify(leitoresMapeados));
-
       } else {
         setMatches([]);
         sessionStorage.removeItem("letrify-last-matches");
@@ -68,10 +71,10 @@ export default function MatchPage() {
   };
 
   return (
-    <div className="max-w-5xl mx-auto p-4 pt-8 animate-fade-in pb-20 space-y-8">
+    <div className="max-w-5xl mx-auto p-4 pt-8 pb-20 space-y-8 animate-fade-in">
       
       {/* CABEÇALHO */}
-      <div className="pb-6 border-b flex flex-col md:flex-row md:items-center justify-between gap-6" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+      <div className="pb-6 border-b flex flex-col sm:flex-row sm:items-center justify-between gap-6 border-gray-300/30 dark:border-gray-800/50">
         <div>
           <h1 className="text-3xl font-black mb-2 flex items-center gap-3" style={{ color: 'var(--cor-texto-principal)' }}>
             Radar de Afinidade
@@ -84,13 +87,13 @@ export default function MatchPage() {
         <button 
           onClick={acionarRadar}
           disabled={carregando}
-          className="px-8 py-4 rounded-xl font-bold shadow-lg transition-transform hover:scale-105 disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-3"
-          style={{ backgroundColor: 'var(--cor-botao-primario)', color: 'var(--cor-botao-texo)' }}
+          className="px-8 py-4 rounded-xl font-bold shadow-lg transition-all duration-200 hover:scale-[1.02] active:scale-[0.98] disabled:opacity-50 disabled:hover:scale-100 flex items-center justify-center gap-3 cursor-pointer disabled:cursor-not-allowed"
+          style={{ backgroundColor: 'var(--cor-botao-primario)', color: 'var(--cor-botao-texto)' }}
         >
           {carregando ? (
-            <span className="animate-spin text-xl">🧭</span>
+            <ArrowPathIcon className="w-5 h-5 animate-spin" />
           ) : (
-            <span className="animate-pulse text-xl">📡</span>
+            <SignalIcon className="w-5 h-5 animate-pulse" style={{ color: 'var(--cor-destaque)' }} />
           )}
           {carregando ? "Buscando leitores..." : "Acionar Radar"}
         </button>
@@ -98,33 +101,33 @@ export default function MatchPage() {
 
       {/* TELA INICIAL */}
       {!buscou && !carregando && (
-         <div className="text-center py-20 opacity-50 border-2 border-dashed rounded-2xl" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-           <span className="text-5xl block mb-4">🌍</span>
-           <p className="font-bold text-xl" style={{ color: 'var(--cor-texto-principal)' }}>O Radar está desligado.</p>
-           <p className="text-sm" style={{ color: 'var(--cor-texto-secundario)' }}>Clique no botão acima para procurar pessoas compatíveis com a sua estante.</p>
+         <div className="text-center py-20 border-2 border-dashed rounded-2xl flex flex-col items-center px-4 border-gray-300/40 dark:border-gray-800/60">
+           <GlobeAmericasIcon className="w-16 h-16 mb-4 opacity-40" style={{ color: 'var(--cor-botao-primario)' }} />
+           <p className="font-bold text-xl mb-1" style={{ color: 'var(--cor-texto-principal)' }}>O Radar está desligado.</p>
+           <p className="text-sm max-w-sm" style={{ color: 'var(--cor-texto-secundario)' }}>Clique no botão acima para procurar pessoas compatíveis com a sua estante.</p>
          </div>
       )}
 
       {/* ERROS */}
       {erro && !carregando && (
-        <div className="text-center p-8 text-red-500 bg-red-500/10 rounded-2xl border border-red-500/20 shadow-sm">
-          <span className="text-4xl block mb-2">⚠️</span>
-          <p className="font-bold">{erro}</p>
+        <div className="text-center p-8 bg-red-500/10 rounded-2xl border border-red-500/20 shadow-sm flex flex-col items-center">
+          <ExclamationTriangleIcon className="w-12 h-12 text-red-500 mb-2" />
+          <p className="font-bold text-red-600 dark:text-red-400">{erro}</p>
         </div>
       )}
 
       {/* RESULTADO VAZIO */}
       {buscou && !carregando && !erro && matches.length === 0 && (
-        <div className="text-center py-20 opacity-70 border-2 border-dashed rounded-2xl" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-          <span className="text-5xl block mb-4">🏜️</span>
-          <p className="font-bold text-xl" style={{ color: 'var(--cor-texto-principal)' }}>Nenhum leitor encontrado hoje.</p>
-          <p className="text-sm" style={{ color: 'var(--cor-texto-secundario)' }}>Parece que você tem gostos muito exclusivos! Tente mais tarde.</p>
+        <div className="text-center py-20 border-2 border-dashed rounded-2xl flex flex-col items-center px-4 border-gray-300/40 dark:border-gray-800/60">
+          <SunIcon className="w-16 h-16 mb-4 opacity-40" style={{ color: 'var(--cor-destaque)' }} />
+          <p className="font-bold text-xl mb-1" style={{ color: 'var(--cor-texto-principal)' }}>Nenhum leitor encontrado hoje.</p>
+          <p className="text-sm max-w-md" style={{ color: 'var(--cor-texto-secundario)' }}>Parece que você tem gostos muito exclusivos! Tente ajustar seus livros favoritos ou busque novamente mais tarde.</p>
         </div>
       )}
 
-      {/* A GRADE DE MATCHES */}
+      {/* GRADE DE MATCHES */}
       {!carregando && !erro && matches.length > 0 && (
-        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6 animate-fade-in">
+        <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {matches.map((usuario, index) => (
             <RadarAfinidade key={usuario.id || index} usuario={usuario} />
           ))}

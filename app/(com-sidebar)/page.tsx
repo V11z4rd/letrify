@@ -2,21 +2,18 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
+import { ArrowPathIcon, BookOpenIcon } from "@heroicons/react/24/outline";
 
-const AUTH_KEY = "letrify-auth";
+// Sincronizado exatamente com a chave que o seu authService e as outras páginas usam!
+const TOKEN_KEY = "letrify_token";
 
-// O "Segurança" do Feed agora está atualizado!
 function hasValidSession() {
   if (typeof window === "undefined") return false;
-  const raw = localStorage.getItem(AUTH_KEY);
-  if (!raw) return false;
-  try {
-    // Agora ele procura pelo "token" que a API enviou!
-    const parsed = JSON.parse(raw) as { token: string; expiresAt: number };
-    return Boolean(parsed.token && typeof parsed.expiresAt === "number" && Date.now() < parsed.expiresAt);
-  } catch {
-    return false;
-  }
+  const token = localStorage.getItem(TOKEN_KEY);
+  
+  // Validação simplificada e resiliente: se o token existir, consideramos a sessão inicial ativa
+  // O backend se encarregará de retornar 401 caso ele esteja expirado por tempo
+  return Boolean(token && token.trim().length > 0);
 }
 
 export default function Home() {
@@ -27,24 +24,39 @@ export default function Home() {
     if (!hasValidSession()) {
       router.replace("/login");
     } else {
-      // Só libera a tela se o token estiver lá certinho
       setAutorizado(true);
+      // 🔥 MELHORIA DE UX: Em vez de prender o usuário aqui, manda ele direto para o Feed Global!
+      router.replace("/feed");
     }
   }, [router]);
 
-  // Se ainda não verificou, não renderiza nada (evita o flicker)
-  if (!autorizado) return null; 
-
-  return (
-    <div className="flex items-center justify-center h-full min-h-[80vh]">
-      <div className="text-center">
-        <h1 className="text-4xl font-bold" style={{ color: 'var(--cor-primaria)' }}>
-          Bem-vindo ao Letrify! 📚
-        </h1>
-        <p className="mt-3 opacity-80">
-          Você está logado com sessão ativa e pronto para navegar.
-        </p>
+  // Enquanto valida ou faz o micro-redirecionamento para o feed, exibe um splash screen elegante
+  if (!autorizado) {
+    return (
+      <div 
+        className="flex flex-col items-center justify-center w-full h-full min-h-[70vh] gap-4 transition-colors duration-300"
+        style={{ color: 'var(--cor-texto-principal)' }}
+      >
+        <div className="relative flex items-center justify-center">
+          {/* Animação de pulso sutil ao fundo */}
+          <div 
+            className="absolute w-12 h-12 rounded-xl animate-ping opacity-20"
+            style={{ backgroundColor: 'var(--cor-primaria)' }}
+          />
+          <BookOpenIcon className="w-10 h-10 stroke-[2] animate-bounce" style={{ color: 'var(--cor-primaria)' }} />
+        </div>
+        
+        <div className="text-center">
+          <p className="text-xs uppercase tracking-widest font-black opacity-40">Letrify</p>
+          <p className="text-[11px] font-bold opacity-30 mt-1 flex items-center justify-center gap-1.5">
+            <ArrowPathIcon className="w-3 h-3 animate-spin stroke-[2.5]" />
+            <span>Validando credenciais...</span>
+          </p>
+        </div>
       </div>
-    </div>
-  );
+    );
+  }
+
+  // Retorno nulo de segurança já que o router.replace('/feed') assume o controle imediato
+  return null; 
 }

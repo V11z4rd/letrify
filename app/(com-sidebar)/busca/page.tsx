@@ -1,9 +1,18 @@
 "use client";
 
 import { useState, FormEvent } from "react";
-import CardLivro, { LivroDados } from "@/components/CardLivro"; // O nosso Lego!
+import CardLivro, { LivroDados } from "@/components/CardLivro";
+import { 
+  MagnifyingGlassIcon,
+  UserCircleIcon,
+  BookOpenIcon,
+  PencilIcon,
+  SparklesIcon,
+  ArrowPathIcon,
+  HashtagIcon,
+  ExclamationCircleIcon
+} from "@heroicons/react/24/outline";
 
-// 1. O DICIONÁRIO DE BOLSO (Tradutor de Gêneros)
 const tradutorTemas: Record<string, string> = {
   "fantasia": "fantasy",
   "ficção": "fiction",
@@ -23,9 +32,6 @@ export default function BuscaLivrosPage() {
   const [carregando, setCarregando] = useState(false);
   const [buscaFeita, setBuscaFeita] = useState(false);
 
-  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
-
-  // O nosso estado agora é organizado por "Prateleiras"
   const [prateleiras, setPrateleiras] = useState({
     isbn: [] as LivroDados[],
     titulos: [] as LivroDados[],
@@ -33,13 +39,12 @@ export default function BuscaLivrosPage() {
     temas: [] as LivroDados[]
   });
 
-  // Função auxiliar para não quebrar o Promise.all se uma rota falhar (Ex: 404 Not Found)
   const fetchSeguro = async (url: string) => {
     try {
       const res = await fetch(url);
       if (!res.ok) return [];
       const dados = await res.json();
-      return Array.isArray(dados) ? dados : [dados]; // Se for ISBN, devolve um objeto, então envelopamos em Array
+      return Array.isArray(dados) ? dados : [dados];
     } catch {
       return [];
     }
@@ -53,38 +58,31 @@ export default function BuscaLivrosPage() {
     setCarregando(true);
     setBuscaFeita(true);
     
-    // Zera as prateleiras antes de buscar
     setPrateleiras({ isbn: [], titulos: [], autores: [], temas: [] });
 
-    // 2. A BÚSSOLA ISBN
     const apenasNumeros = textoBusca.replace(/\D/g, '');
     const isIsbn = apenasNumeros.length === 10 || apenasNumeros.length === 13;
 
     if (isIsbn) {
-      // É ISBN! Bate só na rota específica
       const livrosIsbn = await fetchSeguro(`https://letrify.fly.dev/api/livro/livroespecifico/${apenasNumeros}`);
       setPrateleiras(prev => ({ ...prev, isbn: livrosIsbn }));
       setCarregando(false);
       return;
     }
 
-    // 3. O TRADUTOR SILENCIOSO
     const termoLimpo = textoBusca.toLowerCase().trim();
     const termoTema = tradutorTemas[termoLimpo] || textoBusca;
 
-    // 4. O MOTOR V8 (Busca Paralela)
     const urlTitulo = `https://letrify.fly.dev/api/livro/livrostitulo?titulo=${encodeURIComponent(textoBusca)}&quantidade=10`;
     const urlAutor = `https://letrify.fly.dev/api/livro/livrosautor?autor=${encodeURIComponent(textoBusca)}&quantidade=10`;
     const urlTema = `https://letrify.fly.dev/api/livro/livrostema?tema=${encodeURIComponent(termoTema)}&quantidade=10`;
 
-    // Atira nas 3 rotas ao mesmo tempo!
     const [resultadosTitulos, resultadosAutores, resultadosTemas] = await Promise.all([
       fetchSeguro(urlTitulo),
       fetchSeguro(urlAutor),
       fetchSeguro(urlTema)
     ]);
 
-    // Guarda tudo nas prateleiras
     setPrateleiras({
       isbn: [],
       titulos: resultadosTitulos,
@@ -95,7 +93,6 @@ export default function BuscaLivrosPage() {
     setCarregando(false);
   };
 
-  // Calcula se tudo voltou vazio
   const tudoVazio = buscaFeita && !carregando && 
     prateleiras.isbn.length === 0 && 
     prateleiras.titulos.length === 0 && 
@@ -103,39 +100,51 @@ export default function BuscaLivrosPage() {
     prateleiras.temas.length === 0;
 
   return (
-    <div className="max-w-7xl mx-auto mt-8 px-4 pb-20 animate-fade-in">
+    <div className="max-w-7xl mx-auto pt-6 px-2 sm:px-4 pb-24 animate-fade-in">
       
-      {/* 1. O CABEÇALHO LIMPO (Estilo Google) */}
-      <div className="mb-12 flex flex-col items-center text-center">
-        <h1 className="text-4xl font-black mb-6" style={{ color: 'var(--cor-texto-principal)' }}>Explorar 🔍</h1>
+      {/* 1. SEÇÃO DE CAMPO DE BUSCA ESTILO MINIMALISTA */}
+      <div className="mb-14 flex flex-col items-center text-center max-w-2xl mx-auto">
+        <h1 className="text-3xl font-black tracking-tight mb-2 flex items-center gap-2" style={{ color: 'var(--cor-texto-principal)' }}>
+          <span>Explorar</span>
+        </h1>
+        <p className="text-xs sm:text-sm font-medium opacity-60 mb-8" style={{ color: 'var(--cor-texto-secundario)' }}>
+          Descubra obras, mapeie autores e vasculhe novos horizontes literários.
+        </p>
         
-        <form onSubmit={realizarBusca} className="w-full max-w-2xl relative flex items-center shadow-lg rounded-full overflow-hidden border-2" style={{ borderColor: 'var(--cor-fundo-sidebar)', backgroundColor: 'var(--cor-fundo-app)' }}>
+        <form 
+          onSubmit={realizarBusca} 
+          className="w-full relative flex items-center shadow-lg rounded-2xl overflow-hidden border transition-all duration-300 focus-within:ring-2 focus-within:ring-offset-0 focus-within:border-[var(--cor-destaque)]" 
+          style={{ borderColor: 'var(--cor-fundo-sidebar)', backgroundColor: 'var(--cor-fundo-card)' }}
+        >
+          <div className="pl-4 opacity-40">
+            <MagnifyingGlassIcon className="w-5 h-5 stroke-[2.5]" style={{ color: 'var(--cor-texto-principal)' }} />
+          </div>
           <input 
             type="text"
             value={termo}
             onChange={(e) => setTermo(e.target.value)}
-            placeholder="Busque por livros, autores, temas ou código ISBN..."
-            className="flex-1 p-4 pl-6 bg-transparent outline-none font-medium"
+            placeholder="Livros, autores, tags ou código ISBN..."
+            className="flex-1 p-3.5 pl-3 bg-transparent outline-none text-xs sm:text-sm font-semibold placeholder:opacity-40"
             style={{ color: 'var(--cor-texto-principal)' }}
           />
           <button 
             type="submit"
             disabled={carregando}
-            className="p-4 px-8 font-bold transition-colors disabled:opacity-50"
-            style={{ backgroundColor: 'var(--cor-primaria)', color: 'var(--cor-fundo-app)' }}
+            className="p-3.5 px-6 text-xs font-black uppercase tracking-wider transition-all duration-200 active:scale-95 disabled:opacity-40 shrink-0"
+            style={{ backgroundColor: 'var(--cor-destaque)', color: '#ffffff' }}
           >
-            {carregando ? "..." : "Buscar"}
+            {carregando ? <ArrowPathIcon className="w-4 h-4 animate-spin stroke-[3]" /> : "Buscar"}
           </button>
         </form>
 
-        {/* Botoes rápidos de Gênero */}
-        <div className="mt-6 flex flex-wrap justify-center gap-2">
+        {/* Tags de pesquisa instantânea */}
+        <div className="mt-4 flex flex-wrap justify-center gap-2">
           {["Fantasia", "Ficção", "Romance", "Terror", "Ciência", "Filosofia"].map((tema) => (
             <button
               key={tema}
               onClick={() => { setTermo(tema); realizarBusca(undefined, tema); }}
-              className="px-4 py-1.5 rounded-full text-xs font-bold border transition-transform hover:scale-105"
-              style={{ backgroundColor: 'var(--cor-fundo-sidebar)', color: 'var(--cor-texto-principal)', borderColor: 'var(--cor-fundo-sidebar)' }}
+              className="px-3.5 py-1.5 rounded-xl text-[10px] font-black uppercase tracking-wider border transition-all hover:scale-105 active:scale-95"
+              style={{ backgroundColor: 'var(--cor-fundo-card)', color: 'var(--cor-texto-principal)', borderColor: 'var(--cor-fundo-sidebar)' }}
             >
               {tema}
             </button>
@@ -143,47 +152,67 @@ export default function BuscaLivrosPage() {
         </div>
       </div>
 
-      {/* 2. FEEDBACK VISUAL */}
+      {/* 2. ESTADOS DE FEEDBACK (LOADING) */}
       {carregando && (
-        <div className="flex flex-col items-center justify-center py-20 opacity-50">
-          <span className="text-5xl animate-bounce mb-4">📚</span>
-          <p className="font-bold text-xl" style={{ color: 'var(--cor-primaria)' }}>Vasculhando a biblioteca...</p>
+        <div 
+          className="flex flex-col items-center justify-center py-20 text-xs font-black uppercase tracking-widest gap-3"
+          style={{ color: 'var(--cor-texto-secundario)' }}
+        >
+          <ArrowPathIcon className="w-7 h-7 animate-spin" style={{ color: 'var(--cor-primaria)' }} />
+          <span>Vasculhando os acervos da biblioteca...</span>
         </div>
       )}
 
+      {/* ESTADOS DE FEEDBACK (VAZIO) */}
       {tudoVazio && (
-        <div className="text-center py-20 opacity-70 border-2 border-dashed rounded-2xl" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-          <span className="text-5xl block mb-4">🏜️</span>
-          <p className="font-bold text-xl" style={{ color: 'var(--cor-texto-principal)' }}>Nenhum resultado encontrado.</p>
-          <p className="text-sm" style={{ color: 'var(--cor-texto-secundario)' }}>Não encontramos livros, autores ou ISBNs com "{termo}".</p>
+        <div 
+          className="text-center py-20 border-2 border-dashed rounded-3xl max-w-xl mx-auto p-6 flex flex-col items-center" 
+          style={{ borderColor: 'var(--cor-fundo-sidebar)' }}
+        >
+          <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4" style={{ backgroundColor: 'rgba(239, 68, 68, 0.1)' }}>
+            <ExclamationCircleIcon className="w-6 h-6 text-red-500" />
+          </div>
+          <p className="font-black text-lg tracking-tight mb-1" style={{ color: 'var(--cor-texto-principal)' }}>Nenhum resultado encontrado</p>
+          <p className="text-xs font-medium opacity-50" style={{ color: 'var(--cor-texto-secundario)' }}>
+            Não localizamos títulos ou autores associados ao termo <span className="font-bold">"{termo}"</span>.
+          </p>
         </div>
       )}
 
-      {/* 3. AS PRATELEIRAS (Estilo Netflix / YouTube) */}
+      {/* 3. CONTEÚDO DISTRIBUÍDO EM LINHAS (PRATELEIRAS) */}
       {!carregando && buscaFeita && (
-        <div className="space-y-12">
+        <div className="space-y-14">
 
-          {/* PRATELEIRA FALSA: USUÁRIOS (Sempre visível por enquanto, como demonstração) */}
+          {/* PRATELEIRA: PERFIS DE USUÁRIOS */}
           <section>
-            <h2 className="text-xl font-black mb-4 flex items-center gap-2" style={{ color: 'var(--cor-texto-principal)' }}>
-              👥 Perfis Encontrados
+            <h2 className="text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-1.5" style={{ color: 'var(--cor-primaria)' }}>
+              <UserCircleIcon className="w-4 h-4 stroke-[2.5]" />
+              <span>Perfis Relacionados</span>
             </h2>
             <div className="flex overflow-x-auto gap-4 pb-4 snap-x hide-scrollbar">
-              {/* Cards Falsos de Usuário */}
               {[1, 2, 3].map((num) => (
-                <div key={num} className="min-w-[200px] snap-start shrink-0 p-4 rounded-xl border flex flex-col items-center text-center opacity-60" style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}>
-                  <div className="w-16 h-16 rounded-full bg-zinc-300 dark:bg-zinc-700 mb-3"></div>
-                  <span className="font-bold text-sm" style={{ color: 'var(--cor-texto-principal)' }}>Usuário {num}</span>
-                  <span className="text-xs" style={{ color: 'var(--cor-texto-secundario)' }}>Em breve</span>
+                <div 
+                  key={num} 
+                  className="min-w-[170px] snap-start shrink-0 p-4 rounded-2xl border flex flex-col items-center text-center transition-all hover:scale-[1.02]" 
+                  style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
+                >
+                  <div className="w-12 h-12 rounded-full mb-3 flex items-center justify-center border" style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)' }}>
+                    <UserCircleIcon className="w-7 h-7 opacity-20" style={{ color: 'var(--cor-texto-principal)' }} />
+                  </div>
+                  <span className="font-extrabold text-xs mb-1" style={{ color: 'var(--cor-texto-principal)' }}>Usuário Letrify</span>
+                  <span className="text-[9px] font-black uppercase tracking-wider opacity-30" style={{ color: 'var(--cor-texto-secundario)' }}>Em breve</span>
                 </div>
               ))}
             </div>
           </section>
 
-          {/* PRATELEIRA: ISBN (Só aparece se tiver resultado) */}
+          {/* PRATELEIRA: ISBN */}
           {prateleiras.isbn.length > 0 && (
             <section>
-              <h2 className="text-xl font-black mb-4" style={{ color: 'var(--cor-texto-principal)' }}>🏷️ Encontrado por ISBN</h2>
+              <h2 className="text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-1.5" style={{ color: 'var(--cor-primaria)' }}>
+                <HashtagIcon className="w-4 h-4 stroke-[2.5]" />
+                <span>Resultado por Código ISBN</span>
+              </h2>
               <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-6">
                 {prateleiras.isbn.map((livro, i) => <CardLivro key={i} livro={livro} variante="busca" />)}
               </div>
@@ -193,14 +222,16 @@ export default function BuscaLivrosPage() {
           {/* PRATELEIRA: TÍTULOS */}
           {prateleiras.titulos.length > 0 && (
             <section>
-              <h2 className="text-xl font-black mb-4 flex justify-between items-end" style={{ color: 'var(--cor-texto-principal)' }}>
-                <span>📖 Livros com este Título</span>
-                <span className="text-xs opacity-50 cursor-pointer hover:underline">Ver todos</span>
-              </h2>
-              {/* Layout Carrossel Horizontal! */}
-              <div className="flex overflow-x-auto gap-6 pb-4 snap-x hide-scrollbar">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xs font-black uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--cor-primaria)' }}>
+                  <BookOpenIcon className="w-4 h-4 stroke-[2.5]" />
+                  <span>Livros Correspondentes</span>
+                </h2>
+                <span className="text-[10px] font-black uppercase tracking-wider opacity-40 hover:opacity-100 cursor-pointer transition-all hover:text-[var(--cor-destaque)]">Ver Todos</span>
+              </div>
+              <div className="flex overflow-x-auto gap-5 pb-4 snap-x hide-scrollbar">
                 {prateleiras.titulos.map((livro, i) => (
-                  <div key={i} className="min-w-[260px] snap-start shrink-0">
+                  <div key={i} className="min-w-[240px] sm:min-w-[260px] snap-start shrink-0">
                     <CardLivro livro={livro} variante="busca" />
                   </div>
                 ))}
@@ -211,13 +242,16 @@ export default function BuscaLivrosPage() {
           {/* PRATELEIRA: AUTORES */}
           {prateleiras.autores.length > 0 && (
             <section>
-              <h2 className="text-xl font-black mb-4 flex justify-between items-end" style={{ color: 'var(--cor-texto-principal)' }}>
-                <span>✍️ Livros deste Autor</span>
-                <span className="text-xs opacity-50 cursor-pointer hover:underline">Ver todos</span>
-              </h2>
-              <div className="flex overflow-x-auto gap-6 pb-4 snap-x hide-scrollbar">
+              <div className="flex justify-between items-center mb-4">
+                <h2 className="text-xs font-black uppercase tracking-widest flex items-center gap-1.5" style={{ color: 'var(--cor-primaria)' }}>
+                  <PencilIcon className="w-4 h-4 stroke-[2.5]" />
+                  <span>Obras Relacionadas ao Autor</span>
+                </h2>
+                <span className="text-[10px] font-black uppercase tracking-wider opacity-40 hover:opacity-100 cursor-pointer transition-all hover:text-[var(--cor-destaque)]">Ver Todos</span>
+              </div>
+              <div className="flex overflow-x-auto gap-5 pb-4 snap-x hide-scrollbar">
                 {prateleiras.autores.map((livro, i) => (
-                  <div key={i} className="min-w-[260px] snap-start shrink-0">
+                  <div key={i} className="min-w-[240px] sm:min-w-[260px] snap-start shrink-0">
                     <CardLivro livro={livro} variante="busca" />
                   </div>
                 ))}
@@ -228,12 +262,13 @@ export default function BuscaLivrosPage() {
           {/* PRATELEIRA: TEMAS */}
           {prateleiras.temas.length > 0 && (
             <section>
-              <h2 className="text-xl font-black mb-4 flex justify-between items-end" style={{ color: 'var(--cor-texto-principal)' }}>
-                <span>🎭 Explorando Gênero</span>
+              <h2 className="text-xs font-black uppercase tracking-widest mb-4 flex items-center gap-1.5" style={{ color: 'var(--cor-primaria)' }}>
+                <SparklesIcon className="w-4 h-4 stroke-[2.5]" />
+                <span>Explorando o Gênero Coincidente</span>
               </h2>
-              <div className="flex overflow-x-auto gap-6 pb-4 snap-x hide-scrollbar">
+              <div className="flex overflow-x-auto gap-5 pb-4 snap-x hide-scrollbar">
                 {prateleiras.temas.map((livro, i) => (
-                  <div key={i} className="min-w-[260px] snap-start shrink-0">
+                  <div key={i} className="min-w-[240px] sm:min-w-[260px] snap-start shrink-0">
                     <CardLivro livro={livro} variante="busca" />
                   </div>
                 ))}

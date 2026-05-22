@@ -3,6 +3,12 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { authService } from "@/app/lib/authService";
+// Importações limpas e necessárias do Heroicons
+import { 
+  XMarkIcon, 
+  UserPlusIcon, 
+  ArrowPathIcon 
+} from "@heroicons/react/24/outline";
 
 interface UsuarioLista {
   id: number;
@@ -30,7 +36,8 @@ export default function ModalConexoes({ tipoInicial, perfilId, onClose }: ModalP
         const token = authService.getToken();
         const rota = abaAtiva === "Seguidores" ? "seguidores" : "seguindo";
         
-        const res = await fetch(`https://letrify.fly.dev/api/seguidores/${rota}/${perfilId}`, {
+        // Corrigido para utilizar a variável dinâmica BASE_URL
+        const res = await fetch(`${BASE_URL}/seguidores/${rota}/${perfilId}`, {
           headers: { "Authorization": `Bearer ${token}` }
         });
 
@@ -46,74 +53,128 @@ export default function ModalConexoes({ tipoInicial, perfilId, onClose }: ModalP
     };
 
     buscarLista();
-  }, [abaAtiva, perfilId]);
+  }, [abaAtiva, perfilId, BASE_URL]);
 
   return (
-    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/80 backdrop-blur-md animate-fade-in">
-      <div className="bg-zinc-900 w-full max-w-md h-[500px] flex flex-col rounded-3xl border border-white/10 shadow-2xl overflow-hidden">
+    // Backdrop adaptável e fluido
+    <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/60 dark:bg-black/80 backdrop-blur-md animate-fade-in">
+      
+      <div 
+        className="w-full max-w-md h-[500px] flex flex-col rounded-3xl border shadow-2xl overflow-hidden transition-all duration-300"
+        style={{ 
+          backgroundColor: 'var(--cor-fundo-card)', 
+          borderColor: 'var(--cor-fundo-sidebar)' 
+        }}
+      >
         
         {/* CABEÇALHO DO MODAL */}
-        <div className="flex items-center justify-between p-4 border-b border-white/5">
-          <div className="flex gap-4">
-            <button 
-              onClick={() => setAbaAtiva("Seguidores")}
-              className={`text-sm font-bold transition-all ${abaAtiva === "Seguidores" ? "text-blue-500" : "opacity-40"}`}
-            >
-              Seguidores
-            </button>
-            <button 
-              onClick={() => setAbaAtiva("Seguindo")}
-              className={`text-sm font-bold transition-all ${abaAtiva === "Seguindo" ? "text-blue-500" : "opacity-40"}`}
-            >
-              Seguindo
-            </button>
+        <div className="flex items-center justify-between p-4 border-b" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+          <div className="flex gap-5 relative">
+            {[
+              { id: "Seguidores", label: "Seguidores" },
+              { id: "Seguindo", label: "Seguindo" }
+            ].map((aba) => {
+              const ativa = abaAtiva === aba.id;
+              return (
+                <button 
+                  key={aba.id}
+                  onClick={() => setAbaAtiva(aba.id as "Seguidores" | "Seguindo")}
+                  className="text-xs font-black uppercase tracking-wider pb-1 relative transition-all duration-200"
+                  style={{ color: ativa ? 'var(--cor-primaria)' : 'var(--cor-texto-secundario)', opacity: ativa ? 1 : 0.5 }}
+                >
+                  {aba.label}
+                  {ativa && (
+                    <div 
+                      className="absolute bottom-0 left-0 right-0 h-0.5 rounded-full animate-fade-in" 
+                      style={{ backgroundColor: 'var(--cor-primaria)' }}
+                    />
+                  )}
+                </button>
+              );
+            })}
           </div>
-          <button onClick={onClose} className="text-zinc-500 hover:text-white transition-colors">✕</button>
+          
+          <button 
+            onClick={onClose} 
+            className="p-1 rounded-lg transition-colors hover:bg-black/[0.05] dark:hover:bg-white/[0.05] opacity-60 hover:opacity-100"
+          >
+            <XMarkIcon className="w-4 h-4 stroke-[2.5]" style={{ color: 'var(--cor-texto-principal)' }} />
+          </button>
         </div>
 
-        {/* LISTA (ESTILO INSTAGRAM) */}
+        {/* ÁREA DA LISTA */}
         <div className="flex-1 overflow-y-auto p-4 custom-scrollbar">
           {carregando ? (
-            <div className="h-full flex items-center justify-center opacity-30 text-xs font-bold uppercase tracking-widest italic">
-              Buscando leitores...
+            <div className="h-full flex flex-col items-center justify-center gap-2 opacity-40 text-[10px] font-bold uppercase tracking-widest">
+              <ArrowPathIcon className="w-5 h-5 animate-spin" style={{ color: 'var(--cor-primaria)' }} />
+              <span>Buscando leitores...</span>
             </div>
           ) : usuarios.length === 0 ? (
-            <div className="h-full flex flex-col items-center justify-center opacity-20">
-              <span className="text-4xl mb-2">🍃</span>
+            <div className="h-full flex flex-col items-center justify-center text-center opacity-30 gap-2">
+              <UserPlusIcon className="w-8 h-8 stroke-[1.5]" style={{ color: 'var(--cor-texto-principal)' }} />
               <p className="text-xs font-bold">Ninguém por aqui ainda.</p>
             </div>
           ) : (
-            <div className="space-y-4">
+            <div className="space-y-3.5">
               {usuarios.map((user) => (
-                <div key={user.id} className="flex items-center justify-between group">
+                <div key={user.id} className="flex items-center justify-between group p-1 rounded-xl transition-colors hover:bg-black/[0.01] dark:hover:bg-white/[0.01]">
+                  
                   <Link 
                     href={`/perfil?id=${user.id}`} 
                     onClick={onClose}
-                    className="flex items-center gap-3 flex-1"
+                    className="flex items-center gap-3 flex-1 min-w-0"
                   >
-                    <div className="w-10 h-10 rounded-full bg-zinc-800 border border-white/5 overflow-hidden flex-shrink-0">
+                    {/* AVATAR */}
+                    <div 
+                      className="w-9 h-9 rounded-full border overflow-hidden flex-shrink-0 transition-transform duration-300 group-hover:scale-105"
+                      style={{ 
+                        backgroundColor: 'var(--cor-fundo-app)', 
+                        borderColor: 'var(--cor-fundo-sidebar)' 
+                      }}
+                    >
                       {user.fotoPerfil ? (
                         <img src={user.fotoPerfil} alt={user.nome} className="w-full h-full object-cover" />
                       ) : (
-                        <div className="w-full h-full flex items-center justify-center bg-blue-600 text-white font-bold text-xs">
+                        <div 
+                          className="w-full h-full flex items-center justify-center text-[11px] font-black"
+                          style={{ backgroundColor: 'var(--cor-fundo-sidebar)', color: 'var(--cor-texto-secundario)' }}
+                        >
                           {user.nome.charAt(0).toUpperCase()}
                         </div>
                       )}
                     </div>
-                    <span className="text-sm font-bold text-zinc-200 group-hover:text-blue-400 transition-colors">
+
+                    {/* NOME DO USUÁRIO */}
+                    <span 
+                      className="text-xs font-bold transition-colors duration-200 truncate pr-2"
+                      style={{ color: 'var(--cor-texto-principal)' }}
+                      onMouseEnter={(e) => e.currentTarget.style.color = 'var(--cor-primaria)'}
+                      onMouseLeave={(e) => e.currentTarget.style.color = 'var(--cor-texto-principal)'}
+                    >
                       {user.nome}
                     </span>
                   </Link>
                   
-                  {/* Botão lateral opcional */}
-                  <button className="text-[10px] font-black uppercase tracking-tighter px-3 py-1.5 rounded-lg bg-white/5 border border-white/5 hover:bg-white/10 transition-all">
+                  {/* BOTÃO VER PERFIL INTEGRADO AO GLOBALS */}
+                  <Link
+                    href={`/perfil?id=${user.id}`}
+                    onClick={onClose}
+                    className="text-[9px] font-black uppercase tracking-wider px-3 py-1.5 rounded-full border transition-all duration-200 hover:scale-102 active:scale-98"
+                    style={{ 
+                      backgroundColor: 'var(--cor-fundo-sidebar)', 
+                      borderColor: 'var(--cor-fundo-sidebar)',
+                      color: 'var(--cor-texto-secundario)'
+                    }}
+                  >
                     Ver Perfil
-                  </button>
+                  </Link>
+
                 </div>
               ))}
             </div>
           )}
         </div>
+
       </div>
     </div>
   );

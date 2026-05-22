@@ -1,8 +1,9 @@
 "use client";
 
-// Chamaremos o mesmo menu de opções!
-import Link from "next/link"; // Adicionamos o Link aqui
+import Link from "next/navigation"; 
+import LinkNext from "next/link"; // Correção padrão para navegação Next.js
 import MenuTresPontinhos from "../ui/MenuTresPontinhos";
+import { ArrowTurnDownRightIcon } from "@heroicons/react/24/outline";
 
 interface UsuarioChat {
   id: number;
@@ -25,52 +26,85 @@ interface ComentarioFilhoProps {
 
 export default function ComentarioFilho({ comentario, meuId, nomePai }: ComentarioFilhoProps) {
   const isDonoDoComentario = meuId === comentario.usuario.id;
+  const inicial = comentario.usuario?.nome ? comentario.usuario.nome.charAt(0).toUpperCase() : "U";
 
   return (
-    <div className="bg-zinc-800/20 border border-white/5 rounded-2xl p-4 relative transition-colors hover:bg-zinc-800/40">
+    <div 
+      className="border rounded-2xl p-4 relative transition-all duration-200"
+      style={{ 
+        backgroundColor: 'rgba(var(--cor-fundo-sidebar-rgb, 24, 24, 27), 0.3)', 
+        borderColor: 'var(--cor-fundo-sidebar)' 
+      }}
+      onMouseEnter={(e) => e.currentTarget.style.backgroundColor = 'rgba(var(--cor-fundo-sidebar-rgb, 24, 24, 27), 0.6)'}
+      onMouseLeave={(e) => e.currentTarget.style.backgroundColor = 'rgba(var(--cor-fundo-sidebar-rgb, 24, 24, 27), 0.3)'}
+    >
       
-      {/* CABEÇALHO DO COMENTÁRIO */}
-      <div className="flex items-center justify-between mb-2">
-        <div className="flex items-center gap-2">
+      {/* CORPO FLEX PRINCIPAL UNIFICADO */}
+      <div className="flex gap-3 items-start">
+        
+        {/* FOTO CLICÁVEL DO AUTOR DO COMENTÁRIO FILHO */}
+        <LinkNext 
+          href={`/perfil?id=${comentario.usuario.id}`} 
+          className="w-8 h-8 rounded-xl border overflow-hidden flex-shrink-0 hover:opacity-80 transition-all shadow-sm"
+          style={{ borderColor: 'var(--cor-fundo-sidebar)' }}
+        >
+          {comentario.usuario?.fotoPerfil ? (
+            <img src={comentario.usuario.fotoPerfil} alt={comentario.usuario.nome} className="w-full h-full object-cover" />
+          ) : (
+            <div 
+              className="w-full h-full flex items-center justify-center font-black text-xs transition-colors"
+              style={{ backgroundColor: 'var(--cor-primaria)', color: 'var(--cor-botao-texto)' }}
+            >
+              {inicial}
+            </div>
+          )}
+        </LinkNext>
+        
+        {/* CONTEÚDO DA RESPOSTA (ALINHAMENTO NATURAL SEM MARGENS CEGAS) */}
+        <div className="flex-1 min-w-0">
           
-          {/* FOTO CLICÁVEL */}
-          <Link href={`/perfil?id=${comentario.usuario.id}`} className="w-8 h-8 rounded-full bg-zinc-700 border border-zinc-600 overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity">
-            {comentario.usuario?.fotoPerfil ? (
-              <img src={comentario.usuario.fotoPerfil} alt={comentario.usuario.nome} className="w-full h-full object-cover" />
-            ) : (
-              <div className="w-full h-full flex items-center justify-center font-bold text-xs bg-purple-600 text-white">
-                {comentario.usuario?.nome?.charAt(0).toUpperCase()}
+          {/* TOP BAR DO COMENTÁRIO */}
+          <div className="flex items-start justify-between gap-2 mb-1.5">
+            <div className="min-w-0">
+              <div className="flex items-center flex-wrap gap-x-2 gap-y-0.5">
+                {/* Nome do Autor */}
+                <LinkNext 
+                  href={`/perfil?id=${comentario.usuario.id}`} 
+                  className="font-black text-xs hover:underline transition-colors block truncate"
+                  style={{ color: 'var(--cor-texto-principal)' }}
+                >
+                  {comentario.usuario?.nome}
+                </LinkNext>
+                
+                {/* Contexto Semântico do Letrify: @NomePai */}
+                <span className="text-[10px] font-bold opacity-40 flex items-center gap-0.5" style={{ color: 'var(--cor-texto-principal)' }}>
+                  <span>em resposta a</span> 
+                  <span className="font-extrabold hover:underline cursor-pointer" style={{ color: 'var(--cor-primaria)' }}>@{nomePai}</span>
+                </span>
               </div>
-            )}
-          </Link>
-          
-          <div>
-            <p className="font-bold text-xs text-zinc-200 flex items-center flex-wrap gap-1">
-              {/* NOME CLICÁVEL */}
-              <Link href={`/perfil?id=${comentario.usuario.id}`} className="hover:underline">
-                {comentario.usuario?.nome}
-              </Link>
               
-              {/* Contexto: respondendo @fulano */}
-              <span className="text-[10px] font-normal text-zinc-500">
-                respondendo <span className="text-zinc-400">@{nomePai}</span>
-              </span>
-            </p>
-            <p className="text-[9px] text-zinc-500 uppercase tracking-wider font-semibold mt-0.5">
-              {new Date(comentario.dataPostagem).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
-            </p>
+              {/* Data de Envio do Comentário */}
+              <p className="text-[9px] uppercase tracking-wider font-bold opacity-40 mt-0.5" style={{ color: 'var(--cor-texto-principal)' }}>
+                {new Date(comentario.dataPostagem).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
+              </p>
+            </div>
+
+            {/* Menu de Ações Isolado da Caixa de Texto */}
+            <div className="flex-shrink-0 -mt-1">
+              <MenuTresPontinhos idPost={comentario.id} isDono={isDonoDoComentario} />
+            </div>
           </div>
+
+          {/* TEXTO DA RESPOSTA (Herda naturalmente o espaçamento da coluna) */}
+          <p 
+            className="text-xs leading-relaxed font-medium whitespace-pre-wrap break-words" 
+            style={{ color: 'var(--cor-texto-principal)', opacity: 0.85 }}
+          >
+            {comentario.conteudo}
+          </p>
+          
         </div>
-
-        {/* 3 Pontinhos do Filho */}
-        <MenuTresPontinhos idPost={comentario.id} isDono={isDonoDoComentario} />
       </div>
-
-      {/* CORPO DO COMENTÁRIO */}
-      {/* A margem esquerda (ml-10) alinha o texto perfeitamente com o nome, escapando de ficar embaixo do avatar */}
-      <p className="text-xs leading-relaxed text-zinc-300 whitespace-pre-wrap ml-10">
-        {comentario.conteudo}
-      </p>
       
     </div>
   );

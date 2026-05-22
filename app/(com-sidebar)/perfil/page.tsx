@@ -157,10 +157,14 @@ function ConteudoDoPerfil() {
         descricao={perfilMapeado.descricao}
         fotoPerfil={perfilMapeado.fotoPerfil}
         bannerUrl={perfilMapeado.bannerUrl}
-        estatisticas={perfilMapeado.estatisticas}
         isDonoDoPerfil={isDonoDoPerfil}
-
         isSeguindoInicial={isSeguindo}
+        
+        estatisticas={{
+          seguindo: perfilMapeado.estatisticas?.seguindo || 0,
+          seguidores: perfilMapeado.estatisticas?.seguidores || 0
+        }}
+        
         onFollowClick={handleFollowToggle}
         onAbrirModal={setAbaModalAberta}
         isEditorAbertoExterno={isEditando}

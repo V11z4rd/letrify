@@ -1,9 +1,11 @@
 "use client";
 
-// O formato de cada opção dentro da caixinha
+// Importando o ícone de setinha do Heroicons
+import { ChevronDownIcon } from "@heroicons/react/24/outline";
+
 interface Opcao {
-  valor: string; // O que vai para o banco de dados (ex: "todos", "ninguem")
-  rotulo: string; // O que o usuário lê na tela (ex: "Qualquer pessoa", "Ninguém")
+  valor: string; // Ex: "todos", "ninguem"
+  rotulo: string; // Ex: "Qualquer pessoa", "Ninguém"
 }
 
 interface CaixaSelecaoProps {
@@ -26,7 +28,7 @@ export default function CaixaSelecao({
   return (
     <div 
       className={`flex flex-col sm:flex-row sm:items-center justify-between p-4 rounded-xl border transition-all gap-4 ${
-        desativado ? 'opacity-50 cursor-not-allowed grayscale' : 'hover:bg-black/5 dark:hover:bg-white/5'
+        desativado ? 'opacity-40 cursor-not-allowed pointer-events-none' : 'hover:bg-black/[0.02] dark:hover:bg-white/[0.02]'
       }`}
       style={{ 
         backgroundColor: 'var(--cor-fundo-card)', 
@@ -34,7 +36,7 @@ export default function CaixaSelecao({
       }}
     >
       {/* Lado Esquerdo: Textos */}
-      <div className="flex-1 pr-4">
+      <div className="flex-1 sm:pr-4">
         <h3 className="font-bold text-sm" style={{ color: 'var(--cor-texto-principal)' }}>
           {titulo}
         </h3>
@@ -45,27 +47,45 @@ export default function CaixaSelecao({
         )}
       </div>
 
-      {/* Lado Direito: A Caixa de Seleção */}
-      <div className="shrink-0 w-full sm:w-auto">
+      {/* Lado Direito: A Caixa de Seleção customizada */}
+      <div className="shrink-0 w-full sm:w-auto relative">
         <select
           disabled={desativado}
           value={valorSelecionado}
           onChange={(e) => aoMudar(e.target.value)}
-          className={`w-full sm:w-48 p-2 rounded-lg border text-sm font-semibold outline-none focus:ring-2 transition-shadow ${
-            desativado ? 'cursor-not-allowed' : 'cursor-pointer'
+          /* 
+            - appearance-none: Esconde a seta padrão feia do navegador 
+            - pr-10: Garante que o texto longo não fique por baixo do ícone novo
+          */
+          className={`w-full sm:w-48 p-2 pr-10 rounded-lg border text-sm font-semibold outline-none appearance-none transition-all ${
+            desativado 
+              ? 'cursor-not-allowed' 
+              : 'cursor-pointer focus:border-[var(--cor-primaria)] focus:ring-4 focus:ring-[var(--cor-primaria)]/10'
           }`}
           style={{
             backgroundColor: 'var(--cor-fundo-app)',
             color: 'var(--cor-texto-principal)',
-            borderColor: 'var(--cor-destaque)', // Usa a cor de destaque para a borda
+            borderColor: 'var(--cor-fundo-sidebar)', // Borda neutra inicial para não competir visualmente
           }}
         >
           {opcoes.map((opcao) => (
-            <option key={opcao.valor} value={opcao.valor}>
+            <option 
+              key={opcao.valor} 
+              value={opcao.valor}
+              style={{
+                backgroundColor: 'var(--cor-fundo-card)',
+                color: 'var(--cor-texto-principal)'
+              }}
+            >
               {opcao.rotulo}
             </option>
           ))}
         </select>
+
+        {/* Ícone customizado posicionado de forma absoluta por cima do select */}
+        <div className="absolute inset-y-0 right-0 flex items-center pr-3 pointer-events-none opacity-60">
+          <ChevronDownIcon className="w-4 h-4 stroke-[2.5]" style={{ color: 'var(--cor-texto-principal)' }} />
+        </div>
       </div>
     </div>
   );

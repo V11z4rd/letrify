@@ -1,6 +1,5 @@
 import React from 'react';
 import Sidebar from "../../components/Sidebar"; 
-// 1. Importamos o Provider que criaremos no Contexto
 import { NotificacoesProvider } from "../../context/NotificacoesContext"; 
 
 export default function ComSidebarLayout({
@@ -9,15 +8,23 @@ export default function ComSidebarLayout({
   children: React.ReactNode;
 }) {
   return (
-    // 2. Envolvemos a estrutura principal com o Provider das Notificações
     <NotificacoesProvider>
-      <div className="flex min-h-screen" style={{ backgroundColor: 'var(--cor-fundo)' }}>
-        {/* A nossa barra lateral fixa */}
+      <div 
+        className="flex flex-col md:flex-row h-screen w-screen overflow-hidden select-none" 
+        style={{ backgroundColor: 'var(--cor-fundo-app, var(--cor-fundo))' }}
+      >
+        {/* Barra lateral - Adapta-se automaticamente entre base inferior mobile ou lateral desktop */}
         <Sidebar />
 
-        {/* A página ativa (ex: Feed, Perfil, etc) */}
-        <main className="flex-1 p-8">
-          {children}
+        {/* Área de conteúdo principal dinâmica e isolada para rolagem */}
+        <main 
+          className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-8 transition-all duration-300"
+          style={{ color: 'var(--cor-texto-principal)' }}
+        >
+          {/* Container de largura máxima para o conteúdo não esticar excessivamente em monitores UltraWide */}
+          <div className="max-w-7xl mx-auto w-full">
+            {children}
+          </div>
         </main>
       </div>
     </NotificacoesProvider>

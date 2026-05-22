@@ -5,7 +5,16 @@ import { useSearchParams } from "next/navigation";
 import { authService } from "@/app/lib/authService";
 import CardLivro, { LivroDados } from "@/components/CardLivro";
 
-// Tipo para mapear a resposta da API
+// Importações do Heroicons
+import { 
+  BookOpenIcon, 
+  CheckCircleIcon, 
+  BookmarkIcon, 
+  Squares2X2Icon,
+  ExclamationTriangleIcon,
+  InboxIcon
+} from "@heroicons/react/24/outline";
+
 interface RespostaEstante {
   lendo: LivroDados[];
   lido: LivroDados[];
@@ -15,6 +24,7 @@ interface RespostaEstante {
 interface EstanteUsuarioProps {
   userId?: string;
 }
+
 const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
 export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
@@ -24,16 +34,15 @@ export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState("");
 
-  // Monitora a URL para aplicar o filtro vindo do ResumoLateral
+  const isDonoDaEstante = !userId || userId === authService.getUserId();
+
   useEffect(() => {
     const filtroDaUrl = searchParams.get("filtro");
-    
     if (filtroDaUrl === "Lendo") setFiltroAtivo("Lendo");
     else if (filtroDaUrl === "Lido") setFiltroAtivo("Lido");
     else if (filtroDaUrl === "Quero Ler") setFiltroAtivo("Quero Ler");
     else setFiltroAtivo("Todos");
-
-  }, [searchParams])
+  }, [searchParams]);
 
   useEffect(() => {
     const buscarEstante = async () => {
@@ -53,21 +62,18 @@ export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
           throw new Error("Você precisa estar logado para ver sua estante.");
         }
 
-        const resposta = await fetch(`https://letrify.fly.dev/api/usuario/${idFinal}/livros`, {
+        const resposta = await fetch(`${BASE_URL}/usuario/${idFinal}/livros`, {
           headers: {
-            "Authorization": token? `Bearer ${token}` : ""
+            "Authorization": token ? `Bearer ${token}` : ""
           }
         });
 
         if (!resposta.ok) {
-          // Se a API retornar 403 ou 401, é porque o perfil é privado
           if (resposta.status === 403) throw new Error("Esta estante é privada.");
           throw new Error("Erro ao carregar estante");
         }
 
         const dados = await resposta.json();
-        
-        // Garante que se a API mandar null em alguma categoria, a gente transforma em array vazio
         setEstante({
           lendo: dados.lendo || [],
           lido: dados.lido || [],
@@ -82,13 +88,15 @@ export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
     };
 
     buscarEstante();
-  }, [userId]); // Re-executa sempre que o ID do perfil mudar
+  }, [userId]);
 
-  // Lógica de Filtro: Decide qual array vamos mostrar na tela
   let livrosParaMostrar: LivroDados[] = [];
-  
   if (filtroAtivo === "Todos") {
-    livrosParaMostrar = [...estante.lendo, ...estante.lido, ...estante.queroLer];
+    const todosLivros = [...estante.lendo, ...estante.lido, ...estante.queroLer];
+    // Evita duplicidade de keys no React gerada por inconsistências de estados na API
+    livrosParaMostrar = todosLivros.filter((livro, index, self) =>
+      index === self.findIndex((l) => l.id === livro.id)
+    );
   } else if (filtroAtivo === "Lendo") {
     livrosParaMostrar = estante.lendo;
   } else if (filtroAtivo === "Lido") {
@@ -97,10 +105,13 @@ export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
     livrosParaMostrar = estante.queroLer;
   }
 
-  // Abas do nosso menu
-  const abas = ["Todos", "Lendo", "Lido", "Quero Ler"];
+  const abas = [
+    { id: "Todos", label: "Todos", icone: Squares2X2Icon },
+    { id: "Lendo", label: "Lendo", icone: BookOpenIcon },
+    { id: "Lido", label: "Lido", icone: CheckCircleIcon },
+    { id: "Quero Ler", label: "Quero Ler", icone: BookmarkIcon },
+  ];
 
-  // Quando um livro é excluído pelo Card, removemos ele do estado local
   const handleRemoverLivroDaTela = (livroId: number) => {
     setEstante(prev => ({
       lendo: prev.lendo.filter(l => l.id !== livroId),
@@ -112,15 +123,17 @@ export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
   return (
     <div className="w-full animate-fade-in">
       
-      {/* 1. O MENU DE FILTROS */}
+      {/* 1. O MENU DE FILTROS COM HEROICONS */}
       <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mb-8 border-b pb-4" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
         {abas.map((aba) => {
-          const isAtivo = filtroAtivo === aba;
+          const isAtivo = filtroAtivo === aba.id;
+          const IconeAba = aba.icone;
+
           return (
             <button
-              key={aba}
-              onClick={() => setFiltroAtivo(aba as any)}
-              className={`px-5 py-2 rounded-full font-bold text-sm transition-all ${
+              key={aba.id}
+              onClick={() => setFiltroAtivo(aba.id as any)}
+              className={`flex items-center gap-2 px-5 py-2 rounded-full font-bold text-sm transition-all ${
                 isAtivo ? 'shadow-md scale-105' : 'opacity-60 hover:opacity-100 border border-transparent'
               }`}
               style={{
@@ -129,37 +142,40 @@ export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
                 borderColor: isAtivo ? 'transparent' : 'var(--cor-fundo-sidebar)'
               }}
             >
-              {aba === "Quero Ler" && "📌 "}
-              {aba === "Lendo" && "📖 "}
-              {aba === "Lido" && "✅ "}
-              {aba}
+              <IconeAba className="w-4 h-4 stroke-[2.5]" />
+              {aba.label}
             </button>
           );
         })}
       </div>
 
-      {/* 2. FEEDBACKS VISUAIS */}
+      {/* 2. FEEDBACKS VISUAIS MELHORADOS */}
       {carregando && (
-        <div className="py-20 text-center opacity-50 font-bold animate-pulse" style={{ color: 'var(--cor-primaria)' }}>
-          <span className="text-4xl block mb-4">📚</span>
-          Tirando a poeira das prateleiras...
+        <div className="py-20 flex flex-col items-center justify-center text-center opacity-60 font-bold animate-pulse" style={{ color: 'var(--cor-primaria)' }}>
+          <BookOpenIcon className="w-12 h-12 mb-4 animate-bounce" />
+          <span>Tirando a poeira das prateleiras...</span>
         </div>
       )}
 
       {erro && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500 text-red-500 text-center font-bold">
-          {erro}
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500 text-red-500 flex items-center justify-center gap-3 font-bold max-w-xl mx-auto">
+          <ExclamationTriangleIcon className="w-6 h-6 flex-shrink-0" />
+          <span>{erro}</span>
         </div>
       )}
 
       {!carregando && !erro && livrosParaMostrar.length === 0 && (
-        <div className="text-center py-20 opacity-70 border-2 border-dashed rounded-2xl" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-          <span className="text-5xl block mb-4">🏜️</span>
-          <p className="font-bold text-xl" style={{ color: 'var(--cor-texto-principal)' }}>Nenhum livro por aqui.</p>
+        <div className="flex flex-col items-center justify-center text-center py-20 opacity-70 border-2 border-dashed rounded-2xl px-4" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+          <InboxIcon className="w-14 h-14 mb-4 opacity-50" style={{ color: 'var(--cor-texto-principal)' }} />
+          <p className="font-bold text-xl mb-1" style={{ color: 'var(--cor-texto-principal)' }}>Nenhum livro por aqui.</p>
           <p className="text-sm" style={{ color: 'var(--cor-texto-secundario)' }}>
             {filtroAtivo === "Todos" 
-              ? "Você ainda não salvou nenhum livro. Vá explorar!" 
-              : `Você não tem livros marcados como "${filtroAtivo}".`}
+              ? isDonoDaEstante 
+                ? "Você ainda não salvou nenhum livro. Vá explorar o catálogo!" 
+                : "Este usuário ainda não adicionou livros."
+              : isDonoDaEstante 
+                ? `Você não tem livros marcados como "${filtroAtivo}".`
+                : `Este usuário não tem livros marcados como "${filtroAtivo}".`}
           </p>
         </div>
       )}
@@ -169,9 +185,6 @@ export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {livrosParaMostrar.map((livro) => (
              <div key={livro.id} className="h-full">
-               {/* 1. Passamos a variante="estante"
-                  2. Passamos a função handleRemoverLivroDaTela como prop onRemove
-               */}
                <CardLivro 
                  livro={livro} 
                  variante="estante" 

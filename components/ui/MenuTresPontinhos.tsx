@@ -1,6 +1,13 @@
 "use client";
 
 import { useState, useRef, useEffect } from "react";
+// Importações do Heroicons para ações de menu e feedback
+import { 
+  EllipsisHorizontalIcon, 
+  FlagIcon, 
+  TrashIcon,
+  ArrowPathIcon
+} from "@heroicons/react/24/outline";
 
 interface MenuProps {
   idPost: number;
@@ -14,7 +21,6 @@ export default function MenuTresPontinhos({ idPost, isDono }: MenuProps) {
 
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
-  // Fecha o menu se o usuário clicar fora dele
   useEffect(() => {
     function clicarFora(event: MouseEvent) {
       if (menuRef.current && !menuRef.current.contains(event.target as Node)) {
@@ -34,7 +40,7 @@ export default function MenuTresPontinhos({ idPost, isDono }: MenuProps) {
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("letrify_token") : null;
       
-      const resposta = await fetch(`https://letrify.fly.dev/api/chat/deletar/${idPost}`, {
+      const resposta = await fetch(`${BASE_URL}/chat/deletar/${idPost}`, {
         method: "DELETE",
         headers: {
           "Authorization": `Bearer ${token}`
@@ -44,12 +50,15 @@ export default function MenuTresPontinhos({ idPost, isDono }: MenuProps) {
       if (!resposta.ok) {
         alert("Erro ao excluir a mensagem. Verifique suas permissões.");
         setExcluindo(false);
+        return;
+      }
+
+      // 🟢 SUCESSO: Força o fechamento e avisa a page.tsx para atualizar na hora!
+      setAberto(false);
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("atualizar_feed_global"));
       }
       
-      // NOTA: Não precisamos dar setAberto(false) ou atualizar o estado local aqui.
-      // O SignalR vai receber o evento "MensagemDeletada" do Back-end e 
-      // remover o componente da tela automaticamente no FeedPage.
-
     } catch (error) {
       console.error("Erro na requisição de deleção:", error);
       setExcluindo(false);
@@ -57,37 +66,62 @@ export default function MenuTresPontinhos({ idPost, isDono }: MenuProps) {
   };
 
   return (
-    <div className="relative" ref={menuRef}>
-      {/* BOTÃO DOS TRÊS PONTINHOS */}
+    <div className="relative inline-block" ref={menuRef}>
+      {/* BOTÃO DOS TRÊS PONTINHOS PREMIUM */}
       <button 
         onClick={() => setAberto(!aberto)}
         disabled={excluindo}
-        className="w-8 h-8 flex items-center justify-center rounded-full hover:bg-white/10 transition-colors opacity-40 hover:opacity-100 disabled:opacity-20"
+        className="w-8 h-8 flex items-center justify-center rounded-xl transition-all duration-200 hover:bg-black/[0.05] dark:hover:bg-white/[0.05] active:scale-90 disabled:opacity-20"
+        style={{ color: aberto ? 'var(--cor-botao-primario)' : 'var(--cor-texto-secundario)' }}
+        title="Opções do post"
       >
-        <span className="mb-2">...</span>
+        <EllipsisHorizontalIcon className="w-5 h-5 stroke-[2.5]" />
       </button>
 
-      {/* MENU DROPDOWN */}
+      {/* MENU DROPDOWN ADAPTADO COM GLOBALS */}
       {aberto && (
-        <div className="absolute right-0 mt-1 w-32 bg-zinc-800 border border-white/10 rounded-xl shadow-2xl z-50 overflow-hidden animate-zoom-in">
-          
+        <div 
+          className="absolute right-0 mt-1 w-40 rounded-xl shadow-2xl z-50 border overflow-hidden animate-fade-in"
+          style={{ 
+            backgroundColor: 'var(--cor-fundo-card)',
+            borderColor: 'var(--cor-fundo-sidebar)',
+            boxShadow: '0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1)'
+          }}
+        >
+          {/* AÇÃO: DENUNCIAR */}
           <button 
-            className="w-full px-4 py-2 text-left text-[10px] font-bold text-zinc-400 hover:bg-white/5 transition-colors border-b border-white/5"
+            className="w-full flex items-center gap-2 px-3 py-2.5 text-left text-xs font-bold transition-colors hover:bg-black/[0.03] dark:hover:bg-white/[0.03] border-b"
+            style={{ 
+              color: 'var(--cor-texto-principal)',
+              borderColor: 'var(--cor-fundo-sidebar)'
+            }}
             onClick={() => {
                 alert("Denúncia registrada. Nossa equipe irá analisar.");
                 setAberto(false);
             }}
           >
-            🚩 DENUNCIAR
+            <FlagIcon className="w-4 h-4 opacity-70 shrink-0" />
+            <span>Denunciar</span>
           </button>
 
+          {/* AÇÃO: EXCLUIR (APENAS PARA O DONO) */}
           {isDono && (
             <button 
               onClick={handleExcluir}
               disabled={excluindo}
-              className="w-full px-4 py-2 text-left text-[10px] font-bold text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
+              className="w-full flex items-center gap-2 px-3 py-2.5 text-left text-xs font-bold text-red-500 hover:bg-red-500/10 transition-colors disabled:opacity-50"
             >
-              {excluindo ? "⚠️ EXCLUINDO..." : "🗑️ EXCLUIR"}
+              {excluindo ? (
+                <>
+                  <ArrowPathIcon className="w-4 h-4 animate-spin shrink-0" />
+                  <span>Excluindo...</span>
+                </>
+              ) : (
+                <>
+                  <TrashIcon className="w-4 h-4 shrink-0" />
+                  <span>Excluir</span>
+                </>
+              )}
             </button>
           )}
         </div>

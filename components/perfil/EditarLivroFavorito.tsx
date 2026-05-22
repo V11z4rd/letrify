@@ -1,6 +1,13 @@
 "use client";
 
 import { useState } from "react";
+// Ícones sofisticados do Heroicons para enriquecer o apelo visual literário
+import { 
+  TrophyIcon, 
+  BookOpenIcon, 
+  PlusIcon, 
+  TrashIcon 
+} from "@heroicons/react/24/outline";
 
 interface EditarLivroFavoritoProps {
   perfilInicial: {
@@ -9,12 +16,11 @@ interface EditarLivroFavoritoProps {
 }
 
 export default function EditarLivroFavorito({ perfilInicial }: EditarLivroFavoritoProps) {
-  // Estado simulado para controlar se o livro está ativo ou não
   const [favorito, setFavorito] = useState<{ titulo: string; autor: string } | null>(
     perfilInicial.favorito
   );
 
-  // Mock de um livro para quando o usuário clicar em "adicionar"
+  // Mock simulando a injeção do livro selecionado
   const livroMock = {
     titulo: "O Nome da Rosa",
     autor: "Umberto Eco",
@@ -29,41 +35,94 @@ export default function EditarLivroFavorito({ perfilInicial }: EditarLivroFavori
   };
 
   return (
-    <section className="bg-zinc-900/40 rounded-2xl border border-white/5 p-6 shadow-xl">
-      {/* CABEÇALHO IMITANDO A ESTRUTURA DE ABAS */}
-      <div className="flex justify-between items-center mb-8 border-b border-white/5 pb-3">
-        <div className="text-xs uppercase tracking-widest font-black text-blue-500 border-b-2 border-blue-500 pb-3 -mb-[14px]">
-          🏆 Livro Favorito
+    <section 
+      className="rounded-3xl border p-6 shadow-xl transition-all duration-300"
+      style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
+    >
+      {/* CABEÇALHO COM ABAS INTEGRADO AO GLOBALS */}
+      <div className="flex justify-between items-center mb-8 border-b pb-3" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+        <div 
+          className="text-[10px] uppercase tracking-widest font-black flex items-center gap-2 border-b-2 pb-3.5 -mb-[15px] transition-colors"
+          style={{ color: 'var(--cor-primaria)', borderColor: 'var(--cor-primaria)' }}
+        >
+          <TrophyIcon className="w-4 h-4 stroke-[2.5]" />
+          <span>Livro Favorito</span>
         </div>
         
-        {/* Botão de alternância estilizado como texto interativo */}
+        {/* Botão de Alternância com Micro-interações */}
         <button
           onClick={alternarFavorito}
-          className="text-[10px] uppercase tracking-widest font-black opacity-50 hover:opacity-100 hover:text-blue-400 transition-all cursor-pointer"
+          className="text-[9px] uppercase tracking-widest font-black px-3 py-1.5 rounded-full flex items-center gap-1.5 border transition-all duration-200 active:scale-95"
+          style={{ 
+            backgroundColor: favorito ? 'rgba(239, 68, 68, 0.05)' : 'var(--cor-fundo-sidebar)', 
+            borderColor: favorito ? 'rgba(239, 68, 68, 0.2)' : 'var(--cor-fundo-sidebar)',
+            color: favorito ? '#ef4444' : 'var(--cor-texto-secundario)'
+          }}
         >
-          {favorito ? "[ remover livro ]" : "[ adicionar livro ]"}
+          {favorito ? (
+            <>
+              <TrashIcon className="w-3 h-3 stroke-[2.5]" />
+              <span>Remover</span>
+            </>
+          ) : (
+            <>
+              <PlusIcon className="w-3 h-3 stroke-[2.5]" />
+              <span>Adicionar</span>
+            </>
+          )}
         </button>
       </div>
 
-      {/* ÁREA DO CONTEÚDO (Mantendo a mesma altura mínima do perfil) */}
+      {/* ÁREA DO CONTEÚDO (Mantendo proporção vertical estável) */}
       <div className="flex flex-col items-center justify-center min-h-[320px]">
         {favorito ? (
           <div className="text-center animate-fade-in group">
-            {/* O Retângulo/Capa idêntico ao do perfil */}
-            <div className="w-36 h-52 bg-zinc-800 rounded-2xl shadow-2xl mb-6 mx-auto flex items-center justify-center border-2 border-white/5 group-hover:border-blue-500/30 transition-all overflow-hidden relative">
-              <div className="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent"></div>
-              <span className="text-[10px] uppercase font-black tracking-[0.3em] opacity-20 rotate-90">LETRIFY</span>
+            
+            {/* Capa Estilizada de Alta Fidelidade */}
+            <div 
+              className="w-36 h-52 rounded-2xl shadow-xl mb-5 mx-auto flex items-center justify-center border transition-all duration-300 relative overflow-hidden group-hover:-translate-y-1 group-hover:shadow-2xl"
+              style={{ 
+                backgroundColor: 'var(--cor-fundo-app)', 
+                borderColor: 'var(--cor-fundo-sidebar)' 
+              }}
+              onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
+              onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-fundo-sidebar)'}
+            >
+              {/* Sombra interna simulando relevo da lombada do livro à esquerda */}
+              <div className="absolute top-0 left-0 bottom-0 w-2 bg-black/[0.15] dark:bg-black/[0.3] z-10 border-r border-black/[0.05]" />
+              
+              <div className="absolute inset-0 bg-gradient-to-t from-black/[0.2] dark:from-black/[0.6] to-transparent z-0" />
+              <span 
+                className="text-[9px] uppercase font-black tracking-[0.35em] opacity-15 rotate-90 select-none z-0"
+                style={{ color: 'var(--cor-texto-principal)' }}
+              >
+                LETRIFY
+              </span>
             </div>
-            <h4 className="text-2xl font-black tracking-tight text-zinc-100">{favorito.titulo}</h4>
-            <p className="text-sm font-bold text-blue-500 opacity-80 mt-1">{favorito.autor}</p>
+
+            {/* Metadados Dinâmicos baseados no Design Core */}
+            <h4 className="text-xl font-black tracking-tight max-w-[200px] mx-auto line-clamp-2" style={{ color: 'var(--cor-texto-principal)' }}>
+              {favorito.titulo}
+            </h4>
+            <p className="text-xs font-bold mt-1.5 opacity-80" style={{ color: 'var(--cor-primaria)' }}>
+              {favorito.autor}
+            </p>
           </div>
         ) : (
-          <div className="text-center animate-fade-in space-y-4">
-            {/* Placeholder pontilhado para quando estiver vazio, combinando com o design */}
-            <div className="w-36 h-52 rounded-2xl border-2 border-dashed border-white/10 mx-auto flex items-center justify-center opacity-40">
-              <span className="text-[10px] uppercase font-black tracking-widest">Vazio</span>
+          <div className="text-center animate-fade-in flex flex-col items-center gap-4">
+            
+            {/* Placeholder Pontilhado Inteligente */}
+            <div 
+              className="w-36 h-52 rounded-2xl border-2 border-dashed flex flex-col items-center justify-center opacity-25 transition-all duration-300 group-hover:opacity-40"
+              style={{ borderColor: 'var(--cor-texto-secundario)' }}
+            >
+              <BookOpenIcon className="w-7 h-7 stroke-[1.2] mb-1" style={{ color: 'var(--cor-texto-principal)' }} />
+              <span className="text-[9px] uppercase font-black tracking-widest" style={{ color: 'var(--cor-texto-principal)' }}>Vazio</span>
             </div>
-            <p className="opacity-40 italic text-sm">Nenhum livro favorito selecionado.</p>
+            
+            <p className="text-xs font-medium opacity-40 italic" style={{ color: 'var(--cor-texto-principal)' }}>
+              Nenhum favorito destacado.
+            </p>
           </div>
         )}
       </div>

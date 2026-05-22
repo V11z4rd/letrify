@@ -4,8 +4,14 @@ import { useState } from "react";
 import Link from "next/link";
 import ComentarioFilho from "./ComentarioFilho";
 import MenuTresPontinhos from "../ui/MenuTresPontinhos";
+// Heroicons para trazer a identidade moderna do Letrify
+import { 
+  ChatBubbleLeftRightIcon, 
+  UserGroupIcon, 
+  ArrowRightIcon,
+  PaperAirplaneIcon
+} from "@heroicons/react/24/outline";
 
-// Replicando a tipagem para o componente saber o que está a receber
 interface UsuarioChat {
   id: number;
   nome: string;
@@ -19,25 +25,22 @@ interface MensagemChat {
   usuario: UsuarioChat;
   mensagemPaiId?: number | null;
   respostas: MensagemChat[];
-  grupoId?: number | null; // Adicionada a propriedade para os posts de recrutamento
+  grupoId?: number | null;
 }
 
 interface PostThreadProps {
   post: MensagemChat;
-  meuId: number | null; // Usado para saber se mostramos a lixeira nos 3 pontinhos
+  meuId: number | null;
 }
 
 export default function PostThread({ post, meuId }: PostThreadProps) {
   const [expandido, setExpandido] = useState(false);
   
-  // Estados para a caixa de resposta
   const [conteudoResposta, setConteudoResposta] = useState("");
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
   const isDonoDoPost = meuId === post.usuario.id;
-  
-  // A nossa URL à prova de falhas
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
   const handleResponder = async () => {
@@ -54,13 +57,13 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
     try {
       const token = typeof window !== "undefined" ? localStorage.getItem("letrify_token") : null;
       
-      const respostaApi = await fetch(`https://letrify.fly.dev/api/chat/enviar`, {
+      // Corrigido para utilizar a variável de ambiente BASE_URL dinâmica
+      const respostaApi = await fetch(`${BASE_URL}/chat/enviar`, {
         method: "POST",
         headers: {
           "Content-Type": "application/json",
           "Authorization": `Bearer ${token}`
         },
-        // O segredo está aqui: apontamos para o ID deste post
         body: JSON.stringify({ conteudo: textoLimpo, mensagemPaiId: post.id }) 
       });
 
@@ -74,8 +77,10 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
         return;
       }
 
-      // Sucesso! Limpa a caixa de texto. O SignalR faz o resto!
       setConteudoResposta("");
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new Event("atualizar_feed_global"));
+      }
 
     } catch (err) {
       setErro("Erro de conexão.");
@@ -85,83 +90,119 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
   };
 
   return (
-    <div className="p-5 sm:p-6 rounded-3xl bg-zinc-900/60 border border-white/5 shadow-sm transition-all">
+    <div 
+      className="p-5 sm:p-6 rounded-3xl border shadow-md transition-all duration-300"
+      style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
+    >
       
       {/* CABEÇALHO DO POST PAI */}
       <div className="flex items-center justify-between mb-3">
         <div className="flex items-center gap-3">
 
-          {/* FOTO CLICÁVEL */}
-          <Link href={`/perfil?id=${post.usuario.id}`} className="w-11 h-11 rounded-full bg-zinc-800 border-2 border-zinc-700/50 overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity">
+          {/* FOTO CLICÁVEL DO AVATAR */}
+          <Link 
+            href={`/perfil?id=${post.usuario.id}`} 
+            className="w-11 h-11 rounded-xl border overflow-hidden flex-shrink-0 hover:opacity-80 transition-all shadow-sm"
+            style={{ borderColor: 'var(--cor-fundo-sidebar)' }}
+          >
             {post.usuario?.fotoPerfil ? (
               <img src={post.usuario.fotoPerfil} alt={post.usuario.nome} className="w-full h-full object-cover" />
             ) : (
-              <div className="w-full h-full flex items-center justify-center font-bold text-sm bg-blue-600">
+              <div 
+                className="w-full h-full flex items-center justify-center font-black text-sm"
+                style={{ backgroundColor: 'var(--cor-primaria)', color: 'var(--cor-botao-texto)' }}
+              >
                 {post.usuario?.nome?.charAt(0).toUpperCase()}
               </div>
             )}
           </Link>
           
           <div>
-            {/* NOME CLICÁVEL */}
-            <Link href={`/perfil?id=${post.usuario.id}`} className="font-bold text-sm tracking-tight text-zinc-100 hover:underline">
+            <Link 
+              href={`/perfil?id=${post.usuario.id}`} 
+              className="font-black text-sm tracking-tight hover:underline"
+              style={{ color: 'var(--cor-texto-principal)' }}
+            >
               {post.usuario?.nome}
             </Link>
-            <p className="text-[10px] text-zinc-500 uppercase tracking-wider font-semibold mt-0.5">
-              {new Date(post.dataPostagem).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })}
+            <p className="text-[9px] uppercase tracking-wider font-bold opacity-40 mt-0.5" style={{ color: 'var(--cor-texto-principal)' }}>
+              {new Date(post.dataPostagem).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
             </p>
           </div>
         </div>
 
-        {/* 3 Pontinhos */}
         <MenuTresPontinhos idPost={post.id} isDono={isDonoDoPost} />
       </div>
       
       {/* CORPO DO POST PAI */}
-      <p className="text-sm leading-relaxed text-zinc-300 mb-4 whitespace-pre-wrap">
+      <p 
+        className="text-sm leading-relaxed font-medium mb-4 whitespace-pre-wrap"
+        style={{ color: 'var(--cor-texto-principal)', opacity: 0.9 }}
+      >
         {post.conteudo}
       </p>
 
-      {/* BLOCO DE RECRUTAMENTO DE GRUPOS (SÓ APARECE SE TIVER GRUPOID) */}
+      {/* BLOCO DE RECRUTAMENTO DE CLUBES (VISUAL PREMIUM REESTILIZADO) */}
       {post.grupoId && (
-        <div className="mb-4 p-4 rounded-xl bg-gradient-to-r from-blue-900/30 to-transparent border border-blue-500/30 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+        <div 
+          className="mb-5 p-4 rounded-2xl border flex flex-col sm:flex-row sm:items-center justify-between gap-4 transition-all"
+          style={{ 
+            backgroundColor: 'var(--cor-fundo-app)', 
+            borderColor: 'rgba(var(--cor-primaria-rgb, 59, 130, 246), 0.2)' 
+          }}
+        >
           <div className="flex items-center gap-3">
-            <div className="w-10 h-10 rounded-full bg-blue-500/20 flex items-center justify-center flex-shrink-0 text-xl border border-blue-500/40">
-              📚
+            <div 
+              className="w-10 h-10 rounded-xl flex items-center justify-center flex-shrink-0 border"
+              style={{ backgroundColor: 'rgba(var(--cor-primaria-rgb, 59, 130, 246), 0.1)', borderColor: 'rgba(var(--cor-primaria-rgb, 59, 130, 246), 0.3)' }}
+            >
+              <UserGroupIcon className="w-5 h-5 stroke-[2]" style={{ color: 'var(--cor-primaria)' }} />
             </div>
             <div>
-              <p className="text-[10px] text-blue-400 font-black uppercase tracking-widest">Convite de Leitura</p>
-              <p className="text-sm text-zinc-200 font-bold">Junte-se a este clube literário!</p>
+              <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--cor-primaria)' }}>Convite de Leitura</p>
+              <p className="text-xs sm:text-sm font-bold opacity-80" style={{ color: 'var(--cor-texto-principal)' }}>Junte-se a este clube literário!</p>
             </div>
           </div>
           
           <Link 
             href={`/grupos/${post.grupoId}`} 
-            className="px-5 py-2.5 bg-blue-600 hover:bg-blue-500 text-white text-xs font-black uppercase tracking-wider rounded-lg transition-colors text-center shadow-lg shadow-blue-500/20 flex-shrink-0"
+            className="px-4 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all flex items-center justify-center gap-2 shadow-md hover:scale-[1.01] active:scale-95"
+            style={{ backgroundColor: 'var(--cor-destaque)', color: '#ffffff' }}
           >
-            Ver Clube →
+            <span>Ver Clube</span>
+            <ArrowRightIcon className="w-3.5 h-3.5 stroke-[2.5]" />
           </Link>
         </div>
       )}
       
-      {/* INDICADOR DE RESPOSTAS (Botão Expansor) */}
+      {/* SELETOR INDICADOR DE RESPOSTAS */}
       <button 
         onClick={() => setExpandido(!expandido)}
-        className="text-xs font-bold text-blue-400 opacity-80 hover:opacity-100 transition-opacity flex items-center gap-2"
+        className="text-[10px] uppercase tracking-widest font-black flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all"
+        style={{ 
+          backgroundColor: expandido ? 'var(--cor-fundo-sidebar)' : 'transparent',
+          color: expandido ? 'var(--cor-primaria)' : 'var(--cor-texto-secundario)' 
+        }}
       >
-        <span className="text-lg leading-none">{expandido ? "−" : "+"}</span>
-        {post.respostas?.length || 0} respostas
+        <ChatBubbleLeftRightIcon className="w-4 h-4 stroke-[2.5]" />
+        <span>{post.respostas?.length || 0} respostas</span>
       </button>
 
-      {/* ÁREA EXPANDIDA (Fios, Input e Filhos) */}
+      {/* ÁREA EXPANDIDA (RAMIFICAÇÃO E SUB-POSTS) */}
       {expandido && (
-        <div className="mt-5 ml-5 pl-5 border-l-2 border-zinc-800/80 relative">
+        <div 
+          className="mt-5 ml-5 pl-5 border-l-2 relative transition-all animate-fade-in"
+          style={{ borderColor: 'var(--cor-fundo-sidebar)' }}
+        >
           
-          {/* CAIXA DE TEXTO PARA RESPONDER */}
-          <div className="mb-6 relative">
-            <div className="absolute -left-5 top-4 w-5 border-t-2 border-zinc-800/80"></div>
+          {/* INPUT DE RESPOSTA EXPANDIDO */}
+          <div className="mb-5 relative">
+            <div className="absolute -left-5 top-5 w-5 border-t-2" style={{ borderColor: 'var(--cor-fundo-sidebar)' }} />
             
-            <div className="bg-zinc-800/30 border border-white/5 rounded-2xl p-3 flex flex-col gap-2">
+            <div 
+              className="border rounded-2xl p-3 flex flex-col gap-2"
+              style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)' }}
+            >
               <textarea
                 value={conteudoResposta}
                 onChange={(e) => {
@@ -169,37 +210,38 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
                   if (erro) setErro(null);
                 }}
                 placeholder={`Responder a ${post.usuario.nome}...`}
-                className="w-full bg-transparent text-sm text-zinc-200 resize-none outline-none placeholder-zinc-600 h-14"
+                className="w-full bg-transparent text-xs sm:text-sm resize-none outline-none font-medium h-14 placeholder:opacity-30"
+                style={{ color: 'var(--cor-texto-principal)' }}
                 maxLength={150}
                 disabled={enviando}
               />
               
-              {erro && <p className="text-red-400 text-[10px] font-bold px-1">{erro}</p>}
+              {erro && <p className="text-red-500 text-[10px] font-bold px-1">{erro}</p>}
               
               <div className="flex justify-between items-center px-1">
-                <span className={`text-[10px] font-mono font-bold ${conteudoResposta.length >= 150 ? "text-red-500" : "text-zinc-600"}`}>
+                <span className="text-[9px] font-mono font-bold opacity-30" style={{ color: 'var(--cor-texto-principal)' }}>
                   {conteudoResposta.length}/150
                 </span>
                 
                 <button
                   onClick={handleResponder}
                   disabled={conteudoResposta.trim().length === 0 || enviando}
-                  className="px-4 py-1.5 bg-zinc-200 hover:bg-white text-zinc-900 disabled:bg-zinc-800 disabled:text-zinc-600 text-xs font-bold rounded-full transition-colors"
+                  className="px-4 py-1.5 text-[10px] uppercase tracking-widest font-black rounded-lg transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-30 disabled:scale-100"
+                  style={{ backgroundColor: 'var(--cor-primaria)', color: 'var(--cor-botao-texto)' }}
                 >
-                  {enviando ? "..." : "Enviar"}
+                  <PaperAirplaneIcon className="w-3 h-3 stroke-[2.5]" />
+                  <span>{enviando ? "..." : "Enviar"}</span>
                 </button>
               </div>
             </div>
           </div>
 
-          {/* LISTA DE COMENTÁRIOS FILHOS */}
+          {/* FLUXO DINÂMICO DOS COMENTÁRIOS FILHOS */}
           <div className="flex flex-col gap-4">
             {post.respostas && post.respostas.length > 0 ? (
               post.respostas.map((resposta) => (
                 <div key={resposta.id} className="relative">
-                  {/* Fio conector do filho */}
-                  <div className="absolute -left-5 top-5 w-5 border-t-2 border-zinc-800/80"></div>
-                  
+                  <div className="absolute -left-5 top-6 w-5 border-t-2" style={{ borderColor: 'var(--cor-fundo-sidebar)' }} />
                   <ComentarioFilho 
                     comentario={resposta} 
                     meuId={meuId} 
@@ -208,7 +250,9 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
                 </div>
               ))
             ) : (
-              <p className="text-xs text-zinc-600 italic">Seja o primeiro a responder...</p>
+              <p className="text-xs font-medium opacity-30 italic pl-1" style={{ color: 'var(--cor-texto-principal)' }}>
+                Seja o primeiro a responder...
+              </p>
             )}
           </div>
 

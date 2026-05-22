@@ -4,23 +4,27 @@
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 import EstanteUsuario from "@/components/EstanteUsuario";
+import { BookOpenIcon } from "@heroicons/react/24/outline";
 
 function ConteudoDaEstante() {
   const searchParams = useSearchParams();
-  const idDaUrl = searchParams.get("id"); // Pega o ID da URL, se existir
+  const idDaUrl = searchParams.get("id");
 
   return (
-    <div className="max-w-7xl mx-auto w-full pt-8 pb-20 relative animate-fade-in px-4">
-      {/* Passa o ID pra frente. Se for null, o EstanteUsuario usa o do logado */}
+    <div className="max-w-7xl mx-auto w-full pt-8 pb-20 relative px-4">
       <EstanteUsuario userId={idDaUrl || undefined} /> 
     </div>
   );
 }
 
 export default function EstantePage() {
-  // UseSearchParams precisa estar dentro de um Suspense no Next.js
   return (
-    <Suspense fallback={<div className="p-8 text-center">📚 Carregando estante...</div>}>
+    <Suspense fallback={
+      <div className="p-16 flex flex-col items-center justify-center text-center opacity-50 font-bold animate-pulse">
+        <BookOpenIcon className="w-10 h-10 mb-3" style={{ color: 'var(--cor-primaria)' }} />
+        <p style={{ color: 'var(--cor-texto-principal)' }}>Carregando estante...</p>
+      </div>
+    }>
       <ConteudoDaEstante />
     </Suspense>
   );
