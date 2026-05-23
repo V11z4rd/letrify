@@ -22,30 +22,16 @@ interface AnalisePremiumData {
 }
 
 export default function PremiumPage() {
-  // MODIFICAÇÃO DE TESTE: Iniciamos como false para ver a tela carregando por 1 segundo
   const [carregandoStatus, setCarregandoStatus] = useState(true);
-  
-  // MODIFICAÇÃO DE TESTE: Forçado estaticamente para 1 para pular a tela de assinatura e exibir os recursos Pro
-  const [isPremium, setIsPremium] = useState<number | null>(1); 
+  const [isPremium, setIsPremium] = useState<number | null>(null); // 0 = Não Premium, 1 = Premium
   
   // Estados da assinatura
   const [carregandoAssinatura, setCarregandoAssinatura] = useState(false);
   
   // Estados da Análise da IA
   const [carregandoIA, setCarregandoIA] = useState(false);
+  const [dadosIA, setDadosIA] = useState<AnalisePremiumData | null>(null);
   const [erroIA, setErroIA] = useState<string | null>(null);
-
-  // MODIFICAÇÃO DE TESTE: Dados mockados aplicados diretamente para renderizar a interface Pro sem erros de API
-  const [dadosIA, setDadosIA] = useState<AnalisePremiumData | null>({
-    analise: "O seu perfil demonstra uma forte inclinação para narrativas complexas e desenvolvimento profundo de personagens. Há um equilíbrio cirúrgico entre ficção contemporânea e clássicos modernos na sua estante virtual, indicando que você busca leituras que provocam reflexão crítica e debates existenciais fundamentados.",
-    recomendacoes: [
-      { titulo: "Cem Anos de Solidão", autor: "Gabriel García Márquez", justificativa: "Pelo seu apreço por tramas multigeracionais e realismo mágico de alta imersão." },
-      { titulo: "A Coisa", autor: "Stephen King", justificativa: "Com base na sua preferência por calhamaços com forte desenvolvimento psicológico e mistério." },
-      { titulo: "Admirável Mundo Novo", autor: "Aldous Huxley", justificativa: "Ideal para complementar sua estante de distopias políticas e ficção científica clássica." },
-      { titulo: "O Avesso da Pele", autor: "Jeferson Tenório", justificativa: "Uma recomendação contemporânea impactante que casa perfeitamente com as resenhas que você consuma interagir." },
-      { titulo: "Ficções", autor: "Jorge Luis Borges", justificativa: "Para desafiar seu lado de leitor analítico com labirintos conceituais e metáforas filosóficas." }
-    ]
-  });
 
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
@@ -56,8 +42,10 @@ export default function PremiumPage() {
         const token = typeof window !== 'undefined' ? localStorage.getItem('letrify_token') : null;
         const usuarioId = (typeof window !== 'undefined' ? localStorage.getItem('letrify_user_id') : null) || authService.getUserId();
 
+        // Se faltar credenciais locais, define como não-premium para exibir a tela de assinatura
         if (!token || !usuarioId) {
-          // Mantido comportamento padrão, mas ignorado pelo estado forçado acima
+          setIsPremium(0);
+          setCarregandoStatus(false);
           return;
         }
 
@@ -71,26 +59,28 @@ export default function PremiumPage() {
 
         if (resposta.ok) {
           const dadosDoUsuario = await resposta.json();
-          const statusPremium = Number(dadosDoUsuario.premium) === 1 || dadosDoUsuario.isPremium === true || dadosDoUsuario.premium === "1" ? 1 : 0;
           
-          /* COMENTADO PARA TESTE LOCAL:
-            Descomente a linha abaixo quando for enviar para produção para voltar a respeitar o banco de dados.
-          */
-          // setIsPremium(statusPremium);
+          // Mapeia de forma flexível (aceita número, string "1" ou booleano)
+          const statusPremium = 
+            Number(dadosDoUsuario.premium) === 1 || 
+            dadosDoUsuario.isPremium === true || 
+            dadosDoUsuario.premium === "1" ? 1 : 0;
+            
+          setIsPremium(statusPremium);
 
-          // Se em produção for premium de verdade, tenta buscar dados atualizados da API
+          // Se for premium (1), dispara a busca da análise do Gemini
           if (statusPremium === 1) {
-            const tokenValido = token || authService.getToken();
-            if (tokenValido) buscarAnaliseLiterariaIA(tokenValido);
+            buscarAnaliseLiterariaIA(token);
           }
+        } else {
+          // Fallback caso a API retorne algum erro (ex: 404, 500)
+          setIsPremium(0);
         }
       } catch (err) {
         console.error("Erro ao buscar informações do usuário:", err);
+        setIsPremium(0); // Fallback de rede
       } finally {
-        // Simula o delay de resposta para fins estéticos de carregamento da interface
-        setTimeout(() => {
-          setCarregandoStatus(false);
-        }, 800);
+        setCarregandoStatus(false);
       }
     };
 
@@ -117,17 +107,13 @@ export default function PremiumPage() {
       const data = await resposta.json();
       setDadosIA(data);
     } catch (err: any) {
-      // No modo de teste local, não deixamos a tela quebrar se a rota do backend falhar
-      console.log("Mantendo dados fictícios ativos devido ao ambiente de preview local.");
+      setErroIA(err.message || "Erro de conexão com o ecossistema de IA.");
     } finally {
-      // Simula um loading rápido na interface ao clicar em atualizar
-      setTimeout(() => {
-        setCarregandoIA(false);
-      }, 1000);
+      setCarregandoIA(false);
     }
   };
 
-  // 3. ENVIAR REQUISIÇÃO DE ASSINATURA PRO
+  // 3. ENVIAR REQUISIÇÃO DE ASSINATURA PRO (endpoint: usuario/tornar-premium)
   const lidarComAssinatura = async () => {
     setCarregandoAssinatura(true);
     try {
@@ -181,7 +167,7 @@ export default function PremiumPage() {
     return (
       <div className="min-h-screen w-full flex flex-col items-center justify-center gap-3">
         <ArrowPathIcon className="w-8 h-8 animate-spin text-[var(--cor-primaria)] stroke-[2.5]" />
-        <p className="text-xs font-black uppercase tracking-widest opacity-60">Modo de Teste: Forçando Interface Pro...</p>
+        <p className="text-xs font-black uppercase tracking-widest opacity-60">Sincronizando Ecossistema Letrify...</p>
       </div>
     );
   }
@@ -194,7 +180,7 @@ export default function PremiumPage() {
           <div>
             <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest mb-2 bg-amber-500/10 text-amber-500">
               <SparklesIcon className="w-3.5 h-3.5 stroke-[2]" />
-              <span>Visualização de Teste Ativa</span>
+              <span>Assinatura Pro Ativa</span>
             </div>
             <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--cor-texto-principal)' }}>Seu Painel de Inteligência</h1>
           </div>
@@ -206,7 +192,7 @@ export default function PremiumPage() {
             style={{ color: 'var(--cor-texto-principal)', borderColor: 'var(--cor-fundo-sidebar)' }}
           >
             <ArrowPathIcon className={`w-3.5 h-3.5 stroke-[2.5] ${carregandoIA ? 'animate-spin' : ''}`} />
-            <span>Simular Atualização</span>
+            <span>Atualizar Relatório</span>
           </button>
         </div>
 
@@ -268,7 +254,83 @@ export default function PremiumPage() {
   // ==================== TELA SE NÃO FOR PREMIUM (isPremium === 0) ====================
   return (
     <div className="min-h-screen w-full py-12 px-4 md:px-8 max-w-6xl mx-auto flex flex-col justify-center animate-fade-in">
-      {/* Elementos ocultos temporariamente por conta da condicional isPremium acima */}
+      <div className="text-center max-w-2xl mx-auto mb-16 relative">
+        <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-6 w-32 h-32 bg-[var(--cor-primaria)] opacity-10 rounded-full blur-3xl pointer-events-none"></div>
+        <div className="inline-flex items-center gap-2 px-4 py-1.5 rounded-full text-xs font-black uppercase tracking-widest mb-4 bg-[var(--cor-primaria)]/10 text-[var(--cor-primaria)]">
+          <SparklesIcon className="w-4 h-4 stroke-[2]" />
+          <span>Letrify Pro</span>
+        </div>
+        <h1 className="text-4xl md:text-5xl font-black tracking-tight" style={{ color: 'var(--cor-texto-principal)' }}>
+          Leve a sua jornada literária ao próximo nível
+        </h1>
+        <p className="mt-4 text-sm md:text-base font-medium opacity-70" style={{ color: 'var(--cor-texto-secundario)' }}>
+          Estatísticas avançadas, estantes ilimitadas e uma comunidade apaixonada por livros esperando por você.
+        </p>
+      </div>
+
+      <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:col-span-7 gap-4">
+          {diferenciais.map((item, idx) => {
+            const Icone = item.icone;
+            return (
+              <div key={idx} className="p-6 rounded-3xl border transition-all duration-300 hover:-translate-y-1 bg-gradient-to-br from-transparent to-black/[0.01] dark:to-white/[0.01]" style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}>
+                <div className="w-10 h-10 rounded-2xl flex items-center justify-center mb-4 border" style={{ backgroundColor: 'var(--cor-botao-primario)', borderColor: 'var(--cor-fundo-sidebar)', color: 'var(--cor-primaria)' }}>
+                  <Icone className="w-5 h-5 stroke-[2]" />
+                </div>
+                <h3 className="text-base font-bold tracking-tight mb-2" style={{ color: 'var(--cor-texto-principal)' }}>{item.titulo}</h3>
+                <p className="text-xs font-medium leading-relaxed opacity-60" style={{ color: 'var(--cor-texto-secundario)' }}>{item.descricao}</p>
+              </div>
+            );
+          })}
+        </div>
+
+        <div className="lg:col-span-5 w-full max-w-md mx-auto">
+          <div className="rounded-3xl border p-8 shadow-2xl relative overflow-hidden transition-all duration-300" style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-primaria)' }}>
+            <div className="absolute -top-12 -right-12 w-32 h-32 bg-[var(--cor-primaria)] opacity-10 rounded-full blur-2xl pointer-events-none"></div>
+            <div className="mb-6">
+              <h3 className="text-lg font-black tracking-tight" style={{ color: 'var(--cor-texto-principal)' }}>Plano Mensal</h3>
+              <p className="text-xs font-medium opacity-60" style={{ color: 'var(--cor-texto-secundario)' }}>Cancele a qualquer momento, sem taxas ocultas.</p>
+            </div>
+
+            <div className="flex items-baseline gap-1 mb-8">
+              <span className="text-2xl font-black" style={{ color: 'var(--cor-texto-principal)' }}>R$</span>
+              <span className="text-5xl font-black tracking-tight" style={{ color: 'var(--cor-texto-principal)' }}>14,90</span>
+              <span className="text-xs font-bold opacity-60 ml-1" style={{ color: 'var(--cor-texto-secundario)' }}>/ mês</span>
+            </div>
+
+            <ul className="space-y-3.5 mb-8">
+              {vantagensPlano.map((vantagem, index) => (
+                <li key={index} className="flex items-start gap-3 text-xs font-semibold">
+                  <div className="rounded-full p-0.5 mt-0.5 flex-shrink-0" style={{ backgroundColor: 'var(--cor-botao-primario)' }}>
+                    <CheckIcon className="w-3 h-3 stroke-[3.5] text-white" />
+                  </div>
+                  <span style={{ color: 'var(--cor-texto-principal)' }}>{vantagem}</span>
+                </li>
+              ))}
+            </ul>
+
+            <button
+              onClick={lidarComAssinatura}
+              disabled={carregandoAssinatura}
+              className="w-full py-4 px-6 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg transition-all duration-200 hover:opacity-90 disabled:opacity-50 active:scale-[0.98]"
+              style={{ backgroundColor: 'var(--cor-botao-primario)', color: '#FFFFFF' }}
+            >
+              {carregandoAssinatura ? (
+                <div className="flex items-center justify-center gap-2">
+                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
+                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
+                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
+                  </svg>
+                  <span>Processando...</span>
+                </div>
+              ) : (
+                "Seja Premium Agora"
+              )}
+            </button>
+            <p className="text-center text-[10px] font-bold opacity-40 mt-4 uppercase tracking-widest" style={{ color: 'var(--cor-texto-secundario)' }}>Pagamento 100% Seguro</p>
+          </div>
+        </div>
+      </div>
     </div>
   );
 }
