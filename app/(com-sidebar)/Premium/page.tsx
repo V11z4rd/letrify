@@ -42,10 +42,8 @@ export default function PremiumPage() {
         const token = typeof window !== 'undefined' ? localStorage.getItem('letrify_token') : null;
         const usuarioId = (typeof window !== 'undefined' ? localStorage.getItem('letrify_user_id') : null) || authService.getUserId();
 
-        // Se faltar credenciais locais, define como não-premium para exibir a tela de assinatura
         if (!token || !usuarioId) {
           setIsPremium(0);
-          setCarregandoStatus(false);
           return;
         }
 
@@ -60,7 +58,10 @@ export default function PremiumPage() {
         if (resposta.ok) {
           const dadosDoUsuario = await resposta.json();
           
-          // Mapeia de forma flexível (aceita número, string "1" ou booleano)
+          // LOG DE DEBUG: Abra o console do navegador (F12) para ver o que o backend respondeu aqui!
+          console.log("Retorno do payload do usuário:", dadosDoUsuario);
+          
+          // Mapeia rigidamente se é premium
           const statusPremium = 
             Number(dadosDoUsuario.premium) === 1 || 
             dadosDoUsuario.isPremium === true || 
@@ -68,17 +69,16 @@ export default function PremiumPage() {
             
           setIsPremium(statusPremium);
 
-          // Se for premium (1), dispara a busca da análise do Gemini
+          // Se for premium, dispara a busca da IA
           if (statusPremium === 1) {
-            buscarAnaliseLiterariaIA(token);
+            await buscarAnaliseLiterariaIA(token);
           }
         } else {
-          // Fallback caso a API retorne algum erro (ex: 404, 500)
           setIsPremium(0);
         }
       } catch (err) {
-        console.error("Erro ao buscar informações do usuário:", err);
-        setIsPremium(0); // Fallback de rede
+        console.error("Erro crítico ao buscar informações do usuário:", err);
+        setIsPremium(0); 
       } finally {
         setCarregandoStatus(false);
       }
@@ -102,18 +102,22 @@ export default function PremiumPage() {
         }
       });
 
-      if (!resposta.ok) throw new Error("Não foi possível decodificar seus dados literários agora.");
+      if (!resposta.ok) {
+        // Se a resposta for 404 ou erro, não quebramos a verificação de assinatura
+        throw new Error("Você ainda não possui um relatório gerado. Clique em 'Atualizar Relatório' para iniciar.");
+      }
 
       const data = await resposta.json();
       setDadosIA(data);
     } catch (err: any) {
+      // Captura o erro apenas para a caixa de texto da IA, sem alterar o estado do isPremium
       setErroIA(err.message || "Erro de conexão com o ecossistema de IA.");
     } finally {
       setCarregandoIA(false);
     }
   };
 
-  // 3. ENVIAR REQUISIÇÃO DE ASSINATURA PRO (endpoint: usuario/tornar-premium)
+  // 3. ENVIAR REQUISIÇÃO DE ASSINATURA PRO
   const lidarComAssinatura = async () => {
     setCarregandoAssinatura(true);
     try {
@@ -130,7 +134,7 @@ export default function PremiumPage() {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ ativar: true }) 
+        body: JSON.stringify({ activar: true }) 
       });
       
       if (resposta.ok) {
@@ -204,9 +208,14 @@ export default function PremiumPage() {
         )}
 
         {erroIA && !carregandoIA && (
-          <div className="p-6 rounded-2xl border border-red-500/20 bg-red-500/[0.02] text-center max-w-md mx-auto">
-            <p className="text-red-500 text-xs font-bold mb-3">{erroIA}</p>
-            <button onClick={() => buscarAnaliseLiterariaIA()} className="text-xs font-black uppercase tracking-wider text-amber-500 hover:underline">Tentar de novo</button>
+          <div className="p-6 rounded-2xl border border-amber-500/20 bg-amber-500/[0.02] text-center max-w-md mx-auto">
+            <p className="text-[var(--cor-texto-principal)] text-sm font-medium mb-4">{erroIA}</p>
+            <button 
+              onClick={() => buscarAnaliseLiterariaIA()} 
+              className="px-4 py-2 rounded-xl text-xs font-black uppercase tracking-wider bg-amber-500 text-black transition-all active:scale-95"
+            >
+              Gerar Diagnóstico Agora
+            </button>
           </div>
         )}
 
@@ -224,7 +233,7 @@ export default function PremiumPage() {
 
             <div className="space-y-4">
               <h3 className="text-xs font-black uppercase tracking-widest opacity-50 px-1" style={{ color: 'var(--cor-texto-principal)' }}>
-                5 Recomendações Cirúrgicas Baseadas na sua Estante
+                5 Recomendações Baseadas na sua Estante
               </h3>
               
               <div className="grid grid-cols-1 gap-3">
