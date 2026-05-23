@@ -58,18 +58,25 @@ export default function PremiumPage() {
         if (resposta.ok) {
           const dadosDoUsuario = await resposta.json();
           
-          // LOG DE DEBUG: Abra o console do navegador (F12) para ver o que o backend respondeu aqui!
-          console.log("Retorno do payload do usuário:", dadosDoUsuario);
+          console.log("Payload recebido do servidor:", dadosDoUsuario);
           
-          // Mapeia rigidamente se é premium
+          // AJUSTE AQUI: Baseado no print, os dados do usuário ficam dentro de dadosDoUsuario.perfil
+          const fonteDados = dadosDoUsuario?.perfil ? dadosDoUsuario.perfil : dadosDoUsuario;
+          
+          const valorPremium = 
+            fonteDados.premium !== undefined ? fonteDados.premium : 
+            fonteDados.isPremium !== undefined ? fonteDados.isPremium : 
+            fonteDados.is_premium;
+
+          // Normalização para capturar o "1" (string) que vimos no console
           const statusPremium = 
-            Number(dadosDoUsuario.premium) === 1 || 
-            dadosDoUsuario.isPremium === true || 
-            dadosDoUsuario.premium === "1" ? 1 : 0;
+            valorPremium === 1 || 
+            valorPremium === "1" || 
+            valorPremium === true || 
+            String(valorPremium).toLowerCase() === "true" ? 1 : 0;
             
           setIsPremium(statusPremium);
 
-          // Se for premium, dispara a busca da IA
           if (statusPremium === 1) {
             await buscarAnaliseLiterariaIA(token);
           }
@@ -77,7 +84,7 @@ export default function PremiumPage() {
           setIsPremium(0);
         }
       } catch (err) {
-        console.error("Erro crítico ao buscar informações do usuário:", err);
+        console.error("Erro crítico ao mapear o status do usuário:", err);
         setIsPremium(0); 
       } finally {
         setCarregandoStatus(false);
@@ -103,14 +110,12 @@ export default function PremiumPage() {
       });
 
       if (!resposta.ok) {
-        // Se a resposta for 404 ou erro, não quebramos a verificação de assinatura
         throw new Error("Você ainda não possui um relatório gerado. Clique em 'Atualizar Relatório' para iniciar.");
       }
 
       const data = await resposta.json();
       setDadosIA(data);
     } catch (err: any) {
-      // Captura o erro apenas para a caixa de texto da IA, sem alterar o estado do isPremium
       setErroIA(err.message || "Erro de conexão com o ecossistema de IA.");
     } finally {
       setCarregandoIA(false);
@@ -134,7 +139,8 @@ export default function PremiumPage() {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ activar: true }) 
+        // AJUSTE AQUI: Corrigido de 'activar' para 'ativar' e adicionado 'active' como fallback
+        body: JSON.stringify({ ativar: true, active: true }) 
       });
       
       if (resposta.ok) {
@@ -142,7 +148,7 @@ export default function PremiumPage() {
         window.location.reload();
       } else {
         const erroData = await resposta.json().catch(() => ({}));
-        alert(erroData.erro || "Ocorreu um erro ao processar sua assinatura.");
+        alert(erroData.erro || "Ocorreu um erro ao processar sua assinatura. Verifique os parâmetros do backend.");
       }
     } catch (err) {
       console.error(err);
