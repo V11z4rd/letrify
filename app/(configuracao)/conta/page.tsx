@@ -31,13 +31,14 @@ export default function ContaPage() {
     setErro("");
 
     try {
-      const token = authService.getToken();
+      const token = authService.getToken() || (typeof window !== 'undefined' ? localStorage.getItem('letrify_token') : null);
       if (!token) throw new Error("Você não está autenticado. Faça login novamente.");
 
       const resposta = await fetch(`https://letrify.fly.dev/api/usuario/deletar`, {
         method: "DELETE",
         headers: {
-          "Authorization": `Bearer ${token}`
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
         }
       });
 
@@ -62,7 +63,7 @@ export default function ContaPage() {
     setErro("");
 
     try {
-      const token = authService.getToken();
+      const token = authService.getToken() || (typeof window !== 'undefined' ? localStorage.getItem('letrify_token') : null);
       const usuarioId = authService.getUserId() || (typeof window !== 'undefined' ? localStorage.getItem('letrify_user_id') : null);
 
       if (!token || !usuarioId) {
@@ -75,8 +76,8 @@ export default function ContaPage() {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         },
-        // CORREÇÃO: "ativar" como false para desativar o plano
-        body: JSON.stringify({ ativar: false })
+        // CORREÇÃO: Passando o isPremium como false para remover o plano do usuário
+        body: JSON.stringify({ isPremium: false })
       });
 
       if (!resposta.ok) {
@@ -181,7 +182,7 @@ export default function ContaPage() {
             </button>
           </div>
 
-          {/* DESATIVAR PREMIUM (NOVO) */}
+          {/* DESATIVAR PREMIUM */}
           <div className="p-6 rounded-2xl border border-amber-500/20 bg-amber-500/[0.02] flex flex-col md:flex-row items-start md:items-center justify-between gap-4 transition-all hover:border-amber-500/30">
             <div className="flex flex-col max-w-lg">
               <span className="font-extrabold text-sm text-amber-500">Cancelar Assinatura Letrify Pro</span>

@@ -7,20 +7,23 @@ import { authService } from "@/app/lib/authService";
 import FeedInterno from "@/components/grupos/FeedInterno";
 import ChatGrupo from "@/components/grupos/ChatGrupo";
 import PainelAdminGrupo from "@/components/grupos/PainelAdminGrupo";
+import EditorGrupo from "@/components/grupos/EditorGrupo";
+import { PencilSquareIcon } from "@heroicons/react/24/outline";
 
 export default function SalaGrupoPage() {
     const { id } = useParams();
     const router = useRouter();
 
-    // Estados de dados e controlo
     const [grupo, setGrupo] = useState<GrupoDetalhe | null>(null);
     const [carregando, setCarregando] = useState(true);
     const [erro, setErro] = useState<string | null>(null);
     const [meuId, setMeuId] = useState<number | null>(null);
     const [processandoAcao, setProcessandoAcao] = useState(false);
 
-    // Controlo das abas internas (para membros)
-    const [abaAtiva, setAbaAtiva] = useState<"feed" | "chat" | "membros" | "admin">("feed");
+    const [isEditando, setIsEditando] = useState(false);
+    const [abaAtiva, setAbaAtiva] = useState<"feed" | "chat" | "membros" | string>("feed");
+
+    const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
     const carregarDetalhesGrupo = async () => {
         if (!id) return;
@@ -37,22 +40,18 @@ export default function SalaGrupoPage() {
     };
 
     useEffect(() => {
-        // Captura o ID do utilizador logado para validar permissões
         const idNoCofre = authService.getUserId();
-        if (idNoCofre) {
-            setMeuId(Number(idNoCofre));
-        }
+        if (idNoCofre) setMeuId(Number(idNoCofre));
         carregarDetalhesGrupo();
     }, [id]);
 
-    // Lógica para entrar no grupo
     const handleEntrarNoGrupo = async () => {
         if (!grupo || processandoAcao) return;
         setProcessandoAcao(true);
         try {
             await grupoService.entrar(grupo.id);
             alert(grupo.status === "Aberto" ? "Bem-vindo ao clube! 🎉" : "Solicitação enviada com sucesso! ⏳");
-            carregarDetalhesGrupo(); // Recarrega os dados para atualizar a lista de membros
+            carregarDetalhesGrupo();
         } catch (err: any) {
             alert(err.message);
         } finally {
@@ -60,23 +59,55 @@ export default function SalaGrupoPage() {
         }
     };
 
-    // Lógica para sair do grupo
     const handleSairDoGrupo = async () => {
         if (!grupo || !confirm("Tem a certeza que deseja sair deste clube?") || processandoAcao) return;
         setProcessandoAcao(true);
         try {
-            await grupoService.sair(grupo.id);
+            await grupoService.sair(String(grupo.id));
             alert("Saiu do clube.");
-            router.push("/grupos"); // Redireciona de volta para a vitrine
+            router.push("/grupos");
         } catch (err: any) {
             alert(err.message);
             setProcessandoAcao(false);
         }
     };
 
+    const handleSalvarDadosGrupo = async (novosDados: any) => {
+        try {
+            const token = authService.getToken();
+            const formData = new FormData();
+            
+            formData.append("nome", novosDados.nome);
+            formData.append("descricao", novosDados.descricao);
+            
+            if (novosDados.fotoCapa instanceof File) {
+                formData.append("foto", novosDados.fotoCapa); 
+            } else {
+                formData.append("fotoCapa", novosDados.fotoCapa);
+            }
+
+            const resposta = await fetch(`${BASE_URL}/grupos/${grupo?.id}`, {
+                method: "PUT",
+                headers: { "Authorization": `Bearer ${token}` },
+                body: formData
+            });
+
+            if (resposta.ok) {
+                alert("Clube updated com sucesso! 🎉");
+                setIsEditando(false);
+                carregarDetalhesGrupo();
+            } else {
+                throw new Error("Erro na resposta do servidor.");
+            }
+        } catch (err) {
+            console.error("Falha ao salvar dados cadastrais do grupo:", err);
+            alert("Erro ao atualizar o grupo.");
+        }
+    };
+
     if (carregando) {
         return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh] opacity-50">
+            <div className="flex flex-col items-center justify-center min-h-[60vh] opacity-60" style={{ color: 'var(--cor-texto-secundario)' }}>
                 <span className="text-4xl animate-pulse mb-4">📖</span>
                 <p className="font-bold text-sm tracking-widest uppercase">A abrir a sala do clube...</p>
             </div>
@@ -85,13 +116,12 @@ export default function SalaGrupoPage() {
 
     if (erro || !grupo) {
         return (
-            <div className="max-w-3xl mx-auto mt-12 p-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-400 text-center font-bold">
+            <div className="max-w-3xl mx-auto mt-12 p-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-center font-bold">
                 {erro || "Clube do livro não encontrado."}
             </div>
         );
     }
 
-    // Descobre o papel do utilizador atual dentro do grupo (se existir)
     const membroAtual = grupo.membros?.find((m) => m.id === meuId);
     const isMembro = !!membroAtual;
     const isAdminOuLider = membroAtual?.role === "Lider" || membroAtual?.role === "Admin";
@@ -99,114 +129,151 @@ export default function SalaGrupoPage() {
     return (
         <div className="max-w-7xl mx-auto w-full pt-4 pb-24 px-4 animate-fade-in">
 
-            {/* BANNER DO GRUPO */}
-            <div className="h-64 w-full rounded-2xl bg-zinc-800 border border-white/5 overflow-hidden relative shadow-xl">
-                {grupo.fotoCapa ? (
-                    <img src={grupo.fotoCapa} alt={grupo.nome} className="w-full h-full object-cover opacity-60" />
-                ) : (
-                    <div className="absolute inset-0 bg-gradient-to-r from-blue-900/40 to-zinc-900"></div>
-                )}
-                <div className="absolute inset-0 bg-gradient-to-t from-zinc-950 via-zinc-950/40 to-transparent"></div>
-
-                {/* INFORMAÇÕES DO TOPO */}
-                <div className="absolute bottom-6 left-6 right-6 flex flex-col md:flex-row justify-between items-start md:items-end gap-4">
-                    <div>
-                        <div className="flex items-center gap-3 mb-2">
-                            <span className={`px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider ${grupo.status === "Aberto" ? "bg-green-500/20 text-green-400 border border-green-500/30" : "bg-orange-500/20 text-orange-400 border border-orange-500/30"
-                                }`}>
-                                {grupo.status}
-                            </span>
-                            <span className="text-xs text-zinc-400 font-bold">👥 {grupo.membros?.length || 0} membros</span>
-                        </div>
-                        <h1 className="text-3xl font-black text-white tracking-tight">{grupo.nome}</h1>
-                        <p className="text-zinc-300 text-sm max-w-2xl mt-2 leading-relaxed">{grupo.descricao || "Sem descrição disponível para este clube."}</p>
+            {/* BANNER E HEADER CORRIGIDOS COM VARIAVEIS DINÂMICAS */}
+            {!isEditando ? (
+                <div 
+                    className="w-full rounded-3xl border overflow-hidden relative shadow-md transition-all mb-8"
+                    style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
+                >
+                    {/* Altura reduzida para h-56 para igualar a proporção do CabecalhoPerfil */}
+                    <div 
+                        className="h-56 w-full bg-cover bg-center relative"
+                        style={{ 
+                            backgroundImage: grupo.fotoCapa ? `url("${grupo.fotoCapa}")` : 'none',
+                            backgroundColor: 'var(--cor-fundo-sidebar)'
+                        }}
+                    >
+                        {/* Gradiente sutil para garantir leitura dos textos brancos em cima da imagem */}
+                        <div className="absolute inset-0 bg-gradient-to-t from-black/[0.6] via-black/[0.2] to-transparent"></div>
                     </div>
 
-                    {/* BOTÃO DE AÇÃO PRINCIPAL */}
-                    {isMembro ? (
-                        <button
-                            onClick={handleSairDoGrupo}
-                            disabled={processandoAcao}
-                            className="px-5 py-2 bg-zinc-800 hover:bg-red-500/20 hover:text-red-400 hover:border-red-500/30 text-zinc-400 border border-white/5 text-xs font-bold rounded-xl transition-all"
-                        >
-                            Sair do Clube
-                        </button>
-                    ) : (
-                        <button
-                            onClick={handleEntrarNoGrupo}
-                            disabled={processandoAcao}
-                            className="px-6 py-3 bg-blue-600 hover:bg-blue-500 text-white text-sm font-bold rounded-xl shadow-lg shadow-blue-500/20 transition-all hover:scale-105 active:scale-95"
-                        >
-                            {processandoAcao ? "A processar..." : grupo.status === "Aberto" ? "Participar no Clube" : "Solicitar Participação"}
-                        </button>
-                    )}
-                </div>
-            </div>
+                    {/* Área de Informações Internas do Card */}
+                    <div className="px-8 pb-8 pt-6 relative flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
+                        <div className="space-y-2">
+                            <div className="flex items-center gap-3">
+                                <span className="px-2.5 py-0.5 rounded-full text-[10px] font-black uppercase tracking-wider bg-zinc-500/10" style={{ color: 'var(--cor-destaque)' }}>
+                                    {grupo.status}
+                                </span>
+                                <span className="text-xs font-bold opacity-60" style={{ color: 'var(--cor-texto-secundario)' }}>
+                                    👥 {grupo.membros?.length || 0} membros
+                                </span>
+                            </div>
+                            <h1 className="text-3xl font-black tracking-tight" style={{ color: 'var(--cor-texto-principal)' }}>
+                                {grupo.nome}
+                            </h1>
+                            <p className="text-sm max-w-2xl leading-relaxed font-medium opacity-80" style={{ color: 'var(--cor-texto-secundario)' }}>
+                                {grupo.descricao || <span className="italic opacity-40">Sem diretrizes informadas para este clube.</span>}
+                            </p>
+                        </div>
 
-            {/* TELA DE BLOQUEIO PARA NÃO MEMBROS */}
+                        {/* Botões adaptáveis aos temas de cores vivos do Letrify */}
+                        <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto justify-end">
+                            {isAdminOuLider && (
+                                <button 
+                                  onClick={() => setIsEditando(true)}
+                                  className="px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl border flex items-center gap-2 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                                  style={{ 
+                                    backgroundColor: 'var(--cor-fundo-app)', 
+                                    color: 'var(--cor-texto-principal)', 
+                                    borderColor: 'var(--cor-fundo-sidebar)' 
+                                  }}
+                                >
+                                    <PencilSquareIcon className="w-4 h-4 stroke-[2.5]" />
+                                    <span>Editar Clube</span>
+                                </button>
+                            )}
+
+                            {isMembro ? (
+                                <button 
+                                    onClick={handleSairDoGrupo} 
+                                    disabled={processandoAcao} 
+                                    className="px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl border transition-all duration-200 hover:bg-red-500/10 hover:text-red-500"
+                                    style={{ 
+                                        backgroundColor: 'transparent', 
+                                        color: 'var(--cor-texto-secundario)',
+                                        borderColor: 'var(--cor-fundo-sidebar)'
+                                    }}
+                                >
+                                    Sair do Clube
+                                </button>
+                            ) : (
+                                <button 
+                                    onClick={handleEntrarNoGrupo} 
+                                    disabled={processandoAcao} 
+                                    className="px-6 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                                    style={{ backgroundColor: 'var(--cor-botao-primario)', color: 'var(--cor-botao-texto)' }}
+                                >
+                                    {processandoAcao ? "A processar..." : grupo.status === "Aberto" ? "Participar" : "Solicitar Vaga"}
+                                </button>
+                            )}
+                        </div>
+                    </div>
+                </div>
+            ) : null}
+
+            {/* CONTEÚDO DA SALA ATUALIZADO */}
             {!isMembro ? (
-                <div className="mt-8 flex flex-col items-center justify-center p-16 rounded-2xl border-2 border-dashed border-white/5 bg-zinc-900/30 text-center">
+                <div 
+                    className="mt-4 flex flex-col items-center justify-center p-16 rounded-3xl border-2 border-dashed text-center"
+                    style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
+                >
                     <span className="text-5xl mb-4">🔒</span>
-                    <h3 className="font-black text-xl text-zinc-200 mb-2">Conteúdo Restrito</h3>
-                    <p className="text-sm text-zinc-400 max-w-md">
-                        {grupo.status === "Aberto"
-                            ? "Este clube é público, mas precisa de se juntar aos membros para participar nas discussões e aceder ao chat interativo."
-                            : "Este clube é privado. Envie uma solicitação de participação e aguarde a aprovação dos administradores para entrar."}
+                    <h3 className="font-black text-xl mb-1" style={{ color: 'var(--cor-texto-principal)' }}>Conteúdo Restrito</h3>
+                    <p className="text-sm font-medium opacity-60 max-w-md" style={{ color: 'var(--cor-texto-secundario)' }}>
+                        {grupo.status === "Aberto" ? "Faça parte deste clube para liberar o feed de discussões e o chat dos leitores." : "Este clube é privado. Envie uma solicitação para poder acessar."}
                     </p>
                 </div>
             ) : (
-                /* CONTEÚDO EXCLUSIVO PARA MEMBROS */
-                <div className="mt-8 grid grid-cols-1 gap-6">
-
-                    {/* MENU DE ABAS DO CLUBE */}
-                    <div className="flex gap-6 border-b border-white/5">
-                        {["feed", "chat", "membros", ...(isAdminOuLider ? ["admin"] : [])].map((aba) => (
-                            <button
-                                key={aba}
-                                onClick={() => setAbaAtiva(aba as any)}
-                                className={`pb-3 text-xs uppercase tracking-widest font-black transition-all border-b-2 ${abaAtiva === aba ? "border-blue-500 text-blue-500" : "border-transparent opacity-40 hover:opacity-100"
-                                    }`}
-                            >
-                                {aba === "feed" ? "📌 Feed do Livro" : aba === "chat" ? "💬 Chat ao Vivo" : aba === "membros" ? "👥 Membros" : "⚙️ Gestão"}
-                            </button>
-                        ))}
-                    </div>
-
-                    {/* PALCO DAS ABAS INTERNAS */}
-                    <div className="min-h-[400px]">
-                        {abaAtiva === "feed" && (
-                            <FeedInterno grupoId={grupo.id} />
-                        )}
-
-                        {abaAtiva === "chat" && (
-                            <ChatGrupo grupoId={grupo.id} />
-                        )}
-
-                        {abaAtiva === "membros" && (
-                            <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-6 space-y-4">
-                                <h3 className="text-sm font-black uppercase tracking-wider text-zinc-400 mb-4">Leitores no Clube</h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4">
-                                    {grupo.membros?.map((membro) => (
-                                        <div key={membro.id} className="flex items-center gap-3 bg-zinc-900/80 p-3 rounded-xl border border-white/5">
-                                            <div className="w-10 h-10 rounded-full bg-zinc-800 border border-white/10 overflow-hidden flex-shrink-0 flex items-center justify-center font-bold text-xs">
-                                                {membro.fotoPerfil ? <img src={membro.fotoPerfil} alt={membro.nome} className="w-full h-full object-cover" /> : membro.nome.charAt(0).toUpperCase()}
-                                            </div>
-                                            <div>
-                                                <p className="text-sm font-bold text-zinc-200 line-clamp-1">{membro.nome}</p>
-                                                <span className={`text-[9px] font-black uppercase tracking-wider ${membro.role === "Lider" ? "text-red-400" : membro.role === "Admin" ? "text-orange-400" : "text-zinc-500"
-                                                    }`}>{membro.role}</span>
-                                            </div>
-                                        </div>
-                                    ))}
-                                </div>
+                <div className="grid grid-cols-1 gap-6">
+                    {!isEditando ? (
+                        <>
+                            {/* NAVEGAÇÃO ENTRE ABAS COM CORES DO TEMA */}
+                            <div className="flex gap-6 border-b" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+                                {[
+                                    { id: "feed", label: "📌 Feed" },
+                                    { id: "chat", label: "💬 Chat" },
+                                    { id: "membros", label: "🛡️ Moderação" }
+                                ].map((aba) => (
+                                    <button
+                                        key={aba.id}
+                                        onClick={() => setAbaAtiva(aba.id)}
+                                        className={`pb-3 text-xs uppercase tracking-widest font-black transition-all border-b-2 -mb-[1px]`}
+                                        style={{ 
+                                            borderColor: abaAtiva === aba.id ? 'var(--cor-destaque)' : 'transparent',
+                                            color: abaAtiva === aba.id ? 'var(--cor-texto-principal)' : 'var(--cor-texto-secundario)',
+                                            opacity: abaAtiva === aba.id ? 1 : 0.5
+                                        }}
+                                    >
+                                        {aba.label}
+                                    </button>
+                                ))}
                             </div>
-                        )}
 
-                        {abaAtiva === "admin" && isAdminOuLider && (
-                            <PainelAdminGrupo grupoId={grupo.id} />
-                        )}
-                    </div>
-
+                            <div className="min-h-[400px] mt-4">
+                                {abaAtiva === "feed" && <FeedInterno grupoId={grupo.id} />}
+                                {abaAtiva === "chat" && <ChatGrupo grupoId={grupo.id} />}
+                                {abaAtiva === "membros" && (
+                                    <PainelAdminGrupo 
+                                        grupoId={Number(grupo.id)} 
+                                        onMembroMudou={carregarDetalhesGrupo}
+                                    />
+                                )}
+                            </div>
+                        </>
+                    ) : (
+                        /* MODO EDIÇÃO ATIVO */
+                        <div className="max-w-3xl mx-auto w-full transition-all duration-300">
+                            <EditorGrupo 
+                                dadosIniciais={{
+                                    nome: grupo.nome,
+                                    descricao: grupo.descricao || "",
+                                    fotoCapa: grupo.fotoCapa || ""
+                                }}
+                                onClose={() => setIsEditando(false)}
+                                onSave={handleSalvarDadosGrupo}
+                            />
+                        </div>
+                    )}
                 </div>
             )}
         </div>

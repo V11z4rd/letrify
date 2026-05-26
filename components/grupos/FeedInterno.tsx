@@ -3,6 +3,14 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { authService } from "@/app/lib/authService";
+import { 
+  ChatBubbleLeftRightIcon, 
+  PaperAirplaneIcon, 
+  ArrowPathIcon,
+  ExclamationTriangleIcon,
+  SparklesIcon,
+  ClockIcon
+} from "@heroicons/react/24/outline";
 
 interface UsuarioAutor {
   id: number;
@@ -15,7 +23,6 @@ interface PostGrupo {
   conteudo: string;
   dataCriacao: string;
   usuario: UsuarioAutor;
-  // Adicione outras propriedades que o seu backend envie (ex: totalComentarios)
 }
 
 interface FeedInternoProps {
@@ -27,7 +34,6 @@ export default function FeedInterno({ grupoId }: FeedInternoProps) {
   const [carregando, setCarregando] = useState(true);
   const [erro, setErro] = useState<string | null>(null);
   
-  // Estado para o novo post
   const [novoPost, setNovoPost] = useState("");
   const [enviando, setEnviando] = useState(false);
 
@@ -36,7 +42,6 @@ export default function FeedInterno({ grupoId }: FeedInternoProps) {
     setErro(null);
     try {
       const token = authService.getToken();
-      // Ajuste o endpoint conforme a rota exata criada pelo Back-end para listar posts de um grupo
       const resposta = await fetch(`https://letrify.fly.dev/api/grupos/${grupoId}/posts`, {
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -65,7 +70,6 @@ export default function FeedInterno({ grupoId }: FeedInternoProps) {
     setEnviando(true);
     try {
       const token = authService.getToken();
-      // Ajuste o endpoint de criação de post do grupo
       const resposta = await fetch(`https://letrify.fly.dev/api/grupos/${grupoId}/posts`, {
         method: "POST",
         headers: {
@@ -75,10 +79,10 @@ export default function FeedInterno({ grupoId }: FeedInternoProps) {
         body: JSON.stringify({ conteudo: novoPost.trim() })
       });
 
-      if (!resposta.ok) throw new Error("Erro ao publicar.");
+      if (!resposta.ok) throw new Error("Erro ao publicar o tópico.");
       
       setNovoPost("");
-      carregarPosts(); // Recarrega a lista para mostrar o novo post
+      carregarPosts(); 
     } catch (err: any) {
       alert(err.message);
     } finally {
@@ -87,90 +91,137 @@ export default function FeedInterno({ grupoId }: FeedInternoProps) {
   };
 
   return (
-    <div className="w-full max-w-3xl mx-auto flex flex-col gap-6 animate-fade-in">
+    <div className="w-full max-w-3xl mx-auto flex flex-col gap-5 animate-fade-in">
       
-      {/* CAIXA DE CRIAÇÃO DE POST */}
-      <div className="bg-zinc-900/60 border border-white/5 rounded-2xl p-5 shadow-lg">
+      {/* CAIXA DE CRIAÇÃO DE POST ADAPTADA */}
+      <div 
+        className="border rounded-2xl p-5 shadow-sm transition-all"
+        style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
+      >
         <form onSubmit={handlePublicar}>
           <textarea
             value={novoPost}
             onChange={(e) => setNovoPost(e.target.value)}
-            placeholder="Comece uma nova discussão sobre os capítulos..."
-            className="w-full bg-zinc-800/50 text-white text-sm rounded-xl p-4 min-h-[100px] outline-none border border-transparent focus:border-blue-500 transition-colors resize-none mb-3"
+            placeholder="Comece uma nova discussão sobre os capítulos ou teorias..."
+            className="w-full text-xs sm:text-sm rounded-xl p-4 min-h-[100px] outline-none border font-medium transition-all focus:ring-1 focus:ring-[var(--cor-destaque)] resize-none mb-3"
+            style={{ 
+              backgroundColor: 'var(--cor-fundo-app)', 
+              color: 'var(--cor-texto-principal)', 
+              borderColor: 'var(--cor-fundo-sidebar)' 
+            }}
             maxLength={1000}
           />
           <div className="flex justify-between items-center">
-            <span className="text-[10px] text-zinc-500 font-bold uppercase tracking-wider">
-              {novoPost.length}/1000
+            <span className="text-[10px] font-black uppercase tracking-wider opacity-50" style={{ color: 'var(--cor-texto-secundario)' }}>
+              {novoPost.length} / 1000
             </span>
             <button
               type="submit"
               disabled={enviando || novoPost.trim().length === 0}
-              className="px-6 py-2 bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 disabled:text-zinc-500 text-white text-xs font-bold rounded-lg transition-all shadow-md"
+              className="px-5 py-2 rounded-xl font-black text-xs uppercase tracking-wider flex items-center gap-1.5 transition-all active:scale-95 shadow-sm disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed"
+              style={{ backgroundColor: 'var(--cor-botao-primario)', color: 'var(--cor-botao-texto)' }}
             >
-              {enviando ? "A publicar..." : "Publicar"}
+              {enviando ? (
+                <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" />
+              ) : (
+                <PaperAirplaneIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+              )}
+              <span>{enviando ? "Publicando..." : "Publicar"}</span>
             </button>
           </div>
         </form>
       </div>
 
-      {/* LISTA DE DISCUSSÕES */}
+      {/* FEEDBACKS DE ESTADO: LOADING */}
       {carregando && (
-        <div className="text-center py-12 opacity-50">
-          <span className="text-3xl animate-pulse inline-block mb-3">📝</span>
-          <p className="text-xs font-bold uppercase tracking-widest">A procurar tópicos...</p>
+        <div 
+          className="flex flex-col items-center justify-center py-16 text-xs font-black uppercase tracking-widest gap-2"
+          style={{ color: 'var(--cor-texto-secundario)' }}
+        >
+          <ArrowPathIcon className="w-5 h-5 animate-spin" style={{ color: 'var(--cor-primaria)' }} />
+          <span>Carregando linha do tempo...</span>
         </div>
       )}
 
+      {/* FEEDBACKS DE ESTADO: ERRO */}
       {erro && !carregando && (
-        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-400 text-sm text-center font-bold">
-          {erro}
+        <div className="p-4 rounded-xl bg-red-500/10 border border-red-500/20 text-red-500 text-xs font-bold flex items-center justify-center gap-2">
+          <ExclamationTriangleIcon className="w-4 h-4 shrink-0 stroke-[2.5]" />
+          <span>{erro}</span>
         </div>
       )}
 
+      {/* FEEDBACKS DE ESTADO: VAZIO */}
       {!carregando && !erro && posts.length === 0 && (
-        <div className="text-center py-16 bg-zinc-900/30 border border-dashed border-white/10 rounded-2xl">
-          <span className="text-4xl block mb-3 opacity-40">🍃</span>
-          <p className="text-zinc-300 font-bold mb-1">Nenhum tópico criado.</p>
-          <p className="text-xs text-zinc-500">Seja o primeiro a iniciar um debate neste clube!</p>
+        <div 
+          className="text-center py-16 border border-dashed rounded-2xl flex flex-col items-center p-6"
+          style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
+        >
+          <SparklesIcon className="w-8 h-8 mb-3 opacity-40" style={{ color: 'var(--cor-destaque)' }} />
+          <p className="font-black text-sm mb-1" style={{ color: 'var(--cor-texto-principal)' }}>Nenhum debate ativo por enquanto.</p>
+          <p className="text-xs font-medium opacity-60" style={{ color: 'var(--cor-texto-secundario)' }}>Seja o pioneiro a iniciar uma discussão neste clube!</p>
         </div>
       )}
 
+      {/* LISTA DE DISCUSSÕES INTERATIVAS */}
       {!carregando && !erro && posts.length > 0 && (
-        <div className="flex flex-col gap-4">
+        <div className="flex flex-col gap-3.5">
           {posts.map((post) => (
-            <div key={post.id} className="bg-zinc-900/80 border border-white/5 rounded-2xl p-5 hover:border-white/10 transition-colors">
+            <div 
+              key={post.id} 
+              className="border rounded-2xl p-5 shadow-sm transition-all hover:scale-[1.005]"
+              style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
+            >
               
               {/* CABEÇALHO DO POST */}
-              <div className="flex items-center gap-3 mb-3">
-                <Link href={`/perfil?id=${post.usuario.id}`} className="w-10 h-10 rounded-full bg-zinc-800 overflow-hidden flex-shrink-0 hover:opacity-80 transition-opacity border border-white/5">
-                  {post.usuario.fotoPerfil ? (
-                    <img src={post.usuario.fotoPerfil} alt={post.usuario.nome} className="w-full h-full object-cover" />
-                  ) : (
-                    <div className="w-full h-full flex items-center justify-center font-bold text-xs bg-blue-600">
-                      {post.usuario.nome.charAt(0).toUpperCase()}
-                    </div>
-                  )}
-                </Link>
-                <div>
-                  <Link href={`/perfil?id=${post.usuario.id}`} className="font-bold text-sm text-zinc-200 hover:underline hover:text-blue-400 transition-colors">
-                    {post.usuario.nome}
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <Link 
+                    href={`/perfil?id=${post.usuario.id}`} 
+                    className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shadow-sm border overflow-hidden shrink-0 hover:opacity-80 transition-opacity"
+                    style={{ backgroundColor: 'var(--cor-fundo-sidebar)', color: 'var(--cor-texto-sidebar)', borderColor: 'var(--cor-fundo-sidebar)' }}
+                  >
+                    {post.usuario.fotoPerfil ? (
+                      <img src={post.usuario.fotoPerfil} alt={post.usuario.nome} className="w-full h-full object-cover" />
+                    ) : (
+                      post.usuario.nome.charAt(0).toUpperCase()
+                    )}
                   </Link>
-                  <p className="text-[10px] text-zinc-500 font-semibold uppercase tracking-widest mt-0.5">
-                    {new Date(post.dataCriacao).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })}
-                  </p>
+                  <div>
+                    <Link 
+                      href={`/perfil?id=${post.usuario.id}`} 
+                      className="font-extrabold text-sm transition-colors hover:underline"
+                      style={{ color: 'var(--cor-texto-principal)' }}
+                    >
+                      {post.usuario.nome}
+                    </Link>
+                    
+                    <div className="flex items-center gap-1 opacity-50 mt-0.5" style={{ color: 'var(--cor-texto-secundario)' }}>
+                      <ClockIcon className="w-3 h-3 stroke-[2]" />
+                      <span className="text-[9px] font-bold uppercase tracking-wider">
+                        {new Date(post.dataCriacao).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })}
+                      </span>
+                    </div>
+                  </div>
                 </div>
               </div>
 
               {/* CORPO DO POST */}
-              <p className="text-sm text-zinc-300 leading-relaxed whitespace-pre-wrap">
+              <p 
+                className="text-xs sm:text-sm font-medium leading-relaxed whitespace-pre-wrap pl-1"
+                style={{ color: 'var(--cor-texto-principal)' }}
+              >
                 {post.conteudo}
               </p>
 
-              {/* RODAPÉ DO POST (Futuro botão de comentários) */}
-              <div className="mt-4 pt-4 border-t border-white/5 flex items-center gap-4">
-                <button className="text-xs font-bold text-zinc-500 hover:text-blue-400 transition-colors flex items-center gap-2">
-                  <span>💬</span> Responder
+              {/* RODAPÉ DO POST (Sistema de Respostas) */}
+              <div className="mt-4 pt-3.5 border-t flex items-center gap-4 pl-1" style={{ borderColor: 'var(--cor-fundo-app)' }}>
+                <button 
+                  className="text-[10px] font-black uppercase tracking-wider transition-colors flex items-center gap-1.5 opacity-60 hover:opacity-100"
+                  style={{ color: 'var(--cor-texto-principal)' }}
+                >
+                  <ChatBubbleLeftRightIcon className="w-4 h-4 stroke-[2.5]" style={{ color: 'var(--cor-destaque)' }} />
+                  <span>Responder Discussão</span>
                 </button>
               </div>
             </div>

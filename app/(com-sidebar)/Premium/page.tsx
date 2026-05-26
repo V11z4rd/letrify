@@ -140,7 +140,7 @@ export default function PremiumPage() {
           "Content-Type": "application/json"
         },
         // AJUSTE AQUI: Corrigido de 'activar' para 'ativar' e adicionado 'active' como fallback
-        body: JSON.stringify({ ativar: true, active: true }) 
+        body: JSON.stringify({ isPremium: true })
       });
       
       if (resposta.ok) {

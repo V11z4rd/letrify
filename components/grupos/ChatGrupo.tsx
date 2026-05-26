@@ -3,6 +3,11 @@
 import { useState, useEffect, useRef } from "react";
 import { signalRService } from "@/app/lib/signalrService";
 import { authService } from "@/app/lib/authService";
+import { 
+  ChatBubbleLeftRightIcon, 
+  PaperAirplaneIcon,
+  ChatBubbleOvalLeftEllipsisIcon
+} from "@heroicons/react/24/outline";
 
 interface MensagemGrupo {
   id: number;
@@ -26,7 +31,6 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
   
   const fimDoChatRef = useRef<HTMLDivElement>(null);
 
-  // Faz o scroll automático para a mensagem mais recente
   const rolarParaBaixo = () => {
     fimDoChatRef.current?.scrollIntoView({ behavior: "smooth" });
   };
@@ -36,11 +40,9 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
   }, [mensagens]);
 
   useEffect(() => {
-    // 1. Identifica o utilizador
     const idAtual = authService.getUserId();
     if (idAtual) setMeuId(Number(idAtual));
 
-    // 2. Traz o histórico (Ajuste o endpoint se necessário)
     const carregarHistorico = async () => {
       try {
         const token = authService.getToken();
@@ -57,23 +59,19 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
     };
     carregarHistorico();
 
-    // 3. Conecta na Sala do SignalR
     const token = authService.getToken();
     if (token) {
-      signalRService.iniciarConexao(token); // Garante que a ligação principal existe
+      signalRService.iniciarConexao(token);
       
-      // Dá 1 segundo para a conexão estabilizar antes de invocar a sala
       setTimeout(() => {
         signalRService.entrarNoGrupo(grupoId);
       }, 1000);
 
-      // 4. Fica à escuta de novas mensagens desta sala
       signalRService.onReceberMensagemGrupo((msgRecebida) => {
         setMensagens((prev) => [...prev, msgRecebida]);
       });
     }
 
-    // 5. Cleanup: Sai da sala quando o utilizador muda de aba
     return () => {
       signalRService.sairDoGrupo(grupoId);
     };
@@ -84,7 +82,7 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
     if (!novaMensagem.trim()) return;
 
     const texto = novaMensagem;
-    setNovaMensagem(""); // Limpa o input imediatamente (Optimistic feel)
+    setNovaMensagem("");
 
     try {
       const token = authService.getToken();
@@ -96,66 +94,88 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
         },
         body: JSON.stringify({ conteudo: texto })
       });
-      // Não precisamos de fazer um push manual para o array de mensagens aqui
-      // O Back-end vai receber o POST e disparar o SignalR de volta para nós!
     } catch (err) {
       alert("Erro ao enviar mensagem.");
-      setNovaMensagem(texto); // Devolve o texto em caso de erro
+      setNovaMensagem(texto);
     }
   };
 
   return (
-    <div className="bg-zinc-900/60 border border-white/5 rounded-2xl flex flex-col h-[600px] shadow-lg animate-fade-in">
+    <div 
+      className="border rounded-2xl flex flex-col h-[600px] shadow-sm animate-fade-in transition-all"
+      style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
+    >
       
       {/* CABEÇALHO DO CHAT */}
-      <div className="p-4 border-b border-white/5 flex items-center justify-between bg-zinc-900/80 rounded-t-2xl">
-        <h3 className="font-black text-zinc-100 flex items-center gap-2">
-          <span className="text-blue-500">🔴</span> Chat ao Vivo
+      <div 
+        className="p-4 border-b flex items-center justify-between rounded-t-2xl"
+        style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)' }}
+      >
+        <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2" style={{ color: 'var(--cor-texto-principal)' }}>
+          <span className="relative flex h-2 w-2">
+            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
+            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
+          </span>
+          <span>Chat ao Vivo</span>
         </h3>
-        <span className="text-xs font-bold text-zinc-500 uppercase tracking-widest">
+        <span className="text-[10px] font-black opacity-60 uppercase tracking-wider" style={{ color: 'var(--cor-texto-secundario)' }}>
           Sala #{grupoId}
         </span>
       </div>
 
       {/* ÁREA DE MENSAGENS */}
-      <div className="flex-1 overflow-y-auto p-4 custom-scrollbar flex flex-col gap-4">
+      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
         {mensagens.length === 0 ? (
-          <div className="flex-1 flex flex-col items-center justify-center opacity-40 text-center">
-            <span className="text-3xl mb-2">💬</span>
-            <p className="text-xs font-bold uppercase tracking-widest">Seja o primeiro a falar!</p>
+          <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50">
+            <ChatBubbleOvalLeftEllipsisIcon className="w-8 h-8 mb-2" style={{ color: 'var(--cor-destaque)' }} />
+            <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--cor-texto-secundario)' }}>Seja o primeiro a falar!</p>
           </div>
         ) : (
           mensagens.map((msg, index) => {
             const isMinha = msg.usuario.id === meuId;
             return (
               <div key={msg.id || index} className={`flex gap-3 max-w-[85%] ${isMinha ? "ml-auto flex-row-reverse" : ""}`}>
-                {/* Avatar */}
+                
+                {/* Avatar Modernizado */}
                 {!isMinha && (
-                  <div className="w-8 h-8 rounded-full bg-zinc-800 flex-shrink-0 overflow-hidden border border-white/5">
+                  <div 
+                    className="w-8 h-8 rounded-xl flex-shrink-0 overflow-hidden border flex items-center justify-center font-black text-[10px] shadow-sm"
+                    style={{ backgroundColor: 'var(--cor-fundo-sidebar)', color: 'var(--cor-texto-sidebar)', borderColor: 'var(--cor-fundo-sidebar)' }}
+                  >
                     {msg.usuario.fotoPerfil ? (
                       <img src={msg.usuario.fotoPerfil} alt={msg.usuario.nome} className="w-full h-full object-cover" />
                     ) : (
-                      <div className="w-full h-full flex items-center justify-center font-bold text-[10px] bg-blue-600">
-                        {msg.usuario.nome.charAt(0).toUpperCase()}
-                      </div>
+                      msg.usuario.nome.charAt(0).toUpperCase()
                     )}
                   </div>
                 )}
 
                 {/* Balão de Mensagem */}
                 <div className={`flex flex-col ${isMinha ? "items-end" : "items-start"}`}>
-                  {!isMinha && <span className="text-[10px] font-bold text-zinc-500 mb-1 ml-1">{msg.usuario.nome}</span>}
+                  {!isMinha && (
+                    <span className="text-[10px] font-bold opacity-60 mb-1 ml-1" style={{ color: 'var(--cor-texto-secundario)' }}>
+                      {msg.usuario.nome}
+                    </span>
+                  )}
                   
-                  <div className={`px-4 py-2.5 rounded-2xl text-sm ${
-                    isMinha ? "bg-blue-600 text-white rounded-br-sm" : "bg-zinc-800 text-zinc-200 rounded-bl-sm border border-white/5"
-                  }`}>
+                  <div 
+                    className={`px-4 py-2.5 rounded-2xl text-xs sm:text-sm font-medium leading-relaxed shadow-sm border ${
+                      isMinha ? "rounded-tr-xs" : "rounded-tl-xs"
+                    }`}
+                    style={{
+                      backgroundColor: isMinha ? 'var(--cor-botao-primario)' : 'var(--cor-fundo-app)',
+                      color: isMinha ? 'var(--cor-botao-texto)' : 'var(--cor-texto-principal)',
+                      borderColor: isMinha ? 'var(--cor-botao-primario)' : 'var(--cor-fundo-sidebar)'
+                    }}
+                  >
                     {msg.conteudo}
                   </div>
                   
-                  <span className="text-[9px] text-zinc-600 font-semibold mt-1">
+                  <span className="text-[9px] font-semibold opacity-40 mt-1 px-1" style={{ color: 'var(--cor-texto-secundario)' }}>
                     {new Date(msg.dataEnvio).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
                   </span>
                 </div>
+
               </div>
             );
           })
@@ -163,23 +183,32 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
         <div ref={fimDoChatRef} />
       </div>
 
-      {/* ÁREA DE INPUT */}
-      <div className="p-4 border-t border-white/5 bg-zinc-900/80 rounded-b-2xl">
+      {/* ÁREA DE INPUT ADAPTADA */}
+      <div 
+        className="p-4 border-t rounded-b-2xl"
+        style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)' }}
+      >
         <form onSubmit={handleEnviar} className="flex gap-3">
           <input
             type="text"
             value={novaMensagem}
             onChange={(e) => setNovaMensagem(e.target.value)}
-            placeholder="Diga algo à malta..."
-            className="flex-1 bg-zinc-800/80 border border-white/5 rounded-xl px-4 text-sm text-white outline-none focus:border-blue-500 transition-colors"
+            placeholder="Diga algo aos leitores..."
+            className="flex-1 px-4 text-xs sm:text-sm font-medium rounded-xl border outline-none transition-all focus:ring-1 focus:ring-[var(--cor-destaque)]"
+            style={{ 
+              backgroundColor: 'var(--cor-fundo-card)', 
+              color: 'var(--cor-texto-principal)', 
+              borderColor: 'var(--cor-fundo-sidebar)' 
+            }}
             maxLength={300}
           />
           <button
             type="submit"
             disabled={!novaMensagem.trim()}
-            className="w-12 h-12 flex items-center justify-center bg-blue-600 hover:bg-blue-500 disabled:bg-zinc-800 text-white rounded-xl transition-all shadow-md flex-shrink-0"
+            className="w-12 h-12 flex items-center justify-center rounded-xl transition-all shadow-sm flex-shrink-0 active:scale-95 disabled:opacity-40 disabled:scale-100 disabled:cursor-not-allowed"
+            style={{ backgroundColor: 'var(--cor-botao-primario)', color: 'var(--cor-botao-texto)' }}
           >
-            ➤
+            <PaperAirplaneIcon className="w-4 h-4 stroke-[2.5]" />
           </button>
         </form>
       </div>
