@@ -12,7 +12,7 @@ import {
 } from "@heroicons/react/24/outline";
 
 interface Solicitacao {
-  id: number;
+  id: number; // Este ID representa o 'sid' (ID da Solicitação) exigido pela API
   usuarioId: number;
   usuarioNome: string;
   usuarioFoto: string | null;
@@ -36,7 +36,7 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
   const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([]);
   const [membros, setMembros] = useState<Membro[]>([]);
   const [carregandoDados, setCarregandoDados] = useState(true);
-  const [processandoId, setProcessandoId] = useState<number | null>(null);
+  const [processandoId, setProcessandoId] = useState<number | null>(null); // Controla loading pelo ID da solicitação
 
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
   const token = authService.getToken();
@@ -65,21 +65,25 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
     carregarDadosPainel();
   }, [grupoId]);
 
-  const handleResponderSolicitacao = async (usuarioId: number, aceitar: boolean) => {
-    setProcessandoId(usuarioId);
+  // CORRIGIDO: Agora recebe o ID da solicitação (solicitacaoId) em vez do usuarioId
+  const handleResponderSolicitacao = async (solicitacaoId: number, aceitar: boolean) => {
+    setProcessandoId(solicitacaoId);
     try {
-      const res = await fetch(`${BASE_URL}/grupos/${grupoId}/solicitacoes/${usuarioId}/responder`, {
-        method: "POST",
+      // Ajustado para coincidir com: PUT /api/grupos/{id}/solicitacoes/{sid}
+      const res = await fetch(`${BASE_URL}/grupos/${grupoId}/solicitacoes/${solicitacaoId}`, {
+        method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ aceitar })
+        body: JSON.stringify({ aceitar }) // Envia a decisão no corpo da requisição PUT
       });
 
       if (!res.ok) throw new Error("Erro ao responder solicitação.");
       
-      setSolicitacoes(prev => prev.filter(s => s.usuarioId !== usuarioId));
+      // Remove da lista local usando o ID da solicitação
+      setSolicitacoes(prev => prev.filter(s => s.id !== solicitacaoId));
+      
       if (aceitar) {
         carregarDadosPainel();
         if (onMembroMudou) onMembroMudou();
@@ -115,56 +119,105 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
   };
 
   return (
-    <div className="bg-zinc-900/40 border border-white/5 rounded-2xl p-6 animate-fade-in space-y-6">
-      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b border-white/5 pb-4">
-        <h3 className="text-sm font-black uppercase tracking-wider text-zinc-400 flex items-center gap-2">
-          <span>👥</span> Membros & Moderação
+    <div 
+      className="border rounded-3xl p-6 shadow-sm space-y-6 transition-all"
+      style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
+    >
+      {/* CABEÇALHO DO PAINEL */}
+      <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+        <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2" style={{ color: 'var(--cor-texto-principal)' }}>
+          <span>🛡️</span> Gerenciamento e Moderação
         </h3>
         
-        <div className="flex bg-zinc-950/60 p-1 rounded-xl border border-white/5 w-full sm:w-auto">
+        {/* Toggle das Sub-abas */}
+        <div 
+          className="flex p-1 rounded-xl border w-full sm:w-auto" 
+          style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)' }}
+        >
           <button 
             onClick={() => setSubAba("solicitacoes")}
-            className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 ${subAba === "solicitacoes" ? "bg-blue-600 text-white" : "text-zinc-400 opacity-60 hover:opacity-100"}`}
+            className="flex-1 sm:flex-none px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95"
+            style={{ 
+              backgroundColor: subAba === "solicitacoes" ? 'var(--cor-botao-primario)' : 'transparent', 
+              color: subAba === "solicitacoes" ? 'var(--cor-botao-texto)' : 'var(--cor-texto-secundario)',
+              opacity: subAba === "solicitacoes" ? 1 : 0.6
+            }}
           >
-            <InboxArrowDownIcon className="w-3.5 h-3.5" />
+            <InboxArrowDownIcon className="w-3.5 h-3.5 stroke-[2.5]" />
             <span>Pedidos ({solicitacoes.length})</span>
           </button>
           <button 
             onClick={() => setSubAba("membros")}
-            className={`flex-1 sm:flex-none px-3 py-1.5 rounded-lg text-[11px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1 ${subAba === "membros" ? "bg-blue-600 text-white" : "text-zinc-400 opacity-60 hover:opacity-100"}`}
+            className="flex-1 sm:flex-none px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95"
+            style={{ 
+              backgroundColor: subAba === "membros" ? 'var(--cor-botao-primario)' : 'transparent', 
+              color: subAba === "membros" ? 'var(--cor-botao-texto)' : 'var(--cor-texto-secundario)',
+              opacity: subAba === "membros" ? 1 : 0.6
+            }}
           >
-            <UserGroupIcon className="w-3.5 h-3.5" />
-            <span>Membros ({membros.length})</span>
+            <UserGroupIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+            <span>Integrantes ({membros.length})</span>
           </button>
         </div>
       </div>
 
       {carregandoDados ? (
-        <div className="text-center py-6 text-xs text-zinc-500 font-bold uppercase tracking-widest animate-pulse">
-          Sincronizando moderação...
+        <div 
+          className="text-center py-12 text-xs font-black uppercase tracking-widest animate-pulse flex items-center justify-center gap-2"
+          style={{ color: 'var(--cor-texto-secundario)' }}
+        >
+          <ArrowPathIcon className="w-4 h-4 animate-spin" style={{ color: 'var(--cor-primaria)' }} />
+          <span>Sincronizando registros do clube...</span>
         </div>
       ) : (
         <>
+          {/* ABA: SOLICITAÇÕES PENDENTES */}
           {subAba === "solicitacoes" && (
             <div className="space-y-3">
               {solicitacoes.length === 0 ? (
-                <div className="text-center py-12 border border-dashed border-white/5 rounded-xl bg-zinc-900/20">
-                  <p className="text-xs font-bold uppercase tracking-widest text-zinc-500">Nenhum pedido pendente.</p>
+                <div className="text-center py-16 border border-dashed rounded-2xl" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+                  <p className="text-xs font-black uppercase tracking-widest opacity-40" style={{ color: 'var(--cor-texto-secundario)' }}>Nenhuma entrada pendente</p>
                 </div>
               ) : (
                 solicitacoes.map((sol) => (
-                  <div key={sol.id} className="flex items-center justify-between bg-zinc-950/40 p-3 rounded-xl border border-white/5">
+                  <div 
+                    key={sol.id} 
+                    className="flex items-center justify-between p-4 rounded-2xl border"
+                    style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)' }}
+                  >
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center font-bold text-xs">
-                        {sol.usuarioFoto ? <img src={sol.usuarioFoto} alt={sol.usuarioNome} className="w-full h-full object-cover" /> : sol.usuarioNome.charAt(0).toUpperCase()}
+                      <div 
+                        className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shadow-sm border overflow-hidden shrink-0"
+                        style={{ backgroundColor: 'var(--cor-primaria)', color: 'var(--cor-botao-texto)', borderColor: 'var(--cor-fundo-sidebar)' }}
+                      >
+                        {sol.usuarioFoto ? (
+                          <img src={sol.usuarioFoto} alt={sol.usuarioNome} className="w-full h-full object-cover" />
+                        ) : (
+                          sol.usuarioNome.charAt(0).toUpperCase()
+                        )}
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-zinc-200">{sol.usuarioNome}</p>
+                        <p className="text-sm font-extrabold" style={{ color: 'var(--cor-texto-principal)' }}>{sol.usuarioNome}</p>
+                        <p className="text-[10px] font-bold opacity-50 uppercase tracking-wide" style={{ color: 'var(--cor-texto-secundario)' }}>Aguardando liberação</p>
                       </div>
                     </div>
-                    <div className="flex gap-1.5">
-                      <button onClick={() => handleResponderSolicitacao(sol.usuarioId, false)} disabled={processandoId !== null} className="w-8 h-8 rounded-lg bg-red-500/10 text-red-400 hover:bg-red-500 hover:text-white flex items-center justify-center"><XMarkIcon className="w-4 h-4 stroke-[2.5]" /></button>
-                      <button onClick={() => handleResponderSolicitacao(sol.usuarioId, true)} disabled={processandoId !== null} className="w-8 h-8 rounded-lg bg-green-500/10 text-green-400 hover:bg-green-500 hover:text-white flex items-center justify-center"><CheckIcon className="w-4 h-4 stroke-[2.5]" /></button>
+                    
+                    {/* Botões de Decisão Corrigidos para usar sol.id (sid) */}
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => handleResponderSolicitacao(sol.id, false)} 
+                        disabled={processandoId !== null} 
+                        className="w-9 h-9 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center transition-colors shadow-sm active:scale-95 disabled:opacity-40"
+                      >
+                        <XMarkIcon className="w-4 h-4 stroke-[3]" />
+                      </button>
+                      <button 
+                        onClick={() => handleResponderSolicitacao(sol.id, true)} 
+                        disabled={processandoId !== null} 
+                        className="w-9 h-9 rounded-xl bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white flex items-center justify-center transition-colors shadow-sm active:scale-95 disabled:opacity-40"
+                      >
+                        <CheckIcon className="w-4 h-4 stroke-[3]" />
+                      </button>
                     </div>
                   </div>
                 ))
@@ -172,25 +225,53 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
             </div>
           )}
 
+          {/* ABA: INTEGRANTES CADASTRADOS */}
           {subAba === "membros" && (
-            <div className="flex flex-col gap-2">
+            <div className="flex flex-col gap-2.5">
               {membros.map((membro) => {
                 const souEu = authService.getUserId() === String(membro.id);
                 const ehLiderOuAdmin = membro.role === "Lider" || membro.role === "Admin";
                 return (
-                  <div key={membro.id} className="flex items-center justify-between bg-zinc-950/40 p-3 rounded-xl border border-white/5">
+                  <div 
+                    key={membro.id} 
+                    className="flex items-center justify-between p-4 rounded-2xl border"
+                    style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)' }}
+                  >
                     <div className="flex items-center gap-3">
-                      <div className="w-9 h-9 rounded-full bg-zinc-800 overflow-hidden flex items-center justify-center font-bold text-xs text-zinc-300">
-                        {membro.fotoPerfil ? <img src={membro.fotoPerfil} alt={membro.nome} className="w-full h-full object-cover" /> : membro.nome.charAt(0).toUpperCase()}
+                      <div 
+                        className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shadow-sm border overflow-hidden shrink-0"
+                        style={{ backgroundColor: 'var(--cor-fundo-sidebar)', color: 'var(--cor-texto-sidebar)', borderColor: 'var(--cor-fundo-sidebar)' }}
+                      >
+                        {membro.fotoPerfil ? (
+                          <img src={membro.fotoPerfil} alt={membro.nome} className="w-full h-full object-cover" />
+                        ) : (
+                          membro.nome.charAt(0).toUpperCase()
+                        )}
                       </div>
                       <div>
-                        <p className="text-sm font-bold text-zinc-200">{membro.nome} {souEu && <span className="text-xs text-blue-400">(Você)</span>}</p>
-                        <span className="text-[9px] font-black uppercase tracking-wider text-zinc-500">{membro.role}</span>
+                        <p className="text-sm font-extrabold" style={{ color: 'var(--cor-texto-principal)' }}>
+                          {membro.nome} {souEu && <span className="text-xs font-bold" style={{ color: 'var(--cor-destaque)' }}>(Você)</span>}
+                        </p>
+                        <span className="text-[9px] font-black uppercase tracking-wider opacity-60" style={{ color: 'var(--cor-texto-secundario)' }}>
+                          {membro.role}
+                        </span>
                       </div>
                     </div>
+                    
+                    {/* Botão de Expulsão */}
                     {!souEu && !ehLiderOuAdmin && (
-                      <button onClick={() => handleExpulsarMembro(membro.id, membro.nome)} disabled={processandoId !== null} className="px-2.5 py-1.5 rounded-lg text-[10px] uppercase font-black tracking-wider text-zinc-400 border border-white/5 hover:border-red-500/20 hover:text-red-400 transition-all flex items-center gap-1">
-                        <UserMinusIcon className="w-3.5 h-3.5" /> Remover
+                      <button 
+                        onClick={() => handleExpulsarMembro(membro.id, membro.nome)} 
+                        disabled={processandoId !== null} 
+                        className="px-3 py-1.5 rounded-xl text-[10px] uppercase font-black tracking-wider border transition-all flex items-center gap-1.5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 active:scale-95 disabled:opacity-40"
+                        style={{ 
+                          backgroundColor: 'var(--cor-fundo-card)', 
+                          borderColor: 'var(--cor-fundo-sidebar)',
+                          color: 'var(--cor-texto-secundario)'
+                        }}
+                      >
+                        <UserMinusIcon className="w-3.5 h-3.5 stroke-[2]" /> 
+                        <span>Remover</span>
                       </button>
                     )}
                   </div>

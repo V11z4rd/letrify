@@ -22,6 +22,9 @@ export default function GruposPage() {
   const [modalAberto, setModalAberto] = useState(false);
   
   const [processandoSair, setProcessandoSair] = useState<number | null>(null);
+  
+  // Captura o ID do usuário logado para aplicar as restrições de negócio da API
+  const meuId = authService.getUserId();
 
   const carregarGrupos = async () => {
     setCarregando(true);
@@ -40,18 +43,25 @@ export default function GruposPage() {
     carregarGrupos();
   }, []);
 
-  const handleSairRapido = async (e: React.MouseEvent, grupoId: number) => {
-    e.preventDefault(); 
+  const handleSairRapido = async (e: React.MouseEvent, grupoId: number, criadorId?: string | number) => {
+    e.preventDefault(); // Impede o redirecionamento do <Link> pai ao clicar no botão sair
+    
+    // Alinhado com a API: Bloqueia a tentativa no Front se o usuário logado for o Líder/Criador do grupo
+    if (meuId && criadorId && String(criadorId) === String(meuId)) {
+      alert("Como você é o Líder deste clube, você não pode simplesmente sair. Para encerrar o clube, utilize a opção de excluir o grupo dentro do painel de administração.");
+      return;
+    }
     
     if (!confirm("Tem certeza que deseja sair deste clube?")) return;
     
     setProcessandoSair(grupoId);
     try {
+      // Executa estritamente o método mapeado para POST /api/grupos/{id}/sair
       await grupoService.sair(String(grupoId));
       alert("Você saiu do clube.");
       await carregarGrupos(); 
     } catch (err: any) {
-      alert(err.message || "Não foi possível processar a saída. Verifique se você é membro deste grupo.");
+      alert(err.message || "Não foi possível processar a saída. Verifique se você é integrante deste grupo.");
     } finally {
       setProcessandoSair(null);
     }
@@ -90,7 +100,7 @@ export default function GruposPage() {
           className="flex flex-col items-center justify-center py-32 text-xs font-black uppercase tracking-widest gap-3"
           style={{ color: 'var(--cor-texto-secundario)' }}
         >
-          <ArrowPathIcon className="w-6 h-6 animate-spin text-[var(--cor-primaria)]" style={{ color: 'var(--cor-primaria)' }} />
+          <ArrowPathIcon className="w-6 h-6 animate-spin" style={{ color: 'var(--cor-primaria)' }} />
           <span>Buscando universos literários...</span>
         </div>
       )}
@@ -122,108 +132,119 @@ export default function GruposPage() {
       {/* GRADE DE CLUBES (VITRINE) */}
       {!carregando && !erro && grupos.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
-          {grupos.map((grupo) => (
-            <Link 
-              href={`/grupos/${grupo.id}`} 
-              key={grupo.id}
-              className="group flex flex-col border rounded-3xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.01]"
-              style={{ 
-                backgroundColor: 'var(--cor-fundo-card)', 
-                borderColor: 'var(--cor-fundo-sidebar)' 
-              }}
-            >
-              {/* Capa do Grupo */}
-              <div 
-                className="h-36 w-full relative border-b overflow-hidden flex-shrink-0"
-                style={{ borderColor: 'var(--cor-fundo-sidebar)', backgroundColor: 'var(--cor-fundo-app)' }}
+          {grupos.map((grupo) => {
+            // Verifica se o usuário logado é o dono/criador deste clube específico
+            const euSouOLider = meuId && grupo.usuarioCriadorId && String(grupo.usuarioCriadorId) === String(meuId);
+            
+            // Suposição segura baseada no contrato de retorno clássico das APIs
+            // Se o campo não existir no objeto simplificado, assume-se falso para evitar falso-positivo
+            const euSouMembro = grupo.jaESocio ?? false; 
+
+            return (
+              <Link 
+                href={`/grupos/${grupo.id}`} 
+                key={grupo.id}
+                className="group flex flex-col border rounded-3xl overflow-hidden transition-all duration-300 hover:shadow-xl hover:scale-[1.01]"
+                style={{ 
+                  backgroundColor: 'var(--cor-fundo-card)', 
+                  borderColor: 'var(--cor-fundo-sidebar)' 
+                }}
               >
-                {grupo.fotoCapa ? (
-                  <img 
-                    src={grupo.fotoCapa} 
-                    alt={grupo.nome} 
-                    className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
-                  />
-                ) : (
-                  <div className="absolute inset-0 flex items-center justify-center opacity-20">
-                    <BookOpenIcon className="w-10 h-10 stroke-[2]" style={{ color: 'var(--cor-texto-secundario)' }} />
-                  </div>
-                )}
-                
-                {/* Badge de Status Integrada ao Tema */}
+                {/* Capa do Grupo */}
                 <div 
-                  className="absolute top-3 right-3 px-2.5 py-1 rounded-xl border backdrop-blur-md flex items-center gap-1.5"
-                  style={{ 
-                    backgroundColor: 'rgba(var(--cor-fundo-card-rgb, 255, 255, 255), 0.75)',
-                    borderColor: 'var(--cor-fundo-sidebar)'
-                  }}
+                  className="h-36 w-full relative border-b overflow-hidden flex-shrink-0"
+                  style={{ borderColor: 'var(--cor-fundo-sidebar)', backgroundColor: 'var(--cor-fundo-app)' }}
                 >
-                  <div className={`w-1.5 h-1.5 rounded-full ${grupo.status === 'Aberto' ? 'bg-green-500 animate-pulse' : 'bg-orange-500'}`}></div>
-                  <span className="text-[9px] font-black uppercase tracking-wider" style={{ color: 'var(--cor-texto-principal)' }}>
-                    {grupo.status}
-                  </span>
-                </div>
-              </div>
-
-              {/* Corpo informativo do Card */}
-              <div className="p-5 flex flex-col flex-1">
-                <h3 
-                  className="font-black text-base mb-1 line-clamp-1 transition-colors group-hover:text-[var(--cor-destaque)]"
-                  style={{ color: 'var(--cor-texto-principal)' }}
-                >
-                  {grupo.nome}
-                </h3>
-                <p 
-                  className="text-xs font-medium opacity-70 line-clamp-2 mb-5 flex-1 leading-relaxed"
-                  style={{ color: 'var(--cor-texto-secundario)' }}
-                >
-                  {grupo.descricao || "Explore discussões e cronogramas literários estruturados neste clube."}
-                </p>
-                
-                {/* Footer do Card */}
-                <div className="flex items-center justify-between mt-auto pt-4 border-t" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-                  <div className="flex items-center gap-3">
-                    <div 
-                      className="flex items-center gap-1.5 text-xs font-bold opacity-70"
-                      style={{ color: 'var(--cor-texto-secundario)' }}
-                    >
-                      <UserGroupIcon className="w-3.5 h-3.5" />
-                      <span>{grupo.membrosCount || 0} membros</span>
+                  {grupo.fotoCapa ? (
+                    <img 
+                      src={typeof grupo.fotoCapa === "string" ? grupo.fotoCapa : undefined} 
+                      alt={grupo.nome} 
+                      className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" 
+                    />
+                  ) : (
+                    <div className="absolute inset-0 flex items-center justify-center opacity-20">
+                      <BookOpenIcon className="w-10 h-10 stroke-[2]" style={{ color: 'var(--cor-texto-secundario)' }} />
                     </div>
-
-                    {/* BOTÃO RÁPIDO DE SAIR ADAPTADO */}
-                    <button
-                      onClick={(e) => handleSairRapido(e, grupo.id)}
-                      disabled={processandoSair === grupo.id}
-                      className="text-[9px] uppercase font-black tracking-wider transition-all flex items-center gap-1 border px-2 py-1 rounded-lg hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 active:scale-95"
-                      style={{ 
-                        backgroundColor: 'var(--cor-fundo-app)', 
-                        borderColor: 'var(--cor-fundo-sidebar)',
-                        color: 'var(--cor-texto-secundario)'
-                      }}
-                    >
-                      {processandoSair === grupo.id ? (
-                        <ArrowPathIcon className="w-3 h-3 animate-spin stroke-[2.5]" />
-                      ) : (
-                        <>
-                          <ArrowLeftStartOnRectangleIcon className="w-3 h-3 stroke-[2.5]" />
-                          <span>Sair</span>
-                        </>
-                      )}
-                    </button>
-                  </div>
+                  )}
                   
-                  {/* Link Explorar com animação controlada */}
-                  <span 
-                    className="text-[10px] font-black uppercase tracking-widest flex items-center gap-0.5 transition-all duration-300 transform translate-x-1 opacity-0 group-hover:opacity-100 group-hover:translate-x-0"
-                    style={{ color: 'var(--cor-destaque)' }}
+                  {/* Badge de Status (Aberto / Fechado) */}
+                  <div 
+                    className="absolute top-3 right-3 px-2.5 py-1 rounded-xl border backdrop-blur-md flex items-center gap-1.5"
+                    style={{ 
+                      backgroundColor: 'rgba(var(--cor-fundo-card-rgb, 255, 255, 255), 0.75)',
+                      borderColor: 'var(--cor-fundo-sidebar)'
+                    }}
                   >
-                    <span>Entrar</span>
-                    <ArrowRightIcon className="w-3 h-3 stroke-[2.5]" />
-                  </span>
+                    <div className={`w-1.5 h-1.5 rounded-full ${grupo.status === 'Aberto' ? 'bg-green-500 animate-pulse' : 'bg-orange-500'}`}></div>
+                    <span className="text-[9px] font-black uppercase tracking-wider" style={{ color: 'var(--cor-texto-principal)' }}>
+                      {grupo.status || "Aberto"}
+                    </span>
+                  </div>
                 </div>
-              </div>
-            </Link>
-          ))}
+
+                {/* Corpo informativo do Card */}
+                <div className="p-5 flex flex-col flex-1">
+                  <h3 
+                    className="font-black text-base mb-1 line-clamp-1 transition-colors group-hover:text-[var(--cor-destaque)]"
+                    style={{ color: 'var(--cor-texto-principal)' }}
+                  >
+                    {grupo.nome}
+                  </h3>
+                  <p 
+                    className="text-xs font-medium opacity-70 line-clamp-2 mb-5 flex-1 leading-relaxed"
+                    style={{ color: 'var(--cor-texto-secundario)' }}
+                  >
+                    {grupo.descricao || "Explore discussões e cronogramas literários estruturados neste clube."}
+                  </p>
+                  
+                  {/* Footer do Card */}
+                  <div className="flex items-center justify-between mt-auto pt-4 border-t" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+                    <div className="flex items-center gap-3">
+                      <div 
+                        className="flex items-center gap-1.5 text-xs font-bold opacity-70"
+                        style={{ color: 'var(--cor-texto-secundario)' }}
+                      >
+                        <UserGroupIcon className="w-3.5 h-3.5" />
+                        <span>{grupo.membrosCount || 0} membros</span>
+                      </div>
+
+                      {/* BOTÃO RÁPIDO DE SAIR ADAPTADO ÀS PERMISSÕES DA API */}
+                      {euSouMembro && !euSouOLider && (
+                        <button
+                          onClick={(e) => handleSairRapido(e, grupo.id, grupo.usuarioCriadorId)}
+                          disabled={processandoSair === grupo.id}
+                          className="text-[9px] uppercase font-black tracking-wider transition-all flex items-center gap-1 border px-2 py-1 rounded-lg hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 active:scale-95 disabled:opacity-40"
+                          style={{ 
+                            backgroundColor: 'var(--cor-fundo-app)', 
+                            borderColor: 'var(--cor-fundo-sidebar)',
+                            color: 'var(--cor-texto-secundario)'
+                          }}
+                        >
+                          {processandoSair === grupo.id ? (
+                            <ArrowPathIcon className="w-3 h-3 animate-spin stroke-[2.5]" />
+                          ) : (
+                            <>
+                              <ArrowLeftStartOnRectangleIcon className="w-3 h-3 stroke-[2.5]" />
+                              <span>Sair</span>
+                            </>
+                          )}
+                        </button>
+                      )}
+                    </div>
+                    
+                    {/* Texto adaptativo de ação baseado na associação do usuário */}
+                    <span 
+                      className="text-[10px] font-black uppercase tracking-widest flex items-center gap-0.5 transition-all duration-300 transform translate-x-1 opacity-0 group-hover:opacity-100 group-hover:translate-x-0"
+                      style={{ color: 'var(--cor-destaque)' }}
+                    >
+                      <span>{euSouMembro || euSouOLider ? "Acessar" : "Entrar"}</span>
+                      <ArrowRightIcon className="w-3 h-3 stroke-[2.5]" />
+                    </span>
+                  </div>
+                </div>
+              </Link>
+            );
+          })}
         </div>
       )}
 
