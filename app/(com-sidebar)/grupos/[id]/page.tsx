@@ -62,8 +62,11 @@ export default function SalaGrupoPage() {
     const handleSairDoGrupo = async () => {
         if (!grupo || processandoAcao) return;
         
+        // 💡 Correção: Busca o membro atualizado diretamente do estado atualizado no momento exato do clique
+        const membroNoMomento = grupo.membros?.find((m) => m.id === meuId);
+
         // Validação estrita alinhada com a API: Líder não pode sair por esta rota
-        if (membroAtual?.role === "Lider") {
+        if (membroNoMomento?.role === "Lider") {
             alert("Como Líder do clube, você não pode sair dele. Se deseja encerrar as atividades, use a opção de exclusão total no painel.");
             return;
         }
@@ -72,11 +75,19 @@ export default function SalaGrupoPage() {
         
         setProcessandoAcao(true);
         try {
-            await grupoService.sair(String(grupo.id));
-            alert("Você saiu do clube.");
-            router.push("/grupos");
+            // Dispara o POST /api/grupos/{id}/sair mapeado com headers de autenticação
+            const resposta = await grupoService.sair(grupo.id);
+            
+            if (resposta.ok) {
+                alert("Você saiu do clube com sucesso.");
+                router.push("/grupos");
+            } else {
+                throw new Error("O servidor rejeitou o pedido para sair do grupo.");
+            }
         } catch (err: any) {
-            alert(err.message);
+            console.error("Erro na rota de desassociação:", err);
+            alert(err.message || "Erro ao tentar sair do grupo.");
+        } finally {
             setProcessandoAcao(false);
         }
     };
@@ -84,38 +95,33 @@ export default function SalaGrupoPage() {
     const handleSalvarDadosGrupo = async (novosDados: any) => {
         try {
             const token = authService.getToken();
-            let corpoRequisicao: any;
-            let cabeçalhos: Record<string, string> = { "Authorization": `Bearer ${token}` };
-
-            // Se for um FormData (enviado pelo EditorGrupo adaptado com arquivo File local)
-            if (novosDados instanceof FormData) {
-                corpoRequisicao = novosDados;
-                // Deixa o browser definir o Content-Type correto com o boundary do multipart
+            const formData = new FormData();
+            
+            formData.append("nome", novosDados.nome);
+            formData.append("descricao", novosDados.descricao);
+            
+            if (novosDados.fotoCapa instanceof File) {
+                formData.append("foto", novosDados.fotoCapa); 
             } else {
-                // Caso contrário, normaliza em JSON limpo atendendo à API corporativa
-                cabeçalhos["Content-Type"] = "application/json";
-                corpoRequisicao = JSON.stringify({
-                    nome: novosDados.nome,
-                    descricao: novosDados.descricao,
-                    fotoCapa: novosDados.fotoCapa
-                });
+                formData.append("fotoCapa", novosDados.fotoCapa);
             }
 
-            // PUT /api/grupos/{id}
             const resposta = await fetch(`${BASE_URL}/grupos/${grupo?.id}`, {
                 method: "PUT",
-                headers: cabeçalhos,
-                body: corpoRequisicao
+                headers: { "Authorization": `Bearer ${token}` },
+                body: formData
             });
 
-            if (!resposta.ok) throw new Error("Erro na resposta do servidor ao atualizar parâmetros.");
-
-            alert("Clube atualizado com sucesso! 🎉");
-            setIsEditando(false);
-            carregarDetalhesGrupo();
-        } catch (err: any) {
+            if (resposta.ok) {
+                alert("Clube updated com sucesso! 🎉");
+                setIsEditando(false);
+                carregarDetalhesGrupo();
+            } else {
+                throw new Error("Erro na resposta do servidor.");
+            }
+        } catch (err) {
             console.error("Falha ao salvar dados cadastrais do grupo:", err);
-            alert(err.message || "Erro ao atualizar as informações do grupo.");
+            alert("Erro ao atualizar o grupo.");
         }
     };
 
