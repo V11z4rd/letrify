@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { grupoService, GrupoResumo } from "@/app/lib/grupoService";
-import ModalCriarGrupo from "@/components/grupos/ModalCriarGrupo"; 
+import ModalCriarGrupo from "@/components/grupos/ModalCriarGrupo";
+
 import { authService } from "@/app/lib/authService";
 import { 
   PlusIcon, 
@@ -205,7 +206,7 @@ export default function GruposPage() {
                         style={{ color: 'var(--cor-texto-secundario)' }}
                       >
                         <UserGroupIcon className="w-3.5 h-3.5" />
-                        <span>{grupo.membrosCount || 0} membros</span>
+                        <span>{grupo.totalMembros || 0} membros</span>
                       </div>
 
                       {/* BOTÃO RÁPIDO DE SAIR ADAPTADO ÀS PERMISSÕES DA API */}

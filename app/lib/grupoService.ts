@@ -14,7 +14,8 @@ export interface GrupoResumo {
   descricao: string;
   fotoCapa: string | null;
   status: "Aberto" | "Fechado" | string;
-  membrosCount?: number; 
+  totalMembros: number;
+  membrosCount?: number;
   // Mapeamentos necessários para validação de regras de negócio da API no Front-end:
   usuarioCriadorId?: number | string; 
   jaESocio?: boolean;

@@ -10,6 +10,7 @@ interface UsuarioChat {
   id: number;
   nome: string;
   fotoPerfil: string;
+  isPremium?: boolean;
 }
 
 interface MensagemChat {
@@ -75,16 +76,16 @@ export default function FeedPage() {
     signalRService.iniciarConexao(token);
 
     // OUVINTE A: Nova Mensagem ou Resposta
+    signalRService.iniciarConexao(token).catch(() => {});
+
     signalRService.onReceberNovaMensagem((novaMensagem: MensagemChat) => {
       setMensagens((estadoAnterior) => {
-        // Se for Post Principal (Sem Pai)
         if (!novaMensagem.mensagemPaiId) {
           if (estadoAnterior.some(m => m.id === novaMensagem.id)) return estadoAnterior;
           const mensagemFormatada = { ...novaMensagem, respostas: [] };
           return [mensagemFormatada, ...estadoAnterior];
         }
 
-        // Se for Resposta (Tem Pai) -> Procura o container pai e injeta na thread
         return estadoAnterior.map((postPai) => {
           if (postPai.id === novaMensagem.mensagemPaiId) {
             if (postPai.respostas?.some(r => r.id === novaMensagem.id)) return postPai;

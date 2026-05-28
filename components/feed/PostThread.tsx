@@ -4,6 +4,7 @@ import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import ComentarioFilho from "./ComentarioFilho";
 import MenuTresPontinhos from "../ui/MenuTresPontinhos";
+import { BadgePremium } from "@/components/perfil/Premium";
 import { 
   ChatBubbleLeftRightIcon, 
   UserGroupIcon, 
@@ -15,6 +16,7 @@ interface UsuarioChat {
   id: number;
   nome: string;
   fotoPerfil: string;
+  isPremium?: boolean;
 }
 
 interface MensagemChat {
@@ -46,8 +48,15 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
   const [nomeDoGrupoReal, setNomeDoGrupoReal] = useState<string>("Carregando clube...");
   const [fotoCapaGrupo, setFotoCapaGrupo] = useState<string | null>(null);
 
+  const [usuarioIsPremium, setUsuarioIsPremium] = useState<boolean>(false);
+
   const isDonoDoPost = meuId === post.usuario.id;
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
+  
+
+  useEffect(() => {
+    console.log(`👤 Usuário do post ${post.id}:`, post.usuario);
+  }, [post]);
 
   // MAPEAMENTO INTELIGENTE: Captura o ID do grupo independentemente de como o backend o devolveu
   const idDoGrupo = useMemo(() => {
@@ -92,6 +101,36 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
       });
     }
   }, [idDoGrupo, BASE_URL]);
+
+  useEffect(() => {
+    if (post.usuario?.id) {
+      const token = typeof window !== "undefined" ? localStorage.getItem("letrify_token") : null;
+
+      fetch(`${BASE_URL}/usuario/${post.usuario.id}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+      .then((res) => {
+        if (!res.ok) throw new Error();
+        return res.json();
+      })
+      .then((dadosApi) => {
+        // 💡 Checa de forma inteligente se a string do nome possui a marcação "Premium"
+        const temNomePremium = dadosApi?.nome && String(dadosApi.nome).toLowerCase().includes("premium");
+        
+        // Mapeamento em cascata resiliente a futuras atualizações estruturais do backend
+        const premium = temNomePremium ||
+                        dadosApi?.premium === true || 
+                        dadosApi?.isPremium === true || 
+                        dadosApi?.perfil?.premium === "1" || 
+                        dadosApi?.perfil?.isPremium === true;
+        
+        setUsuarioIsPremium(!!premium);
+      })
+      .catch(() => {
+        setUsuarioIsPremium(false);
+      });
+    }
+  }, [post.usuario.id, BASE_URL]);
 
   const handleResponder = async () => {
     const textoLimpo = conteudoResposta.trim();
@@ -166,14 +205,21 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
             )}
           </Link>
           
+          {/* BLOCO INFORMATIVO DO USUÁRIO */}
           <div>
-            <Link 
-              href={`/perfil?id=${post.usuario.id}`} 
-              className="font-black text-sm tracking-tight hover:underline"
-              style={{ color: 'var(--cor-texto-principal)' }}
-            >
-              {post.usuario?.nome}
-            </Link>
+            <div className="flex items-center gap-1.5">
+              <Link 
+                href={`/perfil?id=${post.usuario.id}`} 
+                className="font-black text-sm tracking-tight hover:underline"
+                style={{ color: 'var(--cor-texto-principal)' }}
+              >
+                {post.usuario?.nome}
+              </Link>
+
+              {/* 💡 EXIBE O ÍCONE ALINHADO AO LADO DO NOME */}
+              {usuarioIsPremium && <BadgePremium />}
+            </div>
+  
             <p className="text-[9px] uppercase tracking-wider font-bold opacity-40 mt-0.5" style={{ color: 'var(--cor-texto-principal)' }}>
               {new Date(post.dataPostagem).toLocaleString('pt-BR', { dateStyle: 'short', timeStyle: 'short' })}
             </p>

@@ -10,6 +10,8 @@ interface CardProps {
 export default function CardGrupoBusca({ grupo }: CardProps) {
   const isAberto = grupo.status === "Aberto";
 
+  const totalLeitores = grupo.totalMembros ?? 0;
+
   return (
     <Link 
       href={`/grupos/${grupo.id}`}
@@ -50,7 +52,7 @@ export default function CardGrupoBusca({ grupo }: CardProps) {
 
         <div className="flex items-center justify-between mt-auto">
           <span className="text-xs font-semibold text-zinc-400 flex items-center gap-1">
-            👥 {grupo.membrosCount || 0} leitores
+            👥 {totalLeitores} {totalLeitores === 1 ? 'leitor' : 'leitores'}
           </span>
           <span className="text-xs font-bold text-blue-500 opacity-0 group-hover:opacity-100 transition-opacity flex items-center gap-1">
             Acessar <span className="text-lg leading-none">→</span>
