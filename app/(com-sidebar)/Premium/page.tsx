@@ -31,7 +31,7 @@ export default function PremiumPage() {
       const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
       
       // Bate no endpoint usando o ID coletado do localStorage
-      const resposta = await fetch(`${BASE_URL}/usuario/premium/${userId}`, {
+      const resposta = await fetch(`${BASE_URL}/usuario/tornar-premium`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
