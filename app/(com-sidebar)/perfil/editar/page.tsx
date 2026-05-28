@@ -17,6 +17,9 @@ import {
   ArrowPathIcon
 } from "@heroicons/react/24/outline";
 
+// Importa o mapeador que você usa na tela de perfil para manter a consistência dos dados
+import { mapearPerfilDaApi } from "@/app/lib/usuarioService";
+
 function extrairDadosDoToken(token: string) {
   try {
     const base64Url = token.split('.')[1];
@@ -50,10 +53,10 @@ export default function EditarPerfilPage() {
   const [modalAberto, setModalAberto] = useState(false);
   const [tokenSessao, setTokenSessao] = useState("");
 
-  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
+  const BASE_URL = "https://letrify.fly.dev/api";
 
+  // 1. CARREGAMENTO INICIAL: Busca os dados existentes para não iniciar com inputs vazios
   useEffect(() => {
-    // 🟢 CORREÇÃO: Alinhado perfeitamente com a chave global unificada
     const token = localStorage.getItem("letrify_token");
     if (!token) {
       router.replace("/login");
@@ -67,17 +70,22 @@ export default function EditarPerfilPage() {
       const usuarioId = dadosDoToken?.[chaveId]; 
 
       if (usuarioId) {
-        fetch(`${BASE_URL}/usuario/${usuarioId}`, {
+        // Buscamos primeiro na rota de informações que é a mais completa do seu perfil
+        fetch(`${BASE_URL}/usuario/informacoes/${usuarioId}`, {
           headers: { "Authorization": `Bearer ${token}` }
         })
           .then(res => res.ok ? res.json() : null)
-          .then(dados => {
-            if (dados) {
-              setNome(dados.nome || "Leitor Letrify");
-              setCidade(dados.cidade || "");
-              setIdade(dados.idade || "");
-              setDescricao(dados.descricao || "");
-              setFotoPerfilUrl(dados.fotoPerfil || "");
+          .then(dadosBrutos => {
+            if (dadosBrutos) {
+              // Passa pelo mapeador oficial do projeto para normalizar a estrutura
+              const dadosMapeados = mapearPerfilDaApi(dadosBrutos);
+              if (dadosMapeados) {
+                setNome(dadosMapeados.nome || "Leitor Letrify");
+                setCidade(dadosMapeados.cidade || "");
+                setDescricao(dadosMapeados.descricao || "");
+                setFotoPerfilUrl(dadosMapeados.fotoPerfil || "");
+                setIdade(dadosBrutos.idade || dadosBrutos.perfil?.idade || "");
+              }
             }
           })
           .catch(console.error)
@@ -103,13 +111,28 @@ export default function EditarPerfilPage() {
     }
   };
 
+  // 2. ENVIO DO FORMULÁRIO: Envia as alterações via multipart/form-data
   const handleSalvarPerfil = async () => {
     setSalvando(true);
     try {
       const formData = new FormData();
-      formData.append("cidade", cidade);
-      formData.append("idade", idade.toString());
-      formData.append("descricao", descricao);
+      
+      // Só envia a cidade se existir e não for apenas espaços
+      if (cidade && cidade.trim() !== "") {
+        formData.append("cidade", cidade.trim());
+      }
+      
+      // Validação Crítica da Idade (Garante que só envia se for um número válido)
+      const idadeNumero = parseInt(idade, 10);
+      if (!isNaN(idadeNumero) && idadeNumero > 0) {
+        formData.append("idade", idadeNumero.toString());
+      }
+
+      // Só envia a descrição se existir
+      if (descricao && descricao.trim() !== "") {
+        formData.append("descricao", descricao.trim());
+      }
+
       if (fotoArquivo) {
         formData.append("foto", fotoArquivo);
       }
@@ -125,7 +148,9 @@ export default function EditarPerfilPage() {
       if (resposta.ok) {
         router.push("/perfil");
       } else {
-        alert("Erro ao salvar as informações na API.");
+        // Agora, se o servidor recusar, capturamos o erro e o apresentamos!
+        const erroMsg = await resposta.text();
+        alert(`Erro ao salvar: ${erroMsg || resposta.statusText}`);
       }
     } catch (error) {
       console.error(error);

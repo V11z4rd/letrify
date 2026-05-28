@@ -19,7 +19,7 @@ interface CardPerfilProps {
 export default function CardPerfil({ perfil }: CardPerfilProps) {
   return (
     <Link
-      href={`/perfil/${perfil.id}`}
+      href={`/perfil?id=${perfil.id}`} 
       className="min-w-[170px] max-w-[200px] snap-start shrink-0 p-4 rounded-2xl border flex flex-col items-center text-center transition-all duration-300 hover:scale-[1.03] hover:shadow-lg group"
       style={{ 
         backgroundColor: 'var(--cor-fundo-card)', 

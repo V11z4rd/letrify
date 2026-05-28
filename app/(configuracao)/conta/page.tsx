@@ -70,7 +70,7 @@ export default function ContaPage() {
         throw new Error("Sessão inválida. Por favor, realize o login novamente.");
       }
 
-      const resposta = await fetch(`https://letrify.fly.dev/api/usuario/tornar-premium`, {
+      const resposta = await fetch(`https://letrify.fly.dev/api/usuario/cancelar-premium`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,

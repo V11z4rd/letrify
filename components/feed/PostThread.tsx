@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import Link from "next/link";
 import ComentarioFilho from "./ComentarioFilho";
 import MenuTresPontinhos from "../ui/MenuTresPontinhos";
@@ -42,6 +42,10 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
   const [enviando, setEnviando] = useState(false);
   const [erro, setErro] = useState<string | null>(null);
 
+  // --- ESTADOS ADICIONADOS PARA BUSCAR O NOME DO GRUPO EM TEMPO DE EXECUÇÃO ---
+  const [nomeDoGrupoReal, setNomeDoGrupoReal] = useState<string>("Carregando clube...");
+  const [fotoCapaGrupo, setFotoCapaGrupo] = useState<string | null>(null);
+
   const isDonoDoPost = meuId === post.usuario.id;
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
@@ -64,6 +68,30 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
 
     return null;
   }, [post]);
+
+  // 🔄 BUSCA DIRETA DO NOME BASEADO NO ID ADQUIRIDO (Sua sugestão perfeita)
+  useEffect(() => {
+    if (idDoGrupo) {
+      const token = typeof window !== "undefined" ? localStorage.getItem("letrify_token") : null;
+
+      // Consome a rota da sua documentação: GET /api/grupos/{id}
+      fetch(`${BASE_URL}/grupos/${idDoGrupo}`, {
+        headers: { "Authorization": `Bearer ${token}` }
+      })
+      .then((res) => {
+        if (!res.ok) throw new Error("Não foi possível achar o grupo");
+        return res.json();
+      })
+      .then((grupoBuscado) => {
+        // Alimenta os estados locais com o nome e foto reais que vieram do banco de dados
+        setNomeDoGrupoReal(grupoBuscado.nome || "Clube de Leitura");
+        setFotoCapaGrupo(grupoBuscado.fotoCapa || null);
+      })
+      .catch(() => {
+        setNomeDoGrupoReal("Clube Privado ou Indisponível");
+      });
+    }
+  }, [idDoGrupo, BASE_URL]);
 
   const handleResponder = async () => {
     const textoLimpo = conteudoResposta.trim();
@@ -182,6 +210,9 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
             <div>
               <p className="text-[10px] font-black uppercase tracking-widest" style={{ color: 'var(--cor-primaria)' }}>Convite de Leitura</p>
               <p className="text-xs sm:text-sm font-bold opacity-80" style={{ color: 'var(--cor-texto-principal)' }}>Junte-se a este clube literário!</p>
+              <p className="text-xs sm:text-sm font-black tracking-tight truncate mt-0.5" style={{ color: 'var(--cor-texto-principal)' }}>
+                {nomeDoGrupoReal}
+              </p>
             </div>
           </div>
           

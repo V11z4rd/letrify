@@ -14,7 +14,7 @@ interface EditorPerfilProps {
 }
 
 export default function EditorPerfil({ dadosIniciais, onClose, onSave }: EditorPerfilProps) {
-  const [formData, setFormData] = useState(dadosIniciais);
+  const [formData, setFormData] = useState(dadosIniciais || {});
   
   // Estados locais para gerenciar strings de preview seguras
   const [previewPerfil, setPreviewPerfil] = useState("");
@@ -59,6 +59,19 @@ export default function EditorPerfil({ dadosIniciais, onClose, onSave }: EditorP
       const arquivo = e.target.files[0];
       setFormData((prev: any) => ({ ...prev, [field]: arquivo }));
     }
+  };
+
+  // 👇 NOVA FUNÇÃO: Limpeza Segura Antes de Salvar 👇
+  const handleConfirmar = () => {
+    // Aplica o trim() com segurança, garantindo que não quebra se o valor for null/undefined
+    const dadosLimpos = {
+      ...formData,
+      nome: typeof formData.nome === 'string' ? formData.nome.trim() : (formData.nome || ""),
+      cidade: typeof formData.cidade === 'string' ? formData.cidade.trim() : (formData.cidade || ""),
+      descricao: typeof formData.descricao === 'string' ? formData.descricao.trim() : (formData.descricao || ""),
+    };
+
+    onSave(dadosLimpos);
   };
 
   // Classe utilitária para inputs padronizados com o Letrify
@@ -155,7 +168,7 @@ export default function EditorPerfil({ dadosIniciais, onClose, onSave }: EditorP
             <input 
               type="text"
               name="bannerUrl"
-              value={formData.bannerUrl instanceof File ? "Arquivo local selecionado" : formData.bannerUrl}
+              value={formData.bannerUrl instanceof File ? "Arquivo local selecionado" : formData.bannerUrl || ""}
               onChange={handleChange}
               disabled={formData.bannerUrl instanceof File}
               placeholder="https://exemplo.com/sua-capa.jpg"
@@ -171,7 +184,7 @@ export default function EditorPerfil({ dadosIniciais, onClose, onSave }: EditorP
             <label className="text-[10px] font-black uppercase opacity-40 mb-1 block px-1" style={{ color: 'var(--cor-texto-principal)' }}>Nome</label>
             <input 
               name="nome"
-              value={formData.nome}
+              value={formData.nome || ""}
               onChange={handleChange}
               placeholder="Como quer ser chamado?"
               className={inputClass}
@@ -183,7 +196,7 @@ export default function EditorPerfil({ dadosIniciais, onClose, onSave }: EditorP
             <label className="text-[10px] font-black uppercase opacity-40 mb-1 block px-1" style={{ color: 'var(--cor-texto-principal)' }}>Cidade / Localização</label>
             <input 
               name="cidade"
-              value={formData.cidade}
+              value={formData.cidade || ""}
               onChange={handleChange}
               placeholder="Ex: Porto, Portugal ou São Paulo, SP"
               className={inputClass}
@@ -195,7 +208,7 @@ export default function EditorPerfil({ dadosIniciais, onClose, onSave }: EditorP
             <label className="text-[10px] font-black uppercase opacity-40 mb-1 block px-1" style={{ color: 'var(--cor-texto-principal)' }}>Biografia / Descrição</label>
             <textarea 
               name="descricao"
-              value={formData.descricao}
+              value={formData.descricao || ""}
               onChange={handleChange}
               placeholder="Compartilhe suas preferências literárias..."
               className={`${inputClass} h-24 resize-none`}
@@ -214,7 +227,7 @@ export default function EditorPerfil({ dadosIniciais, onClose, onSave }: EditorP
             Cancelar
           </button>
           <button 
-            onClick={() => onSave(formData)}
+            onClick={handleConfirmar} // 👈 Agora chamamos a função blindada
             className="px-7 py-2.5 rounded-xl font-black text-xs uppercase tracking-wider shadow-md transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
             style={{ 
               backgroundColor: 'var(--cor-destaque)', 

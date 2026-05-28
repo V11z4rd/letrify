@@ -8,7 +8,17 @@ import FeedInterno from "@/components/grupos/FeedInterno";
 import ChatGrupo from "@/components/grupos/ChatGrupo";
 import PainelAdminGrupo from "@/components/grupos/PainelAdminGrupo";
 import EditorGrupo from "@/components/grupos/EditorGrupo";
-import { PencilSquareIcon, ArrowPathIcon } from "@heroicons/react/24/outline";
+import { 
+  PencilSquareIcon, 
+  ArrowPathIcon,
+  UserGroupIcon,
+  ArrowRightOnRectangleIcon,
+  LockClosedIcon,
+  ChatBubbleLeftRightIcon,
+  DocumentTextIcon,
+  ShieldCheckIcon,
+  PlusIcon
+} from "@heroicons/react/24/outline";
 
 export default function SalaGrupoPage() {
     const { id } = useParams();
@@ -62,10 +72,8 @@ export default function SalaGrupoPage() {
     const handleSairDoGrupo = async () => {
         if (!grupo || processandoAcao) return;
         
-        // 💡 Correção: Busca o membro atualizado diretamente do estado atualizado no momento exato do clique
         const membroNoMomento = grupo.membros?.find((m) => m.id === meuId);
 
-        // Validação estrita alinhada com a API: Líder não pode sair por esta rota
         if (membroNoMomento?.role === "Lider") {
             alert("Como Líder do clube, você não pode sair dele. Se deseja encerrar as atividades, use a opção de exclusão total no painel.");
             return;
@@ -75,9 +83,7 @@ export default function SalaGrupoPage() {
         
         setProcessandoAcao(true);
         try {
-            // Dispara o POST /api/grupos/{id}/sair mapeado com headers de autenticação
             const resposta = await grupoService.sair(grupo.id);
-            
             if (resposta.ok) {
                 alert("Você saiu do clube com sucesso.");
                 router.push("/grupos");
@@ -113,7 +119,7 @@ export default function SalaGrupoPage() {
             });
 
             if (resposta.ok) {
-                alert("Clube updated com sucesso! 🎉");
+                alert("Clube atualizado com sucesso! 🎉");
                 setIsEditando(false);
                 carregarDetalhesGrupo();
             } else {
@@ -142,7 +148,6 @@ export default function SalaGrupoPage() {
         );
     }
 
-    // Mapeamento preciso de papéis baseado no retorno de membros da API
     const membroAtual = grupo.membros?.find((m) => m.id === meuId);
     const isMembro = !!membroAtual;
     const isAdminOuLider = membroAtual?.role === "Lider" || membroAtual?.role === "Admin";
@@ -172,8 +177,9 @@ export default function SalaGrupoPage() {
                                 <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border" style={{ backgroundColor: 'var(--cor-fundo-app)', color: 'var(--cor-destaque)', borderColor: 'var(--cor-fundo-sidebar)' }}>
                                     {grupo.status}
                                 </span>
-                                <span className="text-[11px] font-bold opacity-60" style={{ color: 'var(--cor-texto-secundario)' }}>
-                                    👥 {grupo.membros?.length || 0} membros
+                                <span className="text-[11px] font-bold opacity-60 flex items-center gap-1" style={{ color: 'var(--cor-texto-secundario)' }}>
+                                    <UserGroupIcon className="w-3.5 h-3.5 opacity-80" />
+                                    <span>{grupo.membros?.length || 0} membros</span>
                                 </span>
                             </div>
                             <h1 className="text-2xl sm:text-3xl font-black tracking-tight" style={{ color: 'var(--cor-texto-principal)' }}>
@@ -201,29 +207,38 @@ export default function SalaGrupoPage() {
                             )}
 
                             {isMembro ? (
-                                // Não renderiza botão de "Sair" se o usuário logado for o próprio Líder (evita quebra de regra de negócio)
                                 membroAtual?.role !== "Lider" && (
                                     <button 
                                         onClick={handleSairDoGrupo} 
                                         disabled={processandoAcao} 
-                                        className="px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl border transition-all duration-200 hover:bg-red-500/10 hover:text-red-500 disabled:opacity-40"
+                                        className="px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl border flex items-center gap-2 transition-all duration-200 hover:bg-red-500/10 hover:text-red-500 disabled:opacity-40"
                                         style={{ 
                                             backgroundColor: 'transparent', 
                                             color: 'var(--cor-texto-secundario)',
                                             borderColor: 'var(--cor-fundo-sidebar)'
                                         }}
                                     >
-                                        Sair do Clube
+                                        {processandoAcao ? (
+                                            <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                                        ) : (
+                                            <ArrowRightOnRectangleIcon className="w-4 h-4 stroke-[2.5]" />
+                                        )}
+                                        <span>Sair do Clube</span>
                                     </button>
                                 )
                             ) : (
                                 <button 
                                     onClick={handleEntrarNoGrupo} 
                                     disabled={processandoAcao} 
-                                    className="px-6 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl shadow-md transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-40"
+                                    className="px-6 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl shadow-md flex items-center gap-2 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99] disabled:opacity-40"
                                     style={{ backgroundColor: 'var(--cor-botao-primario)', color: 'var(--cor-botao-texto)' }}
                                 >
-                                    {processandoAcao ? "A processar..." : grupo.status === "Aberto" ? "Participar" : "Solicitar Vaga"}
+                                    {processandoAcao ? (
+                                        <ArrowPathIcon className="w-4 h-4 animate-spin" />
+                                    ) : (
+                                        <PlusIcon className="w-4 h-4 stroke-[3]" />
+                                    )}
+                                    <span>{grupo.status === "Aberto" ? "Participar" : "Solicitar Vaga"}</span>
                                 </button>
                             )}
                         </div>
@@ -234,12 +249,14 @@ export default function SalaGrupoPage() {
             {/* SEÇÃO CONTEÚDO RESTREITO / VISUALIZADOR DE ABAS */}
             {!isMembro ? (
                 <div 
-                    className="mt-4 flex flex-col items-center justify-center p-16 rounded-3xl border-2 border-dashed text-center"
+                    className="mt-4 flex flex-col items-center justify-center p-16 rounded-3xl border border-dashed text-center animate-fade-in"
                     style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
                 >
-                    <span className="text-4xl mb-3 select-none">🔒</span>
-                    <h3 className="font-black text-lg mb-1" style={{ color: 'var(--cor-texto-principal)' }}>Conteúdo Restrito</h3>
-                    <p className="text-xs font-medium opacity-60 max-w-md" style={{ color: 'var(--cor-texto-secundario)' }}>
+                    <div className="w-12 h-12 rounded-2xl flex items-center justify-center mb-4 border shadow-sm" style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)' }}>
+                        <LockClosedIcon className="w-5 h-5" style={{ color: 'var(--cor-destaque)' }} />
+                    </div>
+                    <h3 className="font-black text-sm uppercase tracking-wider mb-1" style={{ color: 'var(--cor-texto-principal)' }}>Conteúdo Restrito</h3>
+                    <p className="text-xs font-medium opacity-60 max-w-md leading-relaxed" style={{ color: 'var(--cor-texto-secundario)' }}>
                         {grupo.status === "Aberto" ? "Faça parte deste clube para liberar o feed de discussões e o chat dos leitores." : "Este clube é privado. Envie uma solicitação para poder acessar o feed."}
                     </p>
                 </div>
@@ -250,22 +267,22 @@ export default function SalaGrupoPage() {
                             {/* NAVEGAÇÃO ENTRE ABAS */}
                             <div className="flex gap-6 border-b" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
                                 {[
-                                    { id: "feed", label: "📌 Feed", visivel: true },
-                                    { id: "chat", label: "💬 Chat", visivel: true },
-                                    // Alinhado com a API: Só o Líder/Admin pode ver ou interagir com o painel de moderação
-                                    { id: "membros", label: "🛡️ Moderação", visivel: isAdminOuLider }
+                                    { id: "feed", label: "Feed", icon: <DocumentTextIcon className="w-4 h-4 stroke-[2.5]" />, visivel: true },
+                                    { id: "chat", label: "Chat", icon: <ChatBubbleLeftRightIcon className="w-4 h-4 stroke-[2.5]" />, visivel: true },
+                                    { id: "membros", label: "Moderação", icon: <ShieldCheckIcon className="w-4 h-4 stroke-[2.5]" />, visivel: isAdminOuLider }
                                 ].filter(aba => aba.visivel).map((aba) => (
                                     <button
                                         key={aba.id}
                                         onClick={() => setAbaAtiva(aba.id)}
-                                        className="pb-3 text-xs uppercase tracking-widest font-black transition-all border-b-2 -mb-[1px]"
+                                        className="pb-3 text-xs uppercase tracking-widest font-black transition-all border-b-2 -mb-[1px] flex items-center gap-1.5"
                                         style={{ 
                                             borderColor: abaAtiva === aba.id ? 'var(--cor-destaque)' : 'transparent',
                                             color: abaAtiva === aba.id ? 'var(--cor-texto-principal)' : 'var(--cor-texto-secundario)',
                                             opacity: abaAtiva === aba.id ? 1 : 0.5
                                         }}
                                     >
-                                        {aba.label}
+                                        {aba.icon}
+                                        <span>{aba.label}</span>
                                     </button>
                                 ))}
                             </div>

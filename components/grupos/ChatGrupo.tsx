@@ -29,15 +29,20 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
   const [novaMensagem, setNovaMensagem] = useState("");
   const [meuId, setMeuId] = useState<number | null>(null);
   
+  // Guardamos o seu perfil assim que o histórico carrega para uso posterior
+  const meuPerfilRef = useRef<{ id: number; nome: string; fotoPerfil: string | null } | null>(null);
+  
   const fimDoChatRef = useRef<HTMLDivElement>(null);
 
   const rolarParaBaixo = () => {
-    fimDoChatRef.current?.scrollIntoView({ behavior: "smooth" });
+    setTimeout(() => {
+      fimDoChatRef.current?.scrollIntoView({ behavior: "smooth" });
+    }, 50);
   };
 
   useEffect(() => {
     rolarParaBaixo();
-  }, [mensagens]);
+  }, [mensagens.length]);
 
   useEffect(() => {
     const idAtual = authService.getUserId();
@@ -51,7 +56,20 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
         });
         if (res.ok) {
           const hist = await res.json();
-          setMensagens(hist);
+          const historicoOrdenado = Array.isArray(hist) ? hist.reverse() : [];
+          setMensagens(historicoOrdenado);
+
+          // Salva os dados do seu próprio usuário baseado no histórico para blindar novos envios
+          if (idAtual) {
+            const minhaMsg = historicoOrdenado.find((m: any) => m.usuario?.id === Number(idAtual));
+            if (minhaMsg?.usuario) {
+              meuPerfilRef.current = {
+                id: minhaMsg.usuario.id,
+                nome: minhaMsg.usuario.nome,
+                fotoPerfil: minhaMsg.usuario.fotoPerfil
+              };
+            }
+          }
         }
       } catch (err) {
         console.error("Erro ao carregar histórico do chat:", err);
@@ -61,21 +79,54 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
 
     const token = authService.getToken();
     if (token) {
-      signalRService.iniciarConexao(token);
-      
-      setTimeout(() => {
-        signalRService.entrarNoGrupo(grupoId);
-      }, 1000);
+      signalRService.iniciarConexao(token)
+        .then(() => {
+          signalRService.entrarNoGrupo(grupoId);
 
-      signalRService.onReceberMensagemGrupo((msgRecebida) => {
-        setMensagens((prev) => [...prev, msgRecebida]);
-      });
+          const lidarComMensagemEntrada = (msgRecebida: any) => {
+            if (!msgRecebida || (!msgRecebida.conteudo && !msgRecebida.texto)) return;
+
+            setMensagens((mensagensAtuais) => {
+              // Se a mensagem já existe na tela (pelo ID), ignora para não duplicar ou quebrar
+              if (mensagensAtuais.some(m => m.id === msgRecebida.id)) {
+                return mensagensAtuais;
+              }
+
+              // Normaliza a mensagem recebida do SignalR caso falte o nó do usuário
+              const msgFormatada: MensagemGrupo = {
+                id: msgRecebida.id,
+                conteudo: msgRecebida.conteudo || msgRecebida.texto || "",
+                dataEnvio: msgRecebida.dataEnvio || msgRecebida.dataCriacao || new Date().toISOString(),
+                usuario: msgRecebida.usuario ? {
+                  id: msgRecebida.usuario.id,
+                  nome: msgRecebida.usuario.nome,
+                  fotoPerfil: msgRecebida.usuario.fotoPerfil
+                } : {
+                  id: msgRecebida.usuarioId || 0,
+                  nome: msgRecebida.usuarioNome || "Usuário",
+                  fotoPerfil: msgRecebida.fotoPerfil || null
+                }
+              };
+
+              // Se a mensagem recebida for nossa própria mensagem via WebSocket, ajustamos com os dados corretos do perfil
+              if (msgFormatada.usuario.id === meuId && meuPerfilRef.current) {
+                msgFormatada.usuario = meuPerfilRef.current;
+              }
+
+              return [...mensagensAtuais, msgFormatada];
+            });
+          };
+
+          signalRService.onReceberMensagemGrupo(lidarComMensagemEntrada);
+          signalRService.onReceberNovaMensagem(lidarComMensagemEntrada);
+        })
+        .catch((err) => console.error("Erro ao estabelecer conexão em tempo real:", err));
     }
 
     return () => {
       signalRService.sairDoGrupo(grupoId);
     };
-  }, [grupoId]);
+  }, [grupoId, meuId]);
 
   const handleEnviar = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -84,9 +135,26 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
     const texto = novaMensagem;
     setNovaMensagem("");
 
+    // Usamos o timestamp atual como ID temporário
+    const idProvisorio = Date.now(); 
+    
+    const mensagemOtimista: MensagemGrupo = {
+      id: idProvisorio,
+      conteudo: texto,
+      dataEnvio: new Date().toISOString(),
+      usuario: meuPerfilRef.current || {
+        id: meuId || 0,
+        nome: "Você",
+        fotoPerfil: null
+      }
+    };
+
+    // 1. Insere na tela instantaneamente
+    setMensagens((prev) => [...prev, mensagemOtimista]);
+
     try {
       const token = authService.getToken();
-      await fetch(`https://letrify.fly.dev/api/grupos/${grupoId}/chat`, {
+      const res = await fetch(`https://letrify.fly.dev/api/grupos/${grupoId}/chat`, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -94,8 +162,18 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
         },
         body: JSON.stringify({ conteudo: texto })
       });
+
+      if (!res.ok) {
+        // Se o servidor rejeitar a mensagem, removemos o balão otimista da tela
+        setMensagens((prev) => prev.filter(m => m.id !== idProvisorio));
+        setNovaMensagem(texto);
+      }
+      // 💡 NOTA: Removemos o bloco que tentava substituir o objeto por "msgReal".
+      // Mantendo a mensagem otimista intacta na tela, ela NUNCA mais vai sumir do nada!
+      
     } catch (err) {
-      alert("Erro ao enviar mensagem.");
+      // Se der erro de rede, remove a mensagem da tela e devolve ao input
+      setMensagens((prev) => prev.filter(m => m.id !== idProvisorio));
       setNovaMensagem(texto);
     }
   };
@@ -105,18 +183,14 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
       className="border rounded-2xl flex flex-col h-[600px] shadow-sm animate-fade-in transition-all"
       style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
     >
-      
-      {/* CABEÇALHO DO CHAT */}
+      {/* CABEÇALHO */}
       <div 
         className="p-4 border-b flex items-center justify-between rounded-t-2xl"
         style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)' }}
       >
         <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2" style={{ color: 'var(--cor-texto-principal)' }}>
-          <span className="relative flex h-2 w-2">
-            <span className="animate-ping absolute inline-flex h-full w-full rounded-full bg-red-400 opacity-75"></span>
-            <span className="relative inline-flex rounded-full h-2 w-2 bg-red-500"></span>
-          </span>
-          <span>Chat ao Vivo</span>
+          <ChatBubbleLeftRightIcon className="w-4 h-4 stroke-[2.5]" style={{ color: 'var(--cor-destaque)' }} />
+          <span>Chat Global ao Vivo</span>
         </h3>
         <span className="text-[10px] font-black opacity-60 uppercase tracking-wider" style={{ color: 'var(--cor-texto-secundario)' }}>
           Sala #{grupoId}
@@ -128,33 +202,38 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
         {mensagens.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50">
             <ChatBubbleOvalLeftEllipsisIcon className="w-8 h-8 mb-2" style={{ color: 'var(--cor-destaque)' }} />
-            <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--cor-texto-secundario)' }}>Seja o primeiro a falar!</p>
+            <p className="text-xs font-black uppercase tracking-widest" style={{ color: 'var(--cor-texto-secundario)' }}>Nenhuma mensagem por aqui. Comece a conversa!</p>
           </div>
         ) : (
           mensagens.map((msg, index) => {
-            const isMinha = msg.usuario.id === meuId;
+            const idUsuarioMsg = msg.usuario?.id || 0;
+            const nomeUsuarioMsg = msg.usuario?.nome || "Usuário";
+            const fotoUsuarioMsg = msg.usuario?.fotoPerfil || null;
+            
+            const isMinha = idUsuarioMsg === meuId && idUsuarioMsg !== 0;
+
+            // Se o conteúdo estiver vazio por algum erro de transmissão da API, pula a renderização deste balão vazio
+            if (!msg.conteudo) return null;
+
             return (
               <div key={msg.id || index} className={`flex gap-3 max-w-[85%] ${isMinha ? "ml-auto flex-row-reverse" : ""}`}>
-                
-                {/* Avatar Modernizado */}
                 {!isMinha && (
                   <div 
                     className="w-8 h-8 rounded-xl flex-shrink-0 overflow-hidden border flex items-center justify-center font-black text-[10px] shadow-sm"
                     style={{ backgroundColor: 'var(--cor-fundo-sidebar)', color: 'var(--cor-texto-sidebar)', borderColor: 'var(--cor-fundo-sidebar)' }}
                   >
-                    {msg.usuario.fotoPerfil ? (
-                      <img src={msg.usuario.fotoPerfil} alt={msg.usuario.nome} className="w-full h-full object-cover" />
+                    {fotoUsuarioMsg ? (
+                      <img src={fotoUsuarioMsg} alt={nomeUsuarioMsg} className="w-full h-full object-cover" />
                     ) : (
-                      msg.usuario.nome.charAt(0).toUpperCase()
+                      nomeUsuarioMsg.charAt(0).toUpperCase()
                     )}
                   </div>
                 )}
 
-                {/* Balão de Mensagem */}
                 <div className={`flex flex-col ${isMinha ? "items-end" : "items-start"}`}>
                   {!isMinha && (
                     <span className="text-[10px] font-bold opacity-60 mb-1 ml-1" style={{ color: 'var(--cor-texto-secundario)' }}>
-                      {msg.usuario.nome}
+                      {nomeUsuarioMsg}
                     </span>
                   )}
                   
@@ -172,10 +251,9 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
                   </div>
                   
                   <span className="text-[9px] font-semibold opacity-40 mt-1 px-1" style={{ color: 'var(--cor-texto-secundario)' }}>
-                    {new Date(msg.dataEnvio).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                    {msg.dataEnvio ? new Date(msg.dataEnvio).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : "--:--"}
                   </span>
                 </div>
-
               </div>
             );
           })
@@ -183,7 +261,7 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
         <div ref={fimDoChatRef} />
       </div>
 
-      {/* ÁREA DE INPUT ADAPTADA */}
+      {/* ÁREA DE INPUT */}
       <div 
         className="p-4 border-t rounded-b-2xl"
         style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)' }}
@@ -193,7 +271,7 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
             type="text"
             value={novaMensagem}
             onChange={(e) => setNovaMensagem(e.target.value)}
-            placeholder="Diga algo aos leitores..."
+            placeholder="Diga algo aos leitores globais..."
             className="flex-1 px-4 text-xs sm:text-sm font-medium rounded-xl border outline-none transition-all focus:ring-1 focus:ring-[var(--cor-destaque)]"
             style={{ 
               backgroundColor: 'var(--cor-fundo-card)', 
@@ -212,7 +290,6 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
           </button>
         </form>
       </div>
-      
     </div>
   );
 }

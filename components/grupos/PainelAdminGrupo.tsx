@@ -2,21 +2,27 @@
 
 import { useState, useEffect } from "react";
 import { authService } from "@/app/lib/authService";
+import AbaSolicitacoes from "@/components/grupos/AbaSolicitacoes";
 import { 
   UserMinusIcon, 
   CheckIcon, 
   XMarkIcon, 
   ArrowPathIcon,
   UserGroupIcon,
-  InboxArrowDownIcon
+  InboxArrowDownIcon,
+  ShieldCheckIcon,
+  StarIcon,
+  UserIcon
 } from "@heroicons/react/24/outline";
 
 interface Solicitacao {
-  id: number; // Este ID representa o 'sid' (ID da Solicitação) exigido pela API
-  usuarioId: number;
-  usuarioNome: string;
-  usuarioFoto: string | null;
+  id: number;
   dataSolicitacao: string;
+  usuario: {
+    id: number;
+    nome: string;
+    fotoPerfil: string | null;
+  };
 }
 
 interface Membro {
@@ -36,7 +42,7 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
   const [solicitacoes, setSolicitacoes] = useState<Solicitacao[]>([]);
   const [membros, setMembros] = useState<Membro[]>([]);
   const [carregandoDados, setCarregandoDados] = useState(true);
-  const [processandoId, setProcessandoId] = useState<number | null>(null); // Controla loading pelo ID da solicitação
+  const [processandoId, setProcessandoId] = useState<number | null>(null);
 
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
   const token = authService.getToken();
@@ -65,23 +71,20 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
     carregarDadosPainel();
   }, [grupoId]);
 
-  // CORRIGIDO: Agora recebe o ID da solicitação (solicitacaoId) em vez do usuarioId
   const handleResponderSolicitacao = async (solicitacaoId: number, aceitar: boolean) => {
     setProcessandoId(solicitacaoId);
     try {
-      // Ajustado para coincidir com: PUT /api/grupos/{id}/solicitacoes/{sid}
       const res = await fetch(`${BASE_URL}/grupos/${grupoId}/solicitacoes/${solicitacaoId}`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         },
-        body: JSON.stringify({ aceitar }) // Envia a decisão no corpo da requisição PUT
+        body: JSON.stringify({ aceitar })
       });
 
       if (!res.ok) throw new Error("Erro ao responder solicitação.");
       
-      // Remove da lista local usando o ID da solicitação
       setSolicitacoes(prev => prev.filter(s => s.id !== solicitacaoId));
       
       if (aceitar) {
@@ -123,10 +126,11 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
       className="border rounded-3xl p-6 shadow-sm space-y-6 transition-all"
       style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
     >
-      {/* CABEÇALHO DO PAINEL */}
+      {/* CABEÇALHO DO PAINEL MODIFICADO */}
       <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4 border-b pb-4" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
         <h3 className="text-xs font-black uppercase tracking-widest flex items-center gap-2" style={{ color: 'var(--cor-texto-principal)' }}>
-          <span>🛡️</span> Gerenciamento e Moderação
+          <ShieldCheckIcon className="w-4 h-4 stroke-[2.5]" style={{ color: 'var(--cor-destaque)' }} />
+          <span>Gerenciamento e Moderação</span>
         </h3>
         
         {/* Toggle das Sub-abas */}
@@ -136,7 +140,7 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
         >
           <button 
             onClick={() => setSubAba("solicitacoes")}
-            className="flex-1 sm:flex-none px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95"
+            className="flex-1 sm:flex-none px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
             style={{ 
               backgroundColor: subAba === "solicitacoes" ? 'var(--cor-botao-primario)' : 'transparent', 
               color: subAba === "solicitacoes" ? 'var(--cor-botao-texto)' : 'var(--cor-texto-secundario)',
@@ -148,7 +152,7 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
           </button>
           <button 
             onClick={() => setSubAba("membros")}
-            className="flex-1 sm:flex-none px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-95"
+            className="flex-1 sm:flex-none px-4 py-2 rounded-lg text-[10px] font-black uppercase tracking-wider transition-all flex items-center justify-center gap-1.5 active:scale-[0.98]"
             style={{ 
               backgroundColor: subAba === "membros" ? 'var(--cor-botao-primario)' : 'transparent', 
               color: subAba === "membros" ? 'var(--cor-botao-texto)' : 'var(--cor-texto-secundario)',
@@ -163,7 +167,7 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
 
       {carregandoDados ? (
         <div 
-          className="text-center py-12 text-xs font-black uppercase tracking-widest animate-pulse flex items-center justify-center gap-2"
+          className="text-center py-12 text-xs font-black uppercase tracking-widest flex items-center justify-center gap-2"
           style={{ color: 'var(--cor-texto-secundario)' }}
         >
           <ArrowPathIcon className="w-4 h-4 animate-spin" style={{ color: 'var(--cor-primaria)' }} />
@@ -171,58 +175,13 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
         </div>
       ) : (
         <>
-          {/* ABA: SOLICITAÇÕES PENDENTES */}
+          {/* ABA: SOLICITAÇÕES PENDENTES (Usa o componente isolado) */}
           {subAba === "solicitacoes" && (
-            <div className="space-y-3">
-              {solicitacoes.length === 0 ? (
-                <div className="text-center py-16 border border-dashed rounded-2xl" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-                  <p className="text-xs font-black uppercase tracking-widest opacity-40" style={{ color: 'var(--cor-texto-secundario)' }}>Nenhuma entrada pendente</p>
-                </div>
-              ) : (
-                solicitacoes.map((sol) => (
-                  <div 
-                    key={sol.id} 
-                    className="flex items-center justify-between p-4 rounded-2xl border"
-                    style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)' }}
-                  >
-                    <div className="flex items-center gap-3">
-                      <div 
-                        className="w-10 h-10 rounded-xl flex items-center justify-center font-black text-sm shadow-sm border overflow-hidden shrink-0"
-                        style={{ backgroundColor: 'var(--cor-primaria)', color: 'var(--cor-botao-texto)', borderColor: 'var(--cor-fundo-sidebar)' }}
-                      >
-                        {sol.usuarioFoto ? (
-                          <img src={sol.usuarioFoto} alt={sol.usuarioNome} className="w-full h-full object-cover" />
-                        ) : (
-                          sol.usuarioNome.charAt(0).toUpperCase()
-                        )}
-                      </div>
-                      <div>
-                        <p className="text-sm font-extrabold" style={{ color: 'var(--cor-texto-principal)' }}>{sol.usuarioNome}</p>
-                        <p className="text-[10px] font-bold opacity-50 uppercase tracking-wide" style={{ color: 'var(--cor-texto-secundario)' }}>Aguardando liberação</p>
-                      </div>
-                    </div>
-                    
-                    {/* Botões de Decisão Corrigidos para usar sol.id (sid) */}
-                    <div className="flex gap-2">
-                      <button 
-                        onClick={() => handleResponderSolicitacao(sol.id, false)} 
-                        disabled={processandoId !== null} 
-                        className="w-9 h-9 rounded-xl bg-red-500/10 hover:bg-red-500 text-red-500 hover:text-white flex items-center justify-center transition-colors shadow-sm active:scale-95 disabled:opacity-40"
-                      >
-                        <XMarkIcon className="w-4 h-4 stroke-[3]" />
-                      </button>
-                      <button 
-                        onClick={() => handleResponderSolicitacao(sol.id, true)} 
-                        disabled={processandoId !== null} 
-                        className="w-9 h-9 rounded-xl bg-green-500/10 hover:bg-green-500 text-green-500 hover:text-white flex items-center justify-center transition-colors shadow-sm active:scale-95 disabled:opacity-40"
-                      >
-                        <CheckIcon className="w-4 h-4 stroke-[3]" />
-                      </button>
-                    </div>
-                  </div>
-                ))
-              )}
-            </div>
+            <AbaSolicitacoes 
+              solicitacoes={solicitacoes}
+              processandoId={processandoId}
+              onResponder={handleResponderSolicitacao}
+            />
           )}
 
           {/* ABA: INTEGRANTES CADASTRADOS */}
@@ -230,7 +189,11 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
             <div className="flex flex-col gap-2.5">
               {membros.map((membro) => {
                 const souEu = authService.getUserId() === String(membro.id);
-                const ehLiderOuAdmin = membro.role === "Lider" || membro.role === "Admin";
+                const ehLider = membro.role === "Lider";
+                const ehAdmin = membro.role === "Admin";
+                const ehLiderOuAdmin = ehLider || ehAdmin;
+                const estaProcessandoEsteMembro = processandoId === membro.id;
+
                 return (
                   <div 
                     key={membro.id} 
@@ -249,16 +212,32 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
                         )}
                       </div>
                       <div>
-                        <p className="text-sm font-extrabold" style={{ color: 'var(--cor-texto-principal)' }}>
-                          {membro.nome} {souEu && <span className="text-xs font-bold" style={{ color: 'var(--cor-destaque)' }}>(Você)</span>}
-                        </p>
-                        <span className="text-[9px] font-black uppercase tracking-wider opacity-60" style={{ color: 'var(--cor-texto-secundario)' }}>
-                          {membro.role}
-                        </span>
+                        <div className="flex items-center gap-2">
+                          <p className="text-sm font-extrabold" style={{ color: 'var(--cor-texto-principal)' }}>
+                            {membro.nome}
+                          </p>
+                          {souEu && (
+                            <span className="text-[9px] font-black uppercase px-1.5 py-0.5 rounded-md border" style={{ color: 'var(--cor-destaque)', borderColor: 'var(--cor-destaque)', backgroundColor: 'var(--cor-destaque)/5' }}>
+                              Você
+                            </span>
+                          )}
+                        </div>
+                        
+                        <div className="flex items-center gap-1 mt-0.5 opacity-80">
+                          {ehLider ? (
+                            <StarIcon className="w-3 h-3 text-amber-500 fill-amber-500" />
+                          ) : ehAdmin ? (
+                            <ShieldCheckIcon className="w-3 h-3 text-blue-500" />
+                          ) : (
+                            <UserIcon className="w-3 h-3 opacity-40" />
+                          )}
+                          <span className="text-[9px] font-black uppercase tracking-wider" style={{ color: ehLider ? 'var(--cor-destaque)' : 'var(--cor-texto-secundario)' }}>
+                            {membro.role}
+                          </span>
+                        </div>
                       </div>
                     </div>
                     
-                    {/* Botão de Expulsão */}
                     {!souEu && !ehLiderOuAdmin && (
                       <button 
                         onClick={() => handleExpulsarMembro(membro.id, membro.nome)} 
@@ -270,8 +249,12 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
                           color: 'var(--cor-texto-secundario)'
                         }}
                       >
-                        <UserMinusIcon className="w-3.5 h-3.5 stroke-[2]" /> 
-                        <span>Remover</span>
+                        {estaProcessandoEsteMembro ? (
+                          <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" />
+                        ) : (
+                          <UserMinusIcon className="w-3.5 h-3.5 stroke-[2]" /> 
+                        )}
+                        <span>{estaProcessandoEsteMembro ? "Removendo..." : "Remover"}</span>
                       </button>
                     )}
                   </div>
