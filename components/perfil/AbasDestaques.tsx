@@ -61,7 +61,7 @@ interface AnalisePremiumData {
 }
 
 export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
-  const [abaAtiva, setAbaAtiva] = useState<"livro" | "autores" | "temas" | "premium_ia">("livro");
+  const [abaAtiva, setAbaAtiva] = useState<"livro" | "autores" | "temas">("livro");
   
   // Estados para gerenciar a funcionalidade exclusiva Premium (Gemini)
   const [carregandoIA, setCarregandoIA] = useState(false);
