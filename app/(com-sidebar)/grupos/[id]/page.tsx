@@ -105,6 +105,7 @@ export default function SalaGrupoPage() {
             
             formData.append("nome", novosDados.nome);
             formData.append("descricao", novosDados.descricao);
+            formData.append("status", novosDados.status);
             
             if (novosDados.fotoCapa instanceof File) {
                 formData.append("foto", novosDados.fotoCapa); 
@@ -305,6 +306,7 @@ export default function SalaGrupoPage() {
                                 dadosIniciais={{
                                     nome: grupo.nome,
                                     descricao: grupo.descricao || "",
+                                    status: grupo.status || "Aberto",
                                     fotoCapa: grupo.fotoCapa || ""
                                 }}
                                 onClose={() => setIsEditando(false)}
