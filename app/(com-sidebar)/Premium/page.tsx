@@ -140,7 +140,8 @@ export default function PremiumPage() {
               Sua Essência Literária
             </h2>
             <div className="text-sm leading-relaxed font-medium whitespace-pre-wrap opacity-90" style={{ color: 'var(--cor-texto-principal)' }}>
-              {analiseIa.analisePerfil || "A IA ainda está processando o seu perfil. Continue lendo!"}
+              {/* 👇 Alterado aqui para suportar PascalCase 👇 */}
+              {analiseIa.AnalisePerfil || analiseIa.analisePerfil || "A IA ainda está processando o seu perfil. Continue lendo!"}
             </div>
           </div>
 
@@ -150,7 +151,8 @@ export default function PremiumPage() {
               Recomendações da Gemini
             </h2>
             <div className="text-sm leading-relaxed font-medium whitespace-pre-wrap opacity-90" style={{ color: 'var(--cor-texto-secundario)' }}>
-              {analiseIa.recomendacoes || "Adicione mais livros à sua estante para receber recomendações personalizadas."}
+              {/* 👇 Alterado aqui para suportar PascalCase 👇 */}
+              {analiseIa.Recomendacoes || analiseIa.recomendacoes || "Adicione mais livros à sua estante para receber recomendações personalizadas."}
             </div>
           </div>
         </div>
