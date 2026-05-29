@@ -198,8 +198,7 @@ function ConteudoDoPerfil() {
                 {/* O Novo Componente Limpo */}
                 <AbasDestaque perfil={perfilMapeado} />
                 <VitrineDestaques 
-                  userId={idParaBuscar as string} 
-                  isPremium={perfilMapeado.isPremium} />
+                  userId={idParaBuscar as string} />
               </>
             ) : (
               <>
