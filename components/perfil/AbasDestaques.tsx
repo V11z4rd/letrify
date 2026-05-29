@@ -10,12 +10,10 @@ import {
   UserGroupIcon, 
   TagIcon,
   BookOpenIcon,
-  StarIcon,
-  SparklesIcon,
-  ArrowPathIcon
+  StarIcon 
 } from "@heroicons/react/24/outline";
-import { authService } from "@/app/lib/authService";
 
+// INTERFACE ATUALIZADA - Reflete fielmente o JSON real da sua API
 interface AbasDestaqueProps {
   perfil: {
     nome?: string;
@@ -50,25 +48,10 @@ interface AbasDestaqueProps {
   };
 }
 
-// Interface auxiliar para tipar a resposta do Gemini vinda da sua API
-interface AnalisePremiumData {
-  analise: string;
-  recomendacoes: {
-    titulo: string;
-    autor: string;
-    justificativa: string;
-  }[];
-}
-
 export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
   const [abaAtiva, setAbaAtiva] = useState<"livro" | "autores" | "temas">("livro");
-  
-  // Estados para gerenciar a funcionalidade exclusiva Premium (Gemini)
-  const [carregandoIA, setCarregandoIA] = useState(false);
-  const [dadosIA, setDadosIA] = useState<AnalisePremiumData | null>(null);
-  const [erroIA, setErroIA] = useState<string | null>(null);
 
-  // 1. TRATAMENTO DOS AUTORES
+  // 1. TRATAMENTO DOS AUTORES (Lendo direto da raiz conforme o seu JSON)
   const dadosAutores = useMemo(() => {
     const listaRaw = perfil?.topAutores || [];
     return listaRaw.map((a) => ({
@@ -77,7 +60,7 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
     })).filter(item => item.nome !== "Ignorado");
   }, [perfil]);
 
-  // 2. TRATAMENTO DOS TEMAS / GÊNEROS
+  // 2. TRATAMENTO DOS TEMAS / GÊNEROS (Lendo direto da raiz conforme o seu JSON)
   const dadosTemas = useMemo(() => {
     const listaRaw = perfil?.topTemas || [];
     return listaRaw.map((t) => ({
@@ -85,37 +68,6 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
       valor: Number(t.valor || 0)
     })).filter(item => item.nome !== "Indefinido");
   }, [perfil]);
-
-  // Função para consultar a API do Gemini exclusiva para usuários Premium
-  const buscarAnaliseLiterariaIA = async () => {
-    setCarregandoIA(true);
-    setErroIA(null);
-    try {
-      const token = authService.getToken() || (typeof window !== 'undefined' ? localStorage.getItem('letrify_token') : null);
-      if (!token) throw new Error("Você precisa estar autenticado para realizar esta análise.");
-
-      const resposta = await fetch("https://letrify.fly.dev/api/premium/analise", {
-        method: "GET",
-        headers: {
-          "Authorization": `Bearer ${token}`,
-          "Content-Type": "application/json"
-        }
-      });
-
-      if (resposta.status === 403 || resposta.status === 401) {
-        throw new Error("Acesso negado. Esta funcionalidade é exclusiva para membros Letrify Pro.");
-      }
-
-      if (!resposta.ok) throw new Error("Não foi possível gerar os dados com a Inteligência Artificial.");
-
-      const data = await resposta.json();
-      setDadosIA(data);
-    } catch (err: any) {
-      setErroIA(err.message || "Erro de conexão com o servidor.");
-    } finally {
-      setCarregandoIA(false);
-    }
-  };
 
   // RENDERIZADOR INTELIGENTE (TEIA OU LISTA CONSOANTE A QUANTIDADE)
   const renderizarDadosAba = (dados: { nome: string; valor: number }[], tipo: string) => {
@@ -128,6 +80,7 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
       );
     }
 
+    // Se tiver 3 ou mais itens, monta a teia (Radar)
     if (dados.length >= 3) {
       return (
         <div className="w-full h-[320px] animate-fade-in flex items-center justify-center relative">
@@ -195,6 +148,7 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
       );
     }
 
+    // Se tiver menos de 3 itens (1 ou 2), exibe em cartões elegantes
     return (
       <div className="w-full space-y-2.5 animate-fade-in px-4 py-4 max-w-md mx-auto">
         {dados.map((item, idx) => (
@@ -219,21 +173,11 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
     );
   };
 
-  // GERAÇÃO DINÂMICA DE CONFIGURAÇÃO DE ABAS BASEADO NO PREMIUM
-  const configuracaoAbas = useMemo(() => {
-    const abasBase = [
-      { id: "livro", label: "Destaque", icone: TrophyIcon },
-      { id: "autores", label: "Autores", icone: UserGroupIcon },
-      { id: "temas", label: "Gêneros", icone: TagIcon }
-    ];
-
-    // Se o usuário logado do perfil for premium, injeta a nova aba silenciosamente na barra
-    if (perfil.isPremium) {
-      abasBase.push({ id: "premium_ia", label: "IA Pro", icone: SparklesIcon });
-    }
-
-    return abasBase;
-  }, [perfil.isPremium]);
+  const configuracaoAbas = [
+    { id: "livro", label: "Destaque", icone: TrophyIcon },
+    { id: "autores", label: "Autores", icone: UserGroupIcon },
+    { id: "temas", label: "Gêneros", icone: TagIcon }
+  ] as const;
 
   const urlCapaFavorito = perfil.favorito
     ? perfil.favorito.isbn 
@@ -247,7 +191,7 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
 
   return (
     <section 
-      className="rounded-3xl border p-6 shadow-xl transition-all duration-300 w-full relative overflow-hidden"
+      className="rounded-3xl border p-6 shadow-xl transition-all duration-300 w-full"
       style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
     >
       {/* SELETOR DE ABAS */}
@@ -258,7 +202,7 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
           return (
             <button
               key={tab.id}
-              onClick={() => setAbaAtiva(tab.id as any)}
+              onClick={() => setAbaAtiva(tab.id)}
               className="pb-3 px-4 text-[10px] uppercase tracking-widest font-black flex items-center gap-2 border-b-2 -mb-[2px] transition-all duration-200 relative whitespace-nowrap"
               style={{ 
                 color: isActive ? 'var(--cor-primaria)' : 'var(--cor-texto-secundario)',
@@ -266,6 +210,8 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
                 opacity: isActive ? 1 : 0.5
               }}
             >
+              <IconeComponente className="w-4 h-4 stroke-[2]" />
+              <span>{tab.label}</span>
             </button>
           );
         })}
@@ -283,6 +229,8 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
               <div 
                 className="w-36 h-52 rounded-2xl shadow-xl mb-5 mx-auto flex items-center justify-center border transition-all duration-300 relative overflow-hidden group-hover:-translate-y-1 group-hover:shadow-2xl bg-zinc-200 dark:bg-zinc-800"
                 style={{ borderColor: 'var(--cor-fundo-sidebar)' }}
+                onMouseEnter={(e) => e.currentTarget.style.borderColor = 'var(--cor-primaria)'}
+                onMouseLeave={(e) => e.currentTarget.style.borderColor = 'var(--cor-fundo-sidebar)'}
               >
                 <div className="absolute top-0 left-0 bottom-0 w-2 bg-black/[0.12] dark:bg-black/[0.3] z-20 border-r border-black/[0.05]" />
                 <div className="absolute inset-0 bg-gradient-to-t from-black/[0.2] dark:from-black/[0.5] to-transparent z-10 pointer-events-none" />
@@ -324,8 +272,6 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
 
         {/* ABA TEMAS */}
         {abaAtiva === "temas" && renderizarDadosAba(dadosTemas, "Temas")}
-
-        {/* ABA EXCLUSIVA PREMIUM COM ECOSSISTEMA GEMINI */}
       </div>
     </section>
   );
