@@ -19,7 +19,7 @@ export default function PremiumPage() {
   const [isPremium, setIsPremium] = useState(false);
   const [analiseIa, setAnaliseIa] = useState<any>(null);
 
-  const BASE_URL = "https://letrify.fly.dev/api";
+  const BASE_URL = "https://letrify.fly.dev";
 
   // Ao montar a página, tenta buscar a análise premium
   useEffect(() => {
