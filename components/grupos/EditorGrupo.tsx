@@ -8,13 +8,15 @@ import {
   ArrowPathIcon,
   UserGroupIcon,
   DocumentTextIcon,
-  TrashIcon
+  TrashIcon,
+  ShieldCheckIcon
 } from "@heroicons/react/24/outline";
 
 interface EditorGrupoProps {
   dadosIniciais: {
     nome: string;
     descricao: string;
+    status: string; // 👈 Adicionamos o status aqui
     fotoCapa: string | File;
   };
   onClose: () => void;
@@ -25,6 +27,7 @@ export default function EditorGrupo({ dadosIniciais, onClose, onSave }: EditorGr
   const [formData, setFormData] = useState({
     nome: dadosIniciais.nome,
     descricao: dadosIniciais.descricao,
+    status: dadosIniciais.status || "Aberto", // 👈 Inicializamos o status (padrão Aberto por segurança)
   });
   
   // Guardamos a fotoCapa em um estado separado para isolar do onChange de strings
@@ -177,7 +180,7 @@ export default function EditorGrupo({ dadosIniciais, onClose, onSave }: EditorGr
               />
             </div>
 
-            {/* Input Link Direto da Capa (Isolado do state destrutivo) */}
+            {/* Input Link Direto da Capa */}
             <div className="flex flex-col gap-1.5">
               <label className="text-[10px] uppercase tracking-widest font-black flex items-center gap-1.5" style={{ color: 'var(--cor-primaria)' }}>
                 <CameraIcon className="w-3.5 h-3.5 stroke-[2.5]" />
@@ -205,6 +208,46 @@ export default function EditorGrupo({ dadosIniciais, onClose, onSave }: EditorGr
                   </button>
                 )}
               </div>
+            </div>
+
+            {/* 👇 NOVO: CONTROLE DE PRIVACIDADE 👇 */}
+            <div className="flex flex-col gap-1.5 md:col-span-2 mt-2">
+              <label className="text-[10px] uppercase tracking-widest font-black flex items-center gap-1.5" style={{ color: 'var(--cor-primaria)' }}>
+                <ShieldCheckIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Privacidade do Clube</span>
+              </label>
+              <div className="grid grid-cols-2 gap-3">
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, status: "Aberto" }))}
+                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${
+                    formData.status === "Aberto" 
+                      ? "bg-green-500/10 border-green-500 text-green-500" 
+                      : "bg-transparent text-zinc-500 hover:opacity-80"
+                  }`}
+                  style={formData.status === "Aberto" ? {} : { borderColor: 'var(--cor-fundo-sidebar)', color: 'var(--cor-texto-secundario)' }}
+                >
+                  <span className="text-xl">🔓</span>
+                  <span className="text-xs font-bold">Aberto</span>
+                </button>
+                
+                <button
+                  type="button"
+                  onClick={() => setFormData(prev => ({ ...prev, status: "Fechado" }))}
+                  className={`p-3 rounded-xl border flex flex-col items-center justify-center gap-1 transition-all ${
+                    formData.status === "Fechado" 
+                      ? "bg-orange-500/10 border-orange-500 text-orange-500" 
+                      : "bg-transparent text-zinc-500 hover:opacity-80"
+                  }`}
+                  style={formData.status === "Fechado" ? {} : { borderColor: 'var(--cor-fundo-sidebar)', color: 'var(--cor-texto-secundario)' }}
+                >
+                  <span className="text-xl">🔒</span>
+                  <span className="text-xs font-bold">Fechado</span>
+                </button>
+              </div>
+              <p className="text-[10px] text-center mt-1 opacity-70 font-medium" style={{ color: 'var(--cor-texto-secundario)' }}>
+                {formData.status === "Aberto" ? "Qualquer leitor pode entrar no clube instantaneamente." : "Novos membros precisarão da aprovação da moderação para entrar."}
+              </p>
             </div>
 
           </div>
