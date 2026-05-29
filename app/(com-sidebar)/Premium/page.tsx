@@ -19,7 +19,7 @@ export default function PremiumPage() {
   const [isPremium, setIsPremium] = useState(false);
   const [analiseIa, setAnaliseIa] = useState<any>(null);
 
-  const BASE_URL = "https://letrify.fly.dev";
+  const BASE_URL = "https://letrify.fly.dev/api";
 
   // Ao montar a página, tenta buscar a análise premium
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function PremiumPage() {
           return;
         }
 
-        const resposta = await fetch(`${BASE_URL}api/premium/analise`, {
+        const resposta = await fetch(`${BASE_URL}premium/analise`, {
           headers: {
             "Authorization": `Bearer ${token}`
           }
