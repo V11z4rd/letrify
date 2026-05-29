@@ -19,7 +19,7 @@ export default function PremiumPage() {
   const [isPremium, setIsPremium] = useState(false);
   const [analiseIa, setAnaliseIa] = useState<any>(null);
 
-  const BASE_URL = "https://letrify.fly.dev/api";
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
   // Ao montar a página, tenta buscar a análise premium
   useEffect(() => {
@@ -31,7 +31,7 @@ export default function PremiumPage() {
           return;
         }
 
-        const resposta = await fetch(`https://letrify.fly.dev/api/premium/analise`, {
+        const resposta = await fetch(`${BASE_URL}/premium/analise`, {
           headers: {
             "Authorization": `Bearer ${token}`
           }
@@ -39,14 +39,11 @@ export default function PremiumPage() {
 
         if (resposta.ok) {
           const dados = await resposta.json();
-          
-          // 👇 AQUI ESTÁ O SEU ESPIÃO! Sem chamadas duplas, apenas lendo a resposta já recebida.
           console.log("🕵️ ESPIÃO DA IA - O que a API Premium retornou:", dados);
           
           setAnaliseIa(dados);
           setIsPremium(true);
         } else {
-          // Se der 403, 401 ou erro, significa que não tem acesso premium
           setIsPremium(false);
         }
       } catch (err) {
@@ -138,27 +135,73 @@ export default function PremiumPage() {
         </div>
 
         <div className="space-y-6">
+          
+          {/* BLOCO DA IA (Mapeando corretamente para o "analise" do JSON) */}
           <div className="p-6 sm:p-8 rounded-3xl border shadow-lg bg-gradient-to-br from-black/5 to-transparent dark:from-white/5" style={{ borderColor: 'var(--cor-primaria)' }}>
             <h2 className="text-lg font-black mb-4 flex items-center gap-2" style={{ color: 'var(--cor-primaria)' }}>
               <BookOpenIcon className="w-5 h-5 stroke-[2.5]" />
               Sua Essência Literária
             </h2>
             <div className="text-sm leading-relaxed font-medium whitespace-pre-wrap opacity-90" style={{ color: 'var(--cor-texto-principal)' }}>
-              {/* Suportando PascalCase e camelCase para não quebrar a tela */}
-              {analiseIa.AnalisePerfil || analiseIa.analisePerfil || "A IA ainda está processando o seu perfil. Continue lendo!"}
+              {analiseIa.analise || "A IA ainda está processando o seu perfil. Continue lendo!"}
             </div>
           </div>
 
-          <div className="p-6 sm:p-8 rounded-3xl border shadow-lg" style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}>
-            <h2 className="text-lg font-black mb-4 flex items-center gap-2" style={{ color: 'var(--cor-texto-principal)' }}>
-              <SparklesIcon className="w-5 h-5 stroke-[2.5] text-yellow-500" />
-              Recomendações da Gemini
-            </h2>
-            <div className="text-sm leading-relaxed font-medium whitespace-pre-wrap opacity-90" style={{ color: 'var(--cor-texto-secundario)' }}>
-              {/* Suportando PascalCase e camelCase para não quebrar a tela */}
-              {analiseIa.Recomendacoes || analiseIa.recomendacoes || "Adicione mais livros à sua estante para receber recomendações personalizadas."}
+          {/* NOVO BLOCO: ESTATÍSTICAS (Aproveitando os dados que o Backend mandou) */}
+          {analiseIa.estatisticas && (
+            <div className="p-6 sm:p-8 rounded-3xl border shadow-lg" style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}>
+              <h2 className="text-lg font-black mb-6 flex items-center gap-2" style={{ color: 'var(--cor-texto-principal)' }}>
+                <ChartBarIcon className="w-5 h-5 stroke-[2.5] text-yellow-500" />
+                Raio-X da sua Estante
+              </h2>
+              
+              {/* Contadores Principais */}
+              <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
+                <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+                  <div className="text-2xl font-black" style={{ color: 'var(--cor-texto-principal)' }}>{analiseIa.estatisticas.totalLivros || 0}</div>
+                  <div className="text-[9px] uppercase tracking-widest font-bold opacity-50" style={{ color: 'var(--cor-texto-secundario)' }}>Total na Estante</div>
+                </div>
+                <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+                  <div className="text-2xl font-black" style={{ color: 'var(--cor-texto-principal)' }}>{analiseIa.estatisticas.lidos || 0}</div>
+                  <div className="text-[9px] uppercase tracking-widest font-bold opacity-50" style={{ color: 'var(--cor-texto-secundario)' }}>Livros Lidos</div>
+                </div>
+                <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+                  <div className="text-2xl font-black text-blue-500">{analiseIa.estatisticas.lendo || 0}</div>
+                  <div className="text-[9px] uppercase tracking-widest font-bold opacity-50" style={{ color: 'var(--cor-texto-secundario)' }}>Lendo Agora</div>
+                </div>
+                <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+                  <div className="text-2xl font-black text-green-500">{analiseIa.estatisticas.quereler || 0}</div>
+                  <div className="text-[9px] uppercase tracking-widest font-bold opacity-50" style={{ color: 'var(--cor-texto-secundario)' }}>Quero Ler</div>
+                </div>
+              </div>
+
+              {/* Tags de Autores e Temas */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+                <div>
+                  <h3 className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-3" style={{ color: 'var(--cor-texto-secundario)' }}>Top Autores</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {analiseIa.estatisticas.topAutores?.length > 0 ? analiseIa.estatisticas.topAutores.map((item: any, i: number) => (
+                      <span key={i} className="text-[10px] font-bold px-3 py-1.5 rounded-lg border shadow-sm" style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)', color: 'var(--cor-texto-principal)' }}>
+                        {item.autor} <span className="opacity-40 ml-1">({item.quantidade})</span>
+                      </span>
+                    )) : <span className="text-xs opacity-40 italic">Sem dados suficientes</span>}
+                  </div>
+                </div>
+                
+                <div>
+                  <h3 className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-3" style={{ color: 'var(--cor-texto-secundario)' }}>Gêneros Favoritos</h3>
+                  <div className="flex flex-wrap gap-2">
+                    {analiseIa.estatisticas.topTemas?.length > 0 ? analiseIa.estatisticas.topTemas.map((item: any, i: number) => (
+                      <span key={i} className="text-[10px] font-bold px-3 py-1.5 rounded-lg border shadow-sm" style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)', color: 'var(--cor-texto-principal)' }}>
+                        {item.tema} <span className="opacity-40 ml-1">({item.quantidade})</span>
+                      </span>
+                    )) : <span className="text-xs opacity-40 italic">Sem dados suficientes</span>}
+                  </div>
+                </div>
+              </div>
+
             </div>
-          </div>
+          )}
         </div>
       </div>
     );
