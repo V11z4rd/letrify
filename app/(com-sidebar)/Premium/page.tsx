@@ -1,37 +1,75 @@
 "use client";
 
-import { useState } from "react";
-import { authService } from "@/app/lib/authService";
+import { useState, useEffect } from "react";
 import { 
   CheckIcon, 
   SparklesIcon, 
   BookOpenIcon, 
   UserGroupIcon, 
   ChartBarIcon, 
-  ShieldCheckIcon 
+  ShieldCheckIcon,
+  ArrowPathIcon
 } from "@heroicons/react/24/outline";
 
 export default function PremiumPage() {
-  const [carregando, setCarregando] = useState(false);
+  const [carregandoAssinatura, setCarregandoAssinatura] = useState(false);
+  const [carregandoPagina, setCarregandoPagina] = useState(true);
+  
+  // Estados para o Painel Premium
+  const [isPremium, setIsPremium] = useState(false);
+  const [analiseIa, setAnaliseIa] = useState<any>(null);
+
+  const BASE_URL = "https://letrify.fly.dev/api";
+
+  // Ao montar a página, tenta buscar a análise premium
+  useEffect(() => {
+    const verificarStatusPremium = async () => {
+      try {
+        const token = typeof window !== 'undefined' ? localStorage.getItem('letrify_token') : null;
+        if (!token) {
+          setCarregandoPagina(false);
+          return;
+        }
+
+        const resposta = await fetch(`${BASE_URL}/premium/analise`, {
+          headers: {
+            "Authorization": `Bearer ${token}`
+          }
+        });
+
+        if (resposta.ok) {
+          const dados = await resposta.json();
+          setAnaliseIa(dados);
+          setIsPremium(true);
+        } else {
+          // Se der 403, 401 ou erro, significa que não tem acesso premium
+          setIsPremium(false);
+        }
+      } catch (err) {
+        console.error("Erro ao verificar status premium:", err);
+        setIsPremium(false);
+      } finally {
+        setCarregandoPagina(false);
+      }
+    };
+
+    verificarStatusPremium();
+  }, [BASE_URL]);
 
   const lidarComAssinatura = async () => {
-    setCarregando(true);
+    setCarregandoAssinatura(true);
     
     try {
-      // Vai buscar os dados diretamente ao localStorage (com segurança SSR do Next.js)
       const token = typeof window !== 'undefined' ? localStorage.getItem('letrify_token') : null;
       const userId = typeof window !== 'undefined' ? localStorage.getItem('letrify_user_id') : null;
       
       if (!token || !userId) {
         alert("Você precisa estar logado para assinar o Letrify Pro.");
-        setCarregando(false);
+        setCarregandoAssinatura(false);
         return;
       }
-
-      const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
       
-      // Bate no endpoint usando o ID coletado do localStorage
-      const resposta = await fetch(`${BASE_URL}/usuario/tornar-premium`, {
+      const resposta = await fetch(`${BASE_URL}/usuario/premium/${userId}`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -51,31 +89,15 @@ export default function PremiumPage() {
       console.error(err);
       alert("Erro de conexão com o servidor. Tente novamente mais tarde.");
     } finally {
-      setCarregando(false);
+      setCarregandoAssinatura(false);
     }
   };
 
   const diferenciais = [
-    {
-      icone: ChartBarIcon,
-      titulo: "Gráficos de Teia Completos",
-      descricao: "Desbloqueie análises profundas sobre os seus hábitos de leitura, autores favoritos e distribuição detalhada de gêneros literários."
-    },
-    {
-      icone: BookOpenIcon,
-      titulo: "Estante Sem Limites",
-      descricao: "Adicione quantos livros quiser nas suas seções de 'Lidos', 'Lendo' e 'Quero Ler' sem restrições de armazenamento."
-    },
-    {
-      icone: UserGroupIcon,
-      titulo: "Comunidades e Guias",
-      descricao: "Crie ou participe de clubes de leitura, compartilhe guias literários exclusivos e interaja com círculos fechados de leitores."
-    },
-    {
-      icone: ShieldCheckIcon,
-      titulo: "Navegação Sem Anúncios",
-      descricao: "Uma experiência totalmente limpa, focada e imersiva nas suas estatísticas e resumos, livre de interrupções."
-    }
+    { icone: ChartBarIcon, titulo: "Gráficos de Teia Completos", descricao: "Desbloqueie análises profundas sobre os seus hábitos de leitura, autores favoritos e distribuição detalhada de gêneros literários." },
+    { icone: BookOpenIcon, titulo: "Estante Sem Limites", descricao: "Adicione quantos livros quiser nas suas seções de 'Lidos', 'Lendo' e 'Quero Ler' sem restrições de armazenamento." },
+    { icone: UserGroupIcon, titulo: "Comunidades e Guias", descricao: "Crie ou participe de clubes de leitura, compartilhe guias literários exclusivos e interaja com círculos fechados de leitores." },
+    { icone: ShieldCheckIcon, titulo: "Navegação Sem Anúncios", descricao: "Uma experiência totalmente limpa, focada e imersiva nas suas estatísticas e resumos, livre de interrupções." }
   ];
 
   const vantagensPlano = [
@@ -86,10 +108,61 @@ export default function PremiumPage() {
     "Suporte prioritário da equipe Letrify"
   ];
 
+  if (carregandoPagina) {
+    return (
+      <div className="flex flex-col items-center justify-center min-h-[60vh] opacity-50">
+        <ArrowPathIcon className="w-10 h-10 animate-spin mb-4" style={{ color: 'var(--cor-primaria)' }} />
+        <p className="font-bold text-xs uppercase tracking-widest" style={{ color: 'var(--cor-texto-principal)' }}>Verificando credenciais...</p>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // ECRÃ 1: UTILIZADOR JÁ É PREMIUM (DASHBOARD IA)
+  // ==========================================
+  if (isPremium && analiseIa) {
+    return (
+      <div className="max-w-4xl mx-auto w-full pt-8 pb-24 px-4 animate-fade-in">
+        <div className="flex items-center gap-3 mb-8">
+          <div className="w-12 h-12 rounded-full flex items-center justify-center bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">
+            <SparklesIcon className="w-6 h-6" />
+          </div>
+          <div>
+            <h1 className="text-2xl font-black" style={{ color: 'var(--cor-texto-principal)' }}>Seu Painel Premium</h1>
+            <p className="text-xs font-bold uppercase tracking-widest opacity-50" style={{ color: 'var(--cor-texto-secundario)' }}>Análise Literária com IA</p>
+          </div>
+        </div>
+
+        <div className="space-y-6">
+          <div className="p-6 sm:p-8 rounded-3xl border shadow-lg bg-gradient-to-br from-black/5 to-transparent dark:from-white/5" style={{ borderColor: 'var(--cor-primaria)' }}>
+            <h2 className="text-lg font-black mb-4 flex items-center gap-2" style={{ color: 'var(--cor-primaria)' }}>
+              <BookOpenIcon className="w-5 h-5 stroke-[2.5]" />
+              Sua Essência Literária
+            </h2>
+            <div className="text-sm leading-relaxed font-medium whitespace-pre-wrap opacity-90" style={{ color: 'var(--cor-texto-principal)' }}>
+              {analiseIa.analisePerfil || "A IA ainda está processando o seu perfil. Continue lendo!"}
+            </div>
+          </div>
+
+          <div className="p-6 sm:p-8 rounded-3xl border shadow-lg" style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}>
+            <h2 className="text-lg font-black mb-4 flex items-center gap-2" style={{ color: 'var(--cor-texto-principal)' }}>
+              <SparklesIcon className="w-5 h-5 stroke-[2.5] text-yellow-500" />
+              Recomendações da Gemini
+            </h2>
+            <div className="text-sm leading-relaxed font-medium whitespace-pre-wrap opacity-90" style={{ color: 'var(--cor-texto-secundario)' }}>
+              {analiseIa.recomendacoes || "Adicione mais livros à sua estante para receber recomendações personalizadas."}
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // ==========================================
+  // ECRÃ 2: UTILIZADOR NÃO É PREMIUM (VITRINE)
+  // ==========================================
   return (
     <div className="min-h-screen w-full py-12 px-4 md:px-8 max-w-6xl mx-auto flex flex-col justify-center animate-fade-in">
-      
-      {/* CABEÇALHO */}
       <div className="text-center max-w-2xl mx-auto mb-16 relative">
         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-6 w-32 h-32 bg-[var(--cor-primaria)] opacity-10 rounded-full blur-3xl pointer-events-none"></div>
         
@@ -106,10 +179,7 @@ export default function PremiumPage() {
         </p>
       </div>
 
-      {/* GRID DE CONTEÚDO */}
       <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-center">
-        
-        {/* CARDS DE BENEFÍCIOS (ESQUERDA) */}
         <div className="grid grid-cols-1 sm:grid-cols-2 lg:col-span-7 gap-4">
           {diferenciais.map((item, idx) => {
             const Icone = item.icone;
@@ -133,13 +203,11 @@ export default function PremiumPage() {
           })}
         </div>
 
-        {/* CARD DE ASSINATURA / PREÇO (DIREITA) */}
         <div className="lg:col-span-5 w-full max-w-md mx-auto">
           <div 
             className="rounded-3xl border p-8 shadow-2xl relative overflow-hidden transition-all duration-300"
             style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-primaria)' }}
           >
-            {/* Efeito de iluminação no card de preço */}
             <div className="absolute -top-12 -right-12 w-32 h-32 bg-[var(--cor-primaria)] opacity-10 rounded-full blur-2xl pointer-events-none"></div>
             
             <div className="mb-6">
@@ -153,7 +221,6 @@ export default function PremiumPage() {
               <span className="text-xs font-bold opacity-60 ml-1" style={{ color: 'var(--cor-texto-secundario)' }}>/ mês</span>
             </div>
 
-            {/* LISTA DE VANTAGENS */}
             <ul className="space-y-3.5 mb-8">
               {vantagensPlano.map((vantagem, index) => (
                 <li key={index} className="flex items-start gap-3 text-xs font-semibold">
@@ -165,22 +232,18 @@ export default function PremiumPage() {
               ))}
             </ul>
 
-            {/* BOTÃO DE AÇÃO */}
             <button
               onClick={lidarComAssinatura}
-              disabled={carregando}
+              disabled={carregandoAssinatura}
               className="w-full py-4 px-6 rounded-2xl font-black text-sm uppercase tracking-wider shadow-lg transition-all duration-200 hover:opacity-90 disabled:opacity-50 active:scale-[0.98]"
               style={{ 
                 backgroundColor: 'var(--cor-botao-primario)', 
                 color: '#FFFFFF' 
               }}
             >
-              {carregando ? (
+              {carregandoAssinatura ? (
                 <div className="flex items-center justify-center gap-2">
-                  <svg className="animate-spin h-4 w-4 text-white" fill="none" viewBox="0 0 24 24">
-                    <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4" />
-                    <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z" />
-                  </svg>
+                  <ArrowPathIcon className="animate-spin h-4 w-4 text-white stroke-[3]" />
                   <span>Processando...</span>
                 </div>
               ) : (
@@ -193,7 +256,6 @@ export default function PremiumPage() {
             </p>
           </div>
         </div>
-
       </div>
     </div>
   );
