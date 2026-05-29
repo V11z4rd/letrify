@@ -3,7 +3,6 @@
 import { useMemo } from "react";
 import Link from "next/link";
 import useSWR from "swr";
-import { AcademicCapIcon } from "@heroicons/react/24/outline";
 import { 
   SparklesIcon, 
   BookOpenIcon, 
@@ -13,12 +12,11 @@ import {
 
 interface VitrineDestaquesProps {
   userId: string;
-  isPremium: boolean;
 }
 
 const fetcher = (url: string) => fetch(url).then((res) => res.json());
 
-export default function VitrineDestaques({ userId, isPremium }: VitrineDestaquesProps) {
+export default function VitrineDestaques({ userId }: VitrineDestaquesProps) {
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
   // 1. BUSCA OS LIVROS DAS PRATELEIRAS DO USUÁRIO
@@ -55,37 +53,6 @@ export default function VitrineDestaques({ userId, isPremium }: VitrineDestaques
     }).slice(0, 12); 
   }, [data]);
 
-  // COMPONENTE INTERNO: CARD DA IA PREMIUM
-  function CardAnalisePremium({ isPremium }: { isPremium: boolean }) {
-    if (!isPremium) return null; // Só mostra se for premium
-
-    const { data, error, isLoading } = useSWR(
-      isPremium ? `${BASE_URL}/api/premium/analise` : null, 
-      fetcher
-    );
-
-    // Se der erro na IA, apenas não mostra o card, não quebra o layout
-    if (error || !data) return null;
-    if (isLoading) {
-      return (
-        <div className="p-4 mt-2 animate-pulse bg-black/[0.04] dark:bg-white/[0.04] rounded-2xl border border-dashed border-zinc-300 dark:border-zinc-700 h-24 flex items-center justify-center text-xs font-medium opacity-60">
-          IA analisando perfil literário...
-        </div>
-      );
-    }
-
-    return (
-      <div className="p-6 rounded-2xl border border-dashed bg-[var(--cor-fundo-card)] transition-all" style={{ borderColor: 'var(--cor-primaria)' }}>
-        <h3 className="flex items-center gap-2 font-black text-xs uppercase tracking-widest mb-3" style={{ color: 'var(--cor-primaria)' }}>
-          <AcademicCapIcon className="w-5 h-5" /> Análise Literária Premium
-        </h3>
-        <p className="text-xs leading-relaxed opacity-80" style={{ color: 'var(--cor-texto-principal)' }}>
-          {data.textoAnalise}
-        </p>
-      </div>
-    );
-  }
-
   // SKELETON DE CARREGAMENTO GERAL
   if (isLoading) {
     return (
@@ -117,9 +84,6 @@ export default function VitrineDestaques({ userId, isPremium }: VitrineDestaques
 
   return (
     <div className="space-y-6 mt-6">
-      
-      {/* 👑 SEÇÃO DA IA: Aparece no topo se o usuário for Premium */}
-      <CardAnalisePremium isPremium={isPremium} />
       
       {/* 🌟 SEÇÃO: LIVRO FAVORITO */}
       {livroFavorito && (
