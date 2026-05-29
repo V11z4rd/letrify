@@ -39,6 +39,10 @@ export default function PremiumPage() {
 
         if (resposta.ok) {
           const dados = await resposta.json();
+          
+          // 👇 AQUI ESTÁ O SEU ESPIÃO! Sem chamadas duplas, apenas lendo a resposta já recebida.
+          console.log("🕵️ ESPIÃO DA IA - O que a API Premium retornou:", dados);
+          
           setAnaliseIa(dados);
           setIsPremium(true);
         } else {
@@ -140,7 +144,7 @@ export default function PremiumPage() {
               Sua Essência Literária
             </h2>
             <div className="text-sm leading-relaxed font-medium whitespace-pre-wrap opacity-90" style={{ color: 'var(--cor-texto-principal)' }}>
-              {/* 👇 Alterado aqui para suportar PascalCase 👇 */}
+              {/* Suportando PascalCase e camelCase para não quebrar a tela */}
               {analiseIa.AnalisePerfil || analiseIa.analisePerfil || "A IA ainda está processando o seu perfil. Continue lendo!"}
             </div>
           </div>
@@ -151,7 +155,7 @@ export default function PremiumPage() {
               Recomendações da Gemini
             </h2>
             <div className="text-sm leading-relaxed font-medium whitespace-pre-wrap opacity-90" style={{ color: 'var(--cor-texto-secundario)' }}>
-              {/* 👇 Alterado aqui para suportar PascalCase 👇 */}
+              {/* Suportando PascalCase e camelCase para não quebrar a tela */}
               {analiseIa.Recomendacoes || analiseIa.recomendacoes || "Adicione mais livros à sua estante para receber recomendações personalizadas."}
             </div>
           </div>
