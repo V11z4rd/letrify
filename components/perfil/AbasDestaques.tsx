@@ -266,11 +266,6 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
                 opacity: isActive ? 1 : 0.5
               }}
             >
-              <IconeComponente className="w-4 h-4 stroke-[2]" />
-              <span>{tab.label}</span>
-              {tab.id === "premium_ia" && (
-                <span className="text-[8px] bg-amber-500 text-black px-1.5 py-0.5 rounded-md font-black tracking-normal ml-0.5">PRO</span>
-              )}
             </button>
           );
         })}
@@ -331,92 +326,6 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
         {abaAtiva === "temas" && renderizarDadosAba(dadosTemas, "Temas")}
 
         {/* ABA EXCLUSIVA PREMIUM COM ECOSSISTEMA GEMINI */}
-        {abaAtiva === "premium_ia" && (
-          <div className="w-full animate-fade-in flex flex-col items-center text-center">
-            {!dadosIA && !carregandoIA && (
-              <div className="max-w-md py-6 flex flex-col items-center gap-4">
-                <div className="w-12 h-12 bg-gradient-to-tr from-amber-500 to-orange-500 rounded-2xl flex items-center justify-center text-black shadow-lg">
-                  <SparklesIcon className="w-6 h-6 stroke-[2]" />
-                </div>
-                <div>
-                  <h3 className="font-black text-base tracking-tight mb-1" style={{ color: 'var(--cor-texto-principal)' }}>Análise Literária Inteligente</h3>
-                  <p className="text-xs font-medium opacity-60 leading-relaxed" style={{ color: 'var(--cor-texto-secundario)' }}>
-                    O Letrify Pro coleta as estatísticas complexas de leitura estruturadas na sua estante e aciona a inteligência da **Google Gemini** para decodificar o seu perfil literário e projetar sugestões sob medida.
-                  </p>
-                </div>
-                <button
-                  onClick={buscarAnaliseLiterariaIA}
-                  className="px-6 py-3 rounded-xl font-black text-xs uppercase tracking-wider text-white shadow-md bg-gradient-to-r from-amber-500 to-amber-600 transition-transform active:scale-[0.98] hover:opacity-95"
-                >
-                  Acionar Gemini AI
-                </button>
-              </div>
-            )}
-
-            {carregandoIA && (
-              <div className="flex flex-col items-center gap-3 py-12">
-                <ArrowPathIcon className="w-8 h-8 animate-spin text-amber-500 stroke-[2.5]" />
-                <p className="text-xs font-black uppercase tracking-widest text-amber-500 animate-pulse">Gemini decodificando sua estante...</p>
-              </div>
-            )}
-
-            {erroIA && (
-              <div className="max-w-md py-6 text-center">
-                <p className="text-red-500 text-xs font-bold mb-3">🚨 {erroIA}</p>
-                <button 
-                  onClick={buscarAnaliseLiterariaIA}
-                  className="text-xs font-black uppercase tracking-wider text-amber-500 hover:underline"
-                >
-                  Tentar Novamente
-                </button>
-              </div>
-            )}
-
-            {dadosIA && !carregandoIA && (
-              <div className="w-full text-left space-y-6 animate-fade-in px-1">
-                {/* RELATÓRIO DO COMPORTAMENTO */}
-                <div className="p-5 rounded-2xl border" style={{ backgroundColor: 'var(--cor-fundo-sidebar)', borderColor: 'var(--cor-fundo-sidebar)' }}>
-                  <h4 className="text-xs font-black uppercase tracking-widest text-amber-500 mb-2 flex items-center gap-1.5">
-                    <SparklesIcon className="w-3.5 h-3.5 stroke-[2.5]" />
-                    <span>Diagnóstico da IA</span>
-                  </h4>
-                  <p className="text-xs sm:text-sm leading-relaxed font-medium opacity-90 whitespace-pre-wrap" style={{ color: 'var(--cor-texto-principal)' }}>
-                    {dadosIA.analise}
-                  </p>
-                </div>
-
-                {/* RECOMENDAÇÕES EXCLUSIVAS */}
-                <div className="space-y-3">
-                  <h4 className="text-xs font-black uppercase tracking-widest opacity-50 px-1" style={{ color: 'var(--cor-texto-principal)' }}>
-                    Recomendações Cirúrgicas do Gemini
-                  </h4>
-                  
-                  <div className="grid grid-cols-1 gap-3">
-                    {dadosIA.recomendacoes?.map((livro, index) => (
-                      <div 
-                        key={index}
-                        className="p-4 rounded-2xl border border-dashed transition-all hover:bg-zinc-500/[0.02]"
-                        style={{ borderColor: 'var(--cor-fundo-sidebar)' }}
-                      >
-                        <div className="flex justify-between items-baseline gap-2 mb-1.5">
-                          <span className="font-black text-sm" style={{ color: 'var(--cor-texto-principal)' }}>
-                            {livro.titulo}
-                          </span>
-                          <span className="text-[10px] font-bold opacity-60 shrink-0" style={{ color: 'var(--cor-primaria)' }}>
-                            {livro.autor}
-                          </span>
-                        </div>
-                        <p className="text-xs font-medium opacity-60 leading-relaxed" style={{ color: 'var(--cor-texto-secundario)' }}>
-                          {livro.justificativa}
-                        </p>
-                      </div>
-                    ))}
-                  </div>
-                </div>
-              </div>
-            )}
-          </div>
-        )}
       </div>
     </section>
   );
