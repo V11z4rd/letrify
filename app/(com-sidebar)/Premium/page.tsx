@@ -31,7 +31,7 @@ export default function PremiumPage() {
           return;
         }
 
-        const resposta = await fetch(`${BASE_URL}/premium/analise`, {
+        const resposta = await fetch(`${BASE_URL}api/premium/analise`, {
           headers: {
             "Authorization": `Bearer ${token}`
           }
