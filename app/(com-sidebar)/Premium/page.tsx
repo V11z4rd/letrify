@@ -170,7 +170,7 @@ export default function PremiumPage() {
                   <div className="text-[9px] uppercase tracking-widest font-bold opacity-50" style={{ color: 'var(--cor-texto-secundario)' }}>Lendo Agora</div>
                 </div>
                 <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-                  <div className="text-2xl font-black text-green-500">{analiseIa.estatisticas.quereler || 0}</div>
+                  <div className="text-2xl font-black text-green-500">{analiseIa.estatisticas.quereLer || 0}</div>
                   <div className="text-[9px] uppercase tracking-widest font-bold opacity-50" style={{ color: 'var(--cor-texto-secundario)' }}>Quero Ler</div>
                 </div>
               </div>
