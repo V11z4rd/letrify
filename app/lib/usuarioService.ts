@@ -28,7 +28,7 @@ export function mapearPerfilDaApi(dadosApi: any) {
     cidade: perfil?.cidade || dadosApi.cidade || "", 
     descricao: perfil?.descricao || perfil?.bio || dadosApi.descricao || "",
     
-    isPremium: dadosApi.isPremium === true || perfil?.premium === "1" || perfil?.isPremium === true,
+    isPremium: perfil?.premium === "1" || perfil?.isPremium === true,
 
     // 2. Estatísticas do Cabeçalho
     estatisticas: {
@@ -59,7 +59,7 @@ export function mapearPerfilDaApi(dadosApi: any) {
     } : null,
 
     totalDeLivros: estatisticas?.totalDeLivros || 0,
-    grupos: dadosApi.grupos || 0,
+    grupos: perfil?.totalGruposPertence || 0,
     guias: dadosApi.guias || 0,
     isPrivado: dadosApi.isPrivado || false
   };
