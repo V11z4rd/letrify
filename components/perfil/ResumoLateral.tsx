@@ -153,7 +153,7 @@ export default function ResumoLateral({
         </div>
       ) : (
         <Link 
-          href="/guias"
+          href="/perfil"
           className="p-5 rounded-2xl border flex items-center justify-between transition-all duration-200 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] group"
           style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
         >
