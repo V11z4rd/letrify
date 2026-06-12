@@ -1,6 +1,7 @@
 "use client";
 
 import { useState, useMemo } from "react";
+import Link from "next/link"; // 👈 Importado o Link para o redirecionamento Premium
 import { 
   Radar, RadarChart, PolarGrid, 
   PolarAngleAxis, ResponsiveContainer, Tooltip
@@ -10,11 +11,14 @@ import {
   UserGroupIcon, 
   TagIcon,
   BookOpenIcon,
-  StarIcon 
+  StarIcon,
+  SparklesIcon // 👈 Ícone para a aba Premium
 } from "@heroicons/react/24/outline";
 
-// INTERFACE ATUALIZADA - Reflete fielmente o JSON real da sua API
+// INTERFACE ATUALIZADA com as propriedades necessárias para o Link Premium
 interface AbasDestaqueProps {
+  isDonoDoPerfil?: boolean;
+  isPremium?: boolean;
   perfil: {
     nome?: string;
     fotoPerfil?: string;
@@ -48,10 +52,10 @@ interface AbasDestaqueProps {
   };
 }
 
-export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
+export default function AbasDestaque({ perfil, isDonoDoPerfil = false, isPremium = false }: AbasDestaqueProps) {
   const [abaAtiva, setAbaAtiva] = useState<"livro" | "autores" | "temas">("livro");
 
-  // 1. TRATAMENTO DOS AUTORES (Lendo direto da raiz conforme o seu JSON)
+  // 1. TRATAMENTO DOS AUTORES
   const dadosAutores = useMemo(() => {
     const listaRaw = perfil?.topAutores || [];
     return listaRaw.map((a) => ({
@@ -60,7 +64,7 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
     })).filter(item => item.nome !== "Ignorado");
   }, [perfil]);
 
-  // 2. TRATAMENTO DOS TEMAS / GÊNEROS (Lendo direto da raiz conforme o seu JSON)
+  // 2. TRATAMENTO DOS TEMAS / GÊNEROS
   const dadosTemas = useMemo(() => {
     const listaRaw = perfil?.topTemas || [];
     return listaRaw.map((t) => ({
@@ -69,7 +73,7 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
     })).filter(item => item.nome !== "Indefinido");
   }, [perfil]);
 
-  // RENDERIZADOR INTELIGENTE (TEIA OU LISTA CONSOANTE A QUANTIDADE)
+  // RENDERIZADOR INTELIGENTE (TEIA OU LISTA)
   const renderizarDadosAba = (dados: { nome: string; valor: number }[], tipo: string) => {
     if (!dados || dados.length === 0) {
       return (
@@ -80,7 +84,6 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
       );
     }
 
-    // Se tiver 3 ou mais itens, monta a teia (Radar)
     if (dados.length >= 3) {
       return (
         <div className="w-full h-[320px] animate-fade-in flex items-center justify-center relative">
@@ -148,7 +151,6 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
       );
     }
 
-    // Se tiver menos de 3 itens (1 ou 2), exibe em cartões elegantes
     return (
       <div className="w-full space-y-2.5 animate-fade-in px-4 py-4 max-w-md mx-auto">
         {dados.map((item, idx) => (
@@ -195,26 +197,51 @@ export default function AbasDestaque({ perfil }: AbasDestaqueProps) {
       style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
     >
       {/* SELETOR DE ABAS */}
-      <div className="flex gap-1 mb-6 border-b pb-0 overflow-x-auto scrollbar-none" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-        {configuracaoAbas.map((tab) => {
-          const IconeComponente = tab.icone;
-          const isActive = abaAtiva === tab.id;
-          return (
-            <button
-              key={tab.id}
-              onClick={() => setAbaAtiva(tab.id)}
-              className="pb-3 px-4 text-[10px] uppercase tracking-widest font-black flex items-center gap-2 border-b-2 -mb-[2px] transition-all duration-200 relative whitespace-nowrap"
-              style={{ 
-                color: isActive ? 'var(--cor-primaria)' : 'var(--cor-texto-secundario)',
-                borderColor: isActive ? 'var(--cor-primaria)' : 'transparent',
-                opacity: isActive ? 1 : 0.5
-              }}
+      <div className="flex justify-between items-end mb-6 border-b pb-0 overflow-x-auto hide-scrollbar" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+        
+        {/* Abas Padrões (Destaque, Autores, Temas) */}
+        <div className="flex gap-1 shrink-0">
+          {configuracaoAbas.map((tab) => {
+            const IconeComponente = tab.icone;
+            const isActive = abaAtiva === tab.id;
+            return (
+              <button
+                key={tab.id}
+                onClick={() => setAbaAtiva(tab.id)}
+                className="pb-3 px-3 sm:px-4 text-[10px] uppercase tracking-widest font-black flex items-center gap-2 border-b-2 -mb-[1px] transition-all duration-300 relative whitespace-nowrap"
+                style={{ 
+                  color: isActive ? 'var(--cor-primaria)' : 'var(--cor-texto-secundario)',
+                  borderColor: isActive ? 'var(--cor-primaria)' : 'transparent',
+                  opacity: isActive ? 1 : 0.6
+                }}
+              >
+                <IconeComponente className={`w-4 h-4 stroke-[2.5] transition-transform ${isActive ? 'scale-110' : ''}`} />
+                {/* Mostra texto no mobile SÓ se ativo. Sempre visível no sm (tablet/desktop) */}
+                <span className={`${isActive ? 'block' : 'hidden'} sm:block transition-all`}>
+                  {tab.label}
+                </span>
+              </button>
+            );
+          })}
+        </div>
+
+        {/* 👇 NOVO: ABA DO PREMIUM (Só p/ o Dono do Perfil) 👇 */}
+        {isDonoDoPerfil && (
+          <div className="flex shrink-0">
+            <Link
+              href="/Premium"
+              className="pb-3 px-3 sm:px-4 text-[10px] uppercase tracking-widest font-black flex items-center gap-2 border-b-2 border-transparent -mb-[1px] transition-all duration-300 group hover:opacity-80"
+              style={{ color: isPremium ? 'var(--cor-primaria)' : 'var(--cor-destaque)' }}
             >
-              <IconeComponente className="w-4 h-4 stroke-[2]" />
-              <span>{tab.label}</span>
-            </button>
-          );
-        })}
+              <SparklesIcon className="w-4 h-4 stroke-[2.5] group-hover:scale-110 transition-transform" />
+              {/* Oculta texto em telas muito pequenas para não quebrar a barra, mas deixa no sm */}
+              <span className="hidden sm:block whitespace-nowrap">
+                {isPremium ? "Relatório Premium" : "Torne-se Premium"}
+              </span>
+            </Link>
+          </div>
+        )}
+
       </div>
 
       {/* RECIPIENTE DO PAINEL */}

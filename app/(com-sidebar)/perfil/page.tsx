@@ -10,7 +10,7 @@ import CabecalhoPerfil, { SkeletonCabecalho } from "@/components/perfil/Cabecalh
 import ResumoLateral from "@/components/perfil/ResumoLateral";
 import VitrineDestaques from "@/components/perfil/VitrineDestaques";
 import AbasDestaque from "@/components/perfil/AbasDestaques";
-import EditarLivroFavorito from "@/components/perfil/EditarLivroFavorito"; 
+import EditarLivroFavorito from "@/components/perfil/EditarLivroFavorito";
 import ListarLivros from "@/components/perfil/ListarLivros";
 
 // Libs e Services
@@ -20,8 +20,8 @@ import ModalConexoes from "@/components/perfil/ModalConexoes";
 
 const fetcherUsuarioDaApi = async (url: string) => {
   try {
-    const token = 
-      authService.getToken() || 
+    const token =
+      authService.getToken() ||
       (typeof window !== 'undefined' ? localStorage.getItem('letrify_token') : null);
     const cabecalhos: HeadersInit = { "Content-Type": "application/json" };
 
@@ -170,12 +170,12 @@ function ConteudoDoPerfil() {
         bannerUrl={perfilMapeado.bannerUrl}
         isDonoDoPerfil={isDonoDoPerfil}
         isSeguindoInicial={isSeguindo}
-        
+
         estatisticas={{
           seguindo: perfilMapeado.estatisticas?.seguindo || 0,
           seguidores: perfilMapeado.estatisticas?.seguidores || 0
         }}
-        
+
         onFollowClick={handleFollowToggle}
         onAbrirModal={setAbaModalAberta}
         isEditorAbertoExterno={isEditando}
@@ -191,39 +191,62 @@ function ConteudoDoPerfil() {
         </div>
       ) : (
         <div className="mt-8 grid grid-cols-1 md:grid-cols-3 gap-6">
-          <div className="md:col-span-2 space-y-8">
+          <div className="md:col-span-2 space-y-8 flex flex-col">
             {/* Renderização Condicional com base no botão de Editar Perfil */}
             {!isEditando ? (
               <>
-                {/* O Novo Componente Limpo */}
-                <AbasDestaque perfil={perfilMapeado} />
-                <VitrineDestaques 
-                  userId={idParaBuscar as string} />
+                {/* 1. Abas Destaques (Sempre no topo) */}
+                <div className="order-1">
+                  <AbasDestaque
+                    perfil={perfilMapeado}
+                    isDonoDoPerfil={isDonoDoPerfil}
+                    isPremium={perfilMapeado.isPremium}
+                  />
+                </div>
+
+                {/* 2. Resumo Lateral (No mobile fica no meio, no desktop é movido para a direita pela grid pai) */}
+                <div className="order-2 md:hidden">
+                  <ResumoLateral
+                    estante={perfilMapeado.estanteResumo}
+                    totalGrupos={perfilMapeado.grupos}
+                    totalGuias={perfilMapeado.guias}
+                    userIdParaLink={idDaUrl}
+                    isEditando={isEditando}
+                    isDonoDoPerfil={isDonoDoPerfil}
+                  />
+                </div>
+
+                {/* 3. Vitrine Destaques (Fica no fim no mobile, e por baixo das Abas no Desktop) */}
+                <div className="order-3">
+                  <VitrineDestaques userId={idParaBuscar as string} />
+                </div>
               </>
             ) : (
               <>
-                {/* Modo Edição Ativo: Substitui ambos os blocos ordenadamente */}
+                {/* Modo Edição Ativo */}
                 <EditarLivroFavorito perfilInicial={perfilMapeado} />
-                <ListarLivros 
+                <ListarLivros
                   onFechar={() => {
                     setIsEditando(false);
-                    // O mutate() força o SWR a recarregar os dados do perfil imediatamente 
-                    // após o fechamento da tela de edição
-                    mutate(); 
-                  }} 
+                    mutate();
+                  }}
                 />
               </>
             )}
           </div>
 
-          <div className="md:col-span-1">
-            <ResumoLateral
-              estante={perfilMapeado.estanteResumo}
-              totalGrupos={perfilMapeado.grupos}
-              totalGuias={perfilMapeado.guias}
-              userIdParaLink={idDaUrl}
-              isEditando={isEditando}
-            />
+          {/* O Resumo Lateral verdadeiro para o Desktop. Só é visível quando NÃO estamos no mobile (!isEditando) */}
+          <div className="hidden md:block md:col-span-1">
+            {!isEditando && (
+              <ResumoLateral
+                estante={perfilMapeado.estanteResumo}
+                totalGrupos={perfilMapeado.grupos}
+                totalGuias={perfilMapeado.guias}
+                userIdParaLink={idDaUrl}
+                isEditando={isEditando}
+                isDonoDoPerfil={isDonoDoPerfil}
+              />
+            )}
           </div>
         </div>
       )}
