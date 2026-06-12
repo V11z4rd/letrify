@@ -18,7 +18,7 @@ export default function ComSidebarLayout({
 
         {/* Área de conteúdo principal dinâmica e isolada para rolagem */}
         <main 
-          className="flex-1 overflow-y-auto overflow-x-hidden p-4 sm:p-6 md:p-8 transition-all duration-300"
+          className="flex-1 overflow-y-auto overflow-x-hidden px-4 sm:px-6 md:px-8 pt-20 pb-24 md:py-8 transition-all duration-300"
           style={{ color: 'var(--cor-texto-principal)' }}
         >
           {/* Container de largura máxima para o conteúdo não esticar excessivamente em monitores UltraWide */}

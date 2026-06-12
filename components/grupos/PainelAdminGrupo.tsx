@@ -323,7 +323,7 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
                           ) : (
                             <UserMinusIcon className="w-3.5 h-3.5 stroke-[2]" /> 
                           )}
-                          <span>{estaProcessandoEsteMembro ? "..." : "Remover"}</span>
+                          <span className="hidden sm:inline">{estaProcessandoEsteMembro ? "..." : "Remover"}</span>
                         </button>
                       )}
                     </div>
