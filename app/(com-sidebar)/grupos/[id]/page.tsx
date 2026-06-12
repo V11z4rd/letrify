@@ -17,7 +17,8 @@ import {
   ChatBubbleLeftRightIcon,
   DocumentTextIcon,
   ShieldCheckIcon,
-  PlusIcon
+  PlusIcon,
+  ArrowLeftIcon // 👈 Importado o ícone de voltar
 } from "@heroicons/react/24/outline";
 
 export default function SalaGrupoPage() {
@@ -103,24 +104,20 @@ export default function SalaGrupoPage() {
             const token = authService.getToken();
             const formData = new FormData();
             
-            // 1. Textos: Garantimos que envia limpo, sem espaços em branco perdidos
             formData.append("nome", novosDados.nome ? novosDados.nome.trim() : "");
             
             if (novosDados.descricao) {
                 formData.append("descricao", novosDados.descricao.trim());
             }
 
-            // 2. Status (O Segredo da Privacidade):
             if (novosDados.status) {
-                formData.append("status", novosDados.status); // Vai enviar "Aberto" ou "Fechado"
+                formData.append("status", novosDados.status); 
             }
             
-            // 3. Imagem: O C# espera [FromForm] com IFormFile "Foto".
             if (novosDados.fotoCapa instanceof File) {
                 formData.append("foto", novosDados.fotoCapa); 
             }
 
-            // Log para você inspecionar no F12 se tudo está sendo montado corretamente
             console.log("Enviando Status:", novosDados.status);
 
             const resposta = await fetch(`${BASE_URL}/grupos/${grupo?.id}`, {
@@ -134,7 +131,6 @@ export default function SalaGrupoPage() {
                 setIsEditando(false);
                 carregarDetalhesGrupo();
             } else {
-                // Se der erro (como o 403 do Lider), ele vai ler o erro e te avisar
                 const erroApi = await resposta.json().catch(() => ({}));
                 throw new Error(erroApi.erro || `Erro ${resposta.status}: Servidor rejeitou a atualização.`);
             }
@@ -158,7 +154,33 @@ export default function SalaGrupoPage() {
     const isLider = membroAtual?.role === "Lider";
 
     return (
-        <div className="max-w-7xl mx-auto w-full pt-4 pb-24 px-4 animate-fade-in">
+        <div className="max-w-7xl mx-auto w-full pb-24 px-4 sm:px-6 animate-fade-in relative">
+
+            {/* 👇 NOVA BARRA SUPERIOR FIXA (STICKY) COM BOTÃO DE VOLTAR 👇 */}
+            {!isEditando && (
+                <div 
+                    className="sticky top-0 z-40 bg-[var(--cor-fundo-app)]/95 backdrop-blur-xl border-b py-3 sm:py-4 mb-6 flex items-center gap-4 transition-all"
+                    style={{ borderColor: 'var(--cor-fundo-sidebar)', margin: '0 -16px', paddingLeft: '16px', paddingRight: '16px' }}
+                >
+                    <button 
+                        onClick={() => router.back()}
+                        className="p-2 sm:p-2.5 rounded-xl border hover:bg-black/5 dark:hover:bg-white/5 transition-all active:scale-95 shrink-0"
+                        style={{ borderColor: 'var(--cor-fundo-sidebar)', color: 'var(--cor-texto-principal)' }}
+                        aria-label="Voltar"
+                    >
+                        <ArrowLeftIcon className="w-5 h-5 stroke-[2.5]" />
+                    </button>
+                    <div className="flex flex-col overflow-hidden">
+                        <h1 className="text-base sm:text-lg font-black tracking-tight truncate" style={{ color: 'var(--cor-texto-principal)' }}>
+                            {grupo.nome}
+                        </h1>
+                        <span className="text-[9px] sm:text-[10px] font-bold uppercase tracking-widest opacity-60 flex items-center gap-1" style={{ color: 'var(--cor-texto-secundario)' }}>
+                            <UserGroupIcon className="w-3 h-3" />
+                            {grupo.membros?.length || 0} membros
+                        </span>
+                    </div>
+                </div>
+            )}
 
             {/* BANNER E HEADER DO CLUBE */}
             {!isEditando && (
@@ -167,7 +189,7 @@ export default function SalaGrupoPage() {
                     style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
                 >
                     <div 
-                        className="h-56 w-full bg-cover bg-center relative"
+                        className="h-48 sm:h-56 w-full bg-cover bg-center relative"
                         style={{ 
                             backgroundImage: grupo.fotoCapa ? `url("${grupo.fotoCapa}")` : 'none',
                             backgroundColor: 'var(--cor-fundo-sidebar)'
@@ -177,17 +199,14 @@ export default function SalaGrupoPage() {
                     </div>
 
                     <div className="px-6 sm:px-8 pb-6 pt-5 relative flex flex-col md:flex-row justify-between items-start md:items-end gap-6">
-                        <div className="space-y-1.5">
+                        <div className="space-y-1.5 w-full">
                             <div className="flex items-center gap-3">
                                 <span className="px-2.5 py-0.5 rounded-full text-[9px] font-black uppercase tracking-wider border" style={{ backgroundColor: 'var(--cor-fundo-app)', color: 'var(--cor-destaque)', borderColor: 'var(--cor-fundo-sidebar)' }}>
                                     {grupo.status}
                                 </span>
-                                <span className="text-[11px] font-bold opacity-60 flex items-center gap-1" style={{ color: 'var(--cor-texto-secundario)' }}>
-                                    <UserGroupIcon className="w-3.5 h-3.5 opacity-80" />
-                                    <span>{grupo.membros?.length || 0} membros</span>
-                                </span>
                             </div>
-                            <h1 className="text-2xl sm:text-3xl font-black tracking-tight" style={{ color: 'var(--cor-texto-principal)' }}>
+                            {/* Nome repetido propositalmente como "Hero Title" - padrão de design estilo Twitter */}
+                            <h1 className="text-2xl sm:text-3xl font-black tracking-tight truncate w-full" style={{ color: 'var(--cor-texto-principal)' }}>
                                 {grupo.nome}
                             </h1>
                             <p className="text-xs sm:text-sm max-w-2xl leading-relaxed font-medium opacity-80" style={{ color: 'var(--cor-texto-secundario)' }}>
@@ -251,7 +270,7 @@ export default function SalaGrupoPage() {
                 </div>
             )}
 
-            {/* SEÇÃO CONTEÚDO RESTREITO / VISUALIZADOR DE ABAS */}
+            {/* SEÇÃO CONTEÚDO RESTRITO / VISUALIZADOR DE ABAS */}
             {!isMembro ? (
                 <div 
                     className="mt-4 flex flex-col items-center justify-center p-16 rounded-3xl border border-dashed text-center animate-fade-in"
@@ -269,8 +288,11 @@ export default function SalaGrupoPage() {
                 <div className="grid grid-cols-1 gap-6">
                     {!isEditando ? (
                         <>
-                            {/* NAVEGAÇÃO ENTRE ABAS */}
-                            <div className="flex gap-6 border-b" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+                            {/* 👇 AS ABAS AGORA TAMBÉM SÃO STICKY E DESCEM COM O FEED 👇 */}
+                            <div 
+                                className="flex gap-6 border-b sticky top-[68px] sm:top-[76px] z-30 bg-[var(--cor-fundo-app)]/95 backdrop-blur-md pt-2 transition-all" 
+                                style={{ borderColor: 'var(--cor-fundo-sidebar)', margin: '0 -16px', paddingLeft: '16px', paddingRight: '16px' }}
+                            >
                                 {[
                                     { id: "feed", label: "Feed", icon: <DocumentTextIcon className="w-4 h-4 stroke-[2.5]" />, visivel: true },
                                     { id: "chat", label: "Chat", icon: <ChatBubbleLeftRightIcon className="w-4 h-4 stroke-[2.5]" />, visivel: true },
@@ -292,7 +314,7 @@ export default function SalaGrupoPage() {
                                 ))}
                             </div>
 
-                            <div className="min-h-[400px] mt-4">
+                            <div className="min-h-[400px] mt-2">
                                 {abaAtiva === "feed" && <FeedInterno grupoId={grupo.id} />}
                                 {abaAtiva === "chat" && <ChatGrupo grupoId={grupo.id} />}
                                 {abaAtiva === "membros" && isAdminOuLider && (

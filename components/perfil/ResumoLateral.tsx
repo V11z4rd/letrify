@@ -1,6 +1,5 @@
 "use client";
 import Link from "next/link";
-// Importações profissionais do Heroicons
 import { 
   BookmarkIcon, 
   UserGroupIcon, 
@@ -14,11 +13,18 @@ interface ResumoLateralProps {
   totalGuias: number;
   userIdParaLink?: string | null;
   isEditando?: boolean;
+  isDonoDoPerfil?: boolean; // 👈 Adicionado para controlar o roteamento
 }
 
-export default function ResumoLateral({ estante, totalGrupos, totalGuias, userIdParaLink, isEditando = false }: ResumoLateralProps) {
+export default function ResumoLateral({ 
+  estante, 
+  totalGrupos, 
+  totalGuias, 
+  userIdParaLink, 
+  isEditando = false,
+  isDonoDoPerfil = false // 👈 Valor padrão seguro
+}: ResumoLateralProps) {
   
-  // 1. Definição de estilos base adaptados às variáveis globais
   const containerStyle = isEditando
     ? "p-5 rounded-2xl border opacity-50 pointer-events-none select-none transition-opacity" 
     : "p-5 rounded-2xl border transition-all duration-200 hover:bg-black/[0.02] dark:hover:bg-white/[0.02]";
@@ -38,6 +44,11 @@ export default function ResumoLateral({ estante, totalGrupos, totalGuias, userId
     return queryString ? `${baseUrl}?${queryString}` : baseUrl;
   };
 
+  // 👇 LÓGICA DE ROTEAMENTO CONDICIONAL DOS GRUPOS 👇
+  const linkDestinoGrupos = isDonoDoPerfil 
+    ? "/grupos" // Se sou eu, vou para o hub central
+    : (userIdParaLink ? `/membros-clubes?id=${userIdParaLink}` : "/grupos"); // Se é visitante, vai para a lista específica do usuário
+
   return (
     <div className="flex flex-col gap-3.5">
       
@@ -47,12 +58,26 @@ export default function ResumoLateral({ estante, totalGrupos, totalGuias, userId
           className={containerStyle}
           style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
         >
-          <div className="flex items-center justify-between mb-4 border-b pb-2" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-            <h3 className="font-bold text-[10px] uppercase tracking-wider" style={{ color: 'var(--cor-primaria)' }}>
-              Estante
-            </h3>
-            <BookmarkIcon className="w-4 h-4 opacity-40" style={{ color: 'var(--cor-texto-principal)' }} />
-          </div>
+          {/* 👇 CABEÇALHO CLICÁVEL DA ESTANTE 👇 */}
+          {isEditando ? (
+            <div className="flex items-center justify-between mb-4 border-b pb-2" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+              <h3 className="font-bold text-[10px] uppercase tracking-wider" style={{ color: 'var(--cor-primaria)' }}>
+                Estante
+              </h3>
+              <BookmarkIcon className="w-4 h-4 opacity-40" style={{ color: 'var(--cor-texto-principal)' }} />
+            </div>
+          ) : (
+            <Link 
+              href={montarLinkEstante()} 
+              className="flex items-center justify-between mb-4 border-b pb-2 group transition-all"
+              style={{ borderColor: 'var(--cor-fundo-sidebar)' }}
+            >
+              <h3 className="font-bold text-[10px] uppercase tracking-wider transition-colors group-hover:text-[var(--cor-primaria)]" style={{ color: 'var(--cor-texto-principal)' }}>
+                Estante
+              </h3>
+              <BookmarkIcon className="w-4 h-4 opacity-60 group-hover:opacity-100 transition-opacity" style={{ color: 'var(--cor-texto-principal)' }} />
+            </Link>
+          )}
 
           <div className="flex flex-col gap-2.5">
             {[
@@ -94,8 +119,9 @@ export default function ResumoLateral({ estante, totalGrupos, totalGuias, userId
           </span>
         </div>
       ) : (
+        // 👇 LINK DINÂMICO PARA GRUPOS 👇
         <Link 
-          href="/grupos"
+          href={linkDestinoGrupos}
           className="p-5 rounded-2xl border flex items-center justify-between transition-all duration-200 hover:bg-black/[0.02] dark:hover:bg-white/[0.02] group"
           style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
         >
