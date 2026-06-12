@@ -12,7 +12,9 @@ import {
   InboxArrowDownIcon,
   ShieldCheckIcon,
   StarIcon,
-  UserIcon
+  UserIcon,
+  ChevronDoubleUpIcon,
+  ChevronDoubleDownIcon
 } from "@heroicons/react/24/outline";
 
 interface Solicitacao {
@@ -121,9 +123,45 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
     }
   };
 
+  // 👇 NOVA FUNÇÃO: ALTERAR CARGOS 👇
+  const handleAlterarCargo = async (usuarioId: number, nomeMembro: string, novoCargo: string) => {
+    if (!confirm(`Confirma a alteração do cargo de ${nomeMembro} para ${novoCargo}?`)) return;
+
+    setProcessandoId(usuarioId);
+    try {
+      const res = await fetch(`${BASE_URL}/grupos/${grupoId}/membros/${usuarioId}/role`, {
+        method: "PUT", // Presumindo que o back usa PUT para alteração de role
+        headers: {
+          "Authorization": `Bearer ${token}`,
+          "Content-Type": "application/json"
+        },
+        body: JSON.stringify({ role: novoCargo }) // Enviamos em JSON para o back saber qual é o novo cargo
+      });
+
+      if (!res.ok) {
+        const erroMsg = await res.text();
+        throw new Error(erroMsg || "Erro ao alterar as permissões do membro.");
+      }
+
+      // Atualiza visualmente na mesma hora
+      setMembros(prev => prev.map(m => m.id === usuarioId ? { ...m, role: novoCargo } : m));
+      if (onMembroMudou) onMembroMudou();
+      alert(`O cargo de ${nomeMembro} foi atualizado com sucesso!`);
+    } catch (err: any) {
+      alert(err.message);
+    } finally {
+      setProcessandoId(null);
+    }
+  };
+
+  // Identifica o papel de quem está acessando o painel no momento
+  const meuIdStr = authService.getUserId();
+  const usuarioLogado = membros.find(m => String(m.id) === meuIdStr);
+  const euSouLider = usuarioLogado?.role === "Lider";
+
   return (
     <div 
-      className="border rounded-3xl p-6 shadow-sm space-y-6 transition-all"
+      className="border rounded-3xl p-6 shadow-sm space-y-6 transition-all animate-fade-in"
       style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
     >
       {/* CABEÇALHO DO PAINEL MODIFICADO */}
@@ -175,7 +213,7 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
         </div>
       ) : (
         <>
-          {/* ABA: SOLICITAÇÕES PENDENTES (Usa o componente isolado) */}
+          {/* ABA: SOLICITAÇÕES PENDENTES */}
           {subAba === "solicitacoes" && (
             <AbaSolicitacoes 
               solicitacoes={solicitacoes}
@@ -197,7 +235,7 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
                 return (
                   <div 
                     key={membro.id} 
-                    className="flex items-center justify-between p-4 rounded-2xl border"
+                    className="flex flex-col sm:flex-row sm:items-center justify-between gap-4 p-4 rounded-2xl border"
                     style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)' }}
                   >
                     <div className="flex items-center gap-3">
@@ -238,25 +276,58 @@ export default function PainelAdminGrupo({ grupoId, onMembroMudou }: PainelAdmin
                       </div>
                     </div>
                     
-                    {!souEu && !ehLiderOuAdmin && (
-                      <button 
-                        onClick={() => handleExpulsarMembro(membro.id, membro.nome)} 
-                        disabled={processandoId !== null} 
-                        className="px-3 py-1.5 rounded-xl text-[10px] uppercase font-black tracking-wider border transition-all flex items-center gap-1.5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 active:scale-95 disabled:opacity-40"
-                        style={{ 
-                          backgroundColor: 'var(--cor-fundo-card)', 
-                          borderColor: 'var(--cor-fundo-sidebar)',
-                          color: 'var(--cor-texto-secundario)'
-                        }}
-                      >
-                        {estaProcessandoEsteMembro ? (
-                          <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" />
-                        ) : (
-                          <UserMinusIcon className="w-3.5 h-3.5 stroke-[2]" /> 
-                        )}
-                        <span>{estaProcessandoEsteMembro ? "Removendo..." : "Remover"}</span>
-                      </button>
-                    )}
+                    {/* BOTÕES DE AÇÕES (Líderes e Admins) */}
+                    <div className="flex items-center gap-2 self-end sm:self-auto">
+                      
+                      {/* BOTÃO DO LÍDER: Promover ou Rebaixar Admins */}
+                      {euSouLider && !souEu && !ehLider && (
+                        <button 
+                          onClick={() => handleAlterarCargo(membro.id, membro.nome, ehAdmin ? "Membro" : "Admin")} 
+                          disabled={processandoId !== null} 
+                          className={`px-3 py-1.5 rounded-xl text-[10px] uppercase font-black tracking-wider border transition-all flex items-center gap-1.5 active:scale-95 disabled:opacity-40 ${
+                            ehAdmin 
+                              ? 'hover:bg-orange-500/10 hover:text-orange-500 hover:border-orange-500/30' 
+                              : 'hover:bg-blue-500/10 hover:text-blue-500 hover:border-blue-500/30'
+                          }`}
+                          style={{ 
+                            backgroundColor: 'var(--cor-fundo-card)', 
+                            borderColor: 'var(--cor-fundo-sidebar)',
+                            color: 'var(--cor-texto-secundario)'
+                          }}
+                        >
+                          {estaProcessandoEsteMembro ? (
+                            <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" />
+                          ) : ehAdmin ? (
+                            <ChevronDoubleDownIcon className="w-3.5 h-3.5 stroke-[2]" />
+                          ) : (
+                            <ChevronDoubleUpIcon className="w-3.5 h-3.5 stroke-[2]" />
+                          )}
+                          <span className="hidden sm:inline">{estaProcessandoEsteMembro ? "Processando..." : ehAdmin ? "Remover Admin" : "Tornar Admin"}</span>
+                        </button>
+                      )}
+
+                      {/* BOTÃO GERAL: Expulsar do Clube */}
+                      {!souEu && !ehLiderOuAdmin && (
+                        <button 
+                          onClick={() => handleExpulsarMembro(membro.id, membro.nome)} 
+                          disabled={processandoId !== null} 
+                          className="px-3 py-1.5 rounded-xl text-[10px] uppercase font-black tracking-wider border transition-all flex items-center gap-1.5 hover:bg-red-500/10 hover:text-red-500 hover:border-red-500/20 active:scale-95 disabled:opacity-40"
+                          style={{ 
+                            backgroundColor: 'var(--cor-fundo-card)', 
+                            borderColor: 'var(--cor-fundo-sidebar)',
+                            color: 'var(--cor-texto-secundario)'
+                          }}
+                        >
+                          {estaProcessandoEsteMembro ? (
+                            <ArrowPathIcon className="w-3.5 h-3.5 animate-spin" />
+                          ) : (
+                            <UserMinusIcon className="w-3.5 h-3.5 stroke-[2]" /> 
+                          )}
+                          <span>{estaProcessandoEsteMembro ? "..." : "Remover"}</span>
+                        </button>
+                      )}
+                    </div>
+
                   </div>
                 );
               })}

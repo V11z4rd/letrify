@@ -103,15 +103,25 @@ export default function SalaGrupoPage() {
             const token = authService.getToken();
             const formData = new FormData();
             
-            formData.append("nome", novosDados.nome);
-            formData.append("descricao", novosDados.descricao);
-            formData.append("status", novosDados.status);
+            // 1. Textos: Garantimos que envia limpo, sem espaços em branco perdidos
+            formData.append("nome", novosDados.nome ? novosDados.nome.trim() : "");
             
+            if (novosDados.descricao) {
+                formData.append("descricao", novosDados.descricao.trim());
+            }
+
+            // 2. Status (O Segredo da Privacidade):
+            if (novosDados.status) {
+                formData.append("status", novosDados.status); // Vai enviar "Aberto" ou "Fechado"
+            }
+            
+            // 3. Imagem: O C# espera [FromForm] com IFormFile "Foto".
             if (novosDados.fotoCapa instanceof File) {
                 formData.append("foto", novosDados.fotoCapa); 
-            } else {
-                formData.append("fotoCapa", novosDados.fotoCapa);
             }
+
+            // Log para você inspecionar no F12 se tudo está sendo montado corretamente
+            console.log("Enviando Status:", novosDados.status);
 
             const resposta = await fetch(`${BASE_URL}/grupos/${grupo?.id}`, {
                 method: "PUT",
@@ -124,22 +134,15 @@ export default function SalaGrupoPage() {
                 setIsEditando(false);
                 carregarDetalhesGrupo();
             } else {
-                throw new Error("Erro na resposta do servidor.");
+                // Se der erro (como o 403 do Lider), ele vai ler o erro e te avisar
+                const erroApi = await resposta.json().catch(() => ({}));
+                throw new Error(erroApi.erro || `Erro ${resposta.status}: Servidor rejeitou a atualização.`);
             }
-        } catch (err) {
+        } catch (err: any) {
             console.error("Falha ao salvar dados cadastrais do grupo:", err);
-            alert("Erro ao atualizar o grupo.");
+            alert(err.message || "Erro ao atualizar o grupo.");
         }
     };
-
-    if (carregando) {
-        return (
-            <div className="flex flex-col items-center justify-center min-h-[60vh]" style={{ color: 'var(--cor-texto-secundario)' }}>
-                <ArrowPathIcon className="w-8 h-8 animate-spin mb-3" style={{ color: 'var(--cor-primaria)' }} />
-                <p className="font-black text-xs tracking-widest uppercase">A abrir a sala do clube...</p>
-            </div>
-        );
-    }
 
     if (erro || !grupo) {
         return (
@@ -152,6 +155,7 @@ export default function SalaGrupoPage() {
     const membroAtual = grupo.membros?.find((m) => m.id === meuId);
     const isMembro = !!membroAtual;
     const isAdminOuLider = membroAtual?.role === "Lider" || membroAtual?.role === "Admin";
+    const isLider = membroAtual?.role === "Lider";
 
     return (
         <div className="max-w-7xl mx-auto w-full pt-4 pb-24 px-4 animate-fade-in">
@@ -192,7 +196,7 @@ export default function SalaGrupoPage() {
                         </div>
 
                         <div className="flex items-center gap-2.5 shrink-0 w-full sm:w-auto justify-end">
-                            {isAdminOuLider && (
+                            {isLider && (
                                 <button 
                                   onClick={() => setIsEditando(true)}
                                   className="px-5 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl border flex items-center gap-2 transition-all duration-200 hover:scale-[1.01] active:scale-[0.99]"
