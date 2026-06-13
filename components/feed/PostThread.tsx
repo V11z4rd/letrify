@@ -5,6 +5,7 @@ import Link from "next/link";
 import ComentarioFilho from "./ComentarioFilho";
 import MenuTresPontinhos from "../ui/MenuTresPontinhos";
 import { BadgePremium } from "@/components/perfil/Premium";
+import BotaoCurtir from "@/components/ui/BotaoCurtir";
 import { 
   ChatBubbleLeftRightIcon, 
   UserGroupIcon, 
@@ -30,6 +31,10 @@ interface MensagemChat {
   GrupoId?: number | null;
   grupo_id?: number | null;
   grupo?: { id: number } | number | null;
+  totalCurtidas?: number;
+  TotalCurtidas?: number;
+  euCurti?: boolean;
+  EuCurti?: boolean;
 }
 
 interface PostThreadProps {
@@ -53,6 +58,9 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
   const isDonoDoPost = meuId === post.usuario.id;
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
   
+  const curtidasContagem = post.totalCurtidas ?? post.TotalCurtidas ?? 0;
+  const usuarioCurtiu = post.euCurti ?? post.EuCurti ?? false;
+
 
   useEffect(() => {
     console.log(`👤 Usuário do post ${post.id}:`, post.usuario);
@@ -273,18 +281,28 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
         </div>
       ) : null}
 
-      {/* SELETOR INDICADOR DE RESPOSTAS */}
-      <button 
-        onClick={() => setExpandido(!expandido)}
-        className="text-[10px] uppercase tracking-widest font-black flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all"
-        style={{ 
-          backgroundColor: expandido ? 'var(--cor-fundo-sidebar)' : 'transparent',
-          color: expandido ? 'var(--cor-primaria)' : 'var(--cor-texto-secundario)' 
-        }}
-      >
-        <ChatBubbleLeftRightIcon className="w-4 h-4 stroke-[2.5]" />
-        <span>{post.respostas?.length || 0} respostas</span>
-      </button>
+      <div className="flex items-center gap-3 mt-2">
+        {/* ✅ BOTÃO DE CURTIR ACOPLADO COM TIPO GLOBAL */}
+        <BotaoCurtir 
+          mensagemId={post.id}
+          curtidasIniciais={curtidasContagem}
+          jaCurtidoInicial={usuarioCurtiu}
+          tipoFeed="global"
+        />
+
+        {/* SELETOR INDICADOR DE RESPOSTAS */}
+        <button 
+          onClick={() => setExpandido(!expandido)}
+          className="text-[10px] uppercase tracking-widest font-black flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all"
+          style={{ 
+            backgroundColor: expandido ? 'var(--cor-fundo-sidebar)' : 'transparent',
+            color: expandido ? 'var(--cor-primaria)' : 'var(--cor-texto-secundario)' 
+          }}
+        >
+          <ChatBubbleLeftRightIcon className="w-4 h-4 stroke-[2.5]" />
+          <span>{post.respostas?.length || 0} respostas</span>
+        </button>
+      </div>
 
       {/* ÁREA EXPANDIDA */}
       {expandido && (

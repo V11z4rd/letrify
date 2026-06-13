@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { authService } from "@/app/lib/authService";
+import BotaoCurtir from "@/components/ui/BotaoCurtir";
 import { 
   ChatBubbleLeftRightIcon, 
   PaperAirplaneIcon, 
@@ -25,6 +26,10 @@ interface PostGrupo {
   dataCriacao: string;
   usuario: UsuarioAutor;
   postPaiId?: number | null; // Mapeado da API para suporte a respostas inline
+  totalCurtidas?: number;
+  TotalCurtidas?: number;
+  euCurti?: boolean;
+  EuCurti?: boolean;
 }
 
 interface FeedInternoProps {
@@ -221,6 +226,10 @@ export default function FeedInterno({ grupoId }: FeedInternoProps) {
 
             const podeDeletar = meuId === String(post.usuario.id);
 
+            // Mapeamento dinâmico resiliente para os dados de curtida do post do grupo
+            const curtidasContagem = post.totalCurtidas ?? post.TotalCurtidas ?? 0;
+            const usuarioCurtiu = post.euCurti ?? post.EuCurti ?? false;
+
             return (
               <div 
                 key={post.id} 
@@ -297,14 +306,28 @@ export default function FeedInterno({ grupoId }: FeedInternoProps) {
 
                 {/* RODAPÉ DO POST (Ações de Feedback) */}
                 <div className="pt-3 border-t flex flex-col gap-3 pl-1" style={{ borderColor: 'var(--cor-fundo-app)' }}>
-                  <button 
-                    onClick={() => setRespostaAtivaId(respostaAtivaId === post.id ? null : post.id)}
-                    className="text-[10px] font-black uppercase tracking-wider transition-colors flex items-center gap-1.5 opacity-60 hover:opacity-100"
-                    style={{ color: 'var(--cor-texto-principal)' }}
-                  >
-                    <ChatBubbleLeftRightIcon className="w-4 h-4 stroke-[2.5]" style={{ color: 'var(--cor-destaque)' }} />
-                    <span>{respostaAtivaId === post.id ? "Fechar Campo" : `Responder Discussão (${respostasDaThread.length})`}</span>
-                  </button>
+                  
+                  <div className="flex items-center gap-3">
+                    {/* ✅ BOTÃO DE CURTIR CONFIGURADO PARA O ECOSSISTEMA DO GRUPO */}
+                    <BotaoCurtir 
+                      mensagemId={post.id}
+                      curtidasIniciais={curtidasContagem}
+                      jaCurtidoInicial={usuarioCurtiu}
+                      tipoFeed="global"
+                      grupoId={grupoId}
+                    />
+
+                    {/* BOTÃO DE RESPONDER */}
+
+                    <button 
+                      onClick={() => setRespostaAtivaId(respostaAtivaId === post.id ? null : post.id)}
+                      className="text-[10px] font-black uppercase tracking-wider transition-colors flex items-center gap-1.5 opacity-60 hover:opacity-100"
+                      style={{ color: 'var(--cor-texto-principal)' }}
+                    >
+                      <ChatBubbleLeftRightIcon className="w-4 h-4 stroke-[2.5]" style={{ color: 'var(--cor-destaque)' }} />
+                      <span>{respostaAtivaId === post.id ? "Fechar Campo" : `Responder Discussão (${respostasDaThread.length})`}</span>
+                    </button>
+                  </div>
 
                   {/* CAMPO INLINE PARA COMPOSIÇÃO DE RESPOSTAS (THREAD) */}
                   {respostaAtivaId === post.id && (
