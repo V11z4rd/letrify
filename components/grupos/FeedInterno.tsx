@@ -3,6 +3,7 @@
 import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { authService } from "@/app/lib/authService";
+import { BadgePremium } from "@/components/perfil/Premium";
 import BotaoCurtir from "@/components/ui/BotaoCurtir";
 import { 
   ChatBubbleLeftRightIcon, 
@@ -18,12 +19,13 @@ interface UsuarioAutor {
   id: number;
   nome: string;
   fotoPerfil: string | null;
+  premium?: boolean;
 }
 
 interface PostGrupo {
   id: number;
   conteudo: string;
-  dataCriacao: string;
+  dataPostagem: string;
   usuario: UsuarioAutor;
   postPaiId?: number | null; // Mapeado da API para suporte a respostas inline
   totalCurtidas?: number;
@@ -64,6 +66,7 @@ export default function FeedInterno({ grupoId }: FeedInternoProps) {
 
       if (!resposta.ok) throw new Error("Falha ao carregar as discussões do clube.");
       const dados = await resposta.json();
+      console.log("👉 ESTRUTURA DE UM POST DO GRUPO:", dados[0]); // 👈 ADICIONE ESTA LINHA
       setPosts(dados);
     } catch (err: any) {
       setErro(err.message);
@@ -230,6 +233,9 @@ export default function FeedInterno({ grupoId }: FeedInternoProps) {
             const curtidasContagem = post.totalCurtidas ?? post.TotalCurtidas ?? 0;
             const usuarioCurtiu = post.euCurti ?? post.EuCurti ?? false;
 
+            const usuarioIsPremium = post.usuario?.premium === true;
+              
+
             return (
               <div 
                 key={post.id} 
@@ -249,16 +255,25 @@ export default function FeedInterno({ grupoId }: FeedInternoProps) {
                       ) : (
                         post.usuario.nome.charAt(0).toUpperCase()
                       )}
-                    </Link>
+                    </Link>                
+          
                     <div>
-                      <Link href={`/perfil?id=${post.usuario.id}`} className="font-extrabold text-sm transition-colors hover:underline" style={{ color: 'var(--cor-texto-principal)' }}>
-                        {post.usuario.nome}
-                      </Link>
+                      <div className="flex items-center gap-1.5">
+                        <Link href={`/perfil?id=${post.usuario.id}`} className="font-extrabold text-sm transition-colors hover:underline" style={{ color: 'var(--cor-texto-principal)' }}>
+                          {post.usuario.nome}
+                        </Link>
+
+                        {usuarioIsPremium && (
+                          <div className="scale-75 origin-left flex items-center shrink-0">
+                            <BadgePremium />
+                          </div>
+                        )}
+                      </div>
+
                       <div className="flex items-center gap-1 opacity-50 mt-0.5" style={{ color: 'var(--cor-texto-secundario)' }}>
                         <ClockIcon className="w-3 h-3 stroke-[2]" />
                         <span className="text-[9px] font-bold uppercase tracking-wider">
-                          {new Date(post.dataCriacao).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' })}
-                        </span>
+                          {post.dataPostagem ? new Date(post.dataPostagem).toLocaleString('pt-PT', { dateStyle: 'short', timeStyle: 'short' }) : "---"}                        </span>
                       </div>
                     </div>
                   </div>
@@ -289,7 +304,7 @@ export default function FeedInterno({ grupoId }: FeedInternoProps) {
                           <div className="flex items-center gap-1.5">
                             <span className="font-bold" style={{ color: 'var(--cor-texto-principal)' }}>{resp.usuario.nome}</span>
                             <span className="text-[9px] opacity-40 font-semibold">
-                              {new Date(resp.dataCriacao).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' })}
+                              {resp.dataPostagem ? new Date(resp.dataPostagem).toLocaleTimeString('pt-PT', { hour: '2-digit', minute: '2-digit' }) : "---"}
                             </span>
                           </div>
                           {String(resp.usuario.id) === meuId && (
@@ -306,15 +321,13 @@ export default function FeedInterno({ grupoId }: FeedInternoProps) {
 
                 {/* RODAPÉ DO POST (Ações de Feedback) */}
                 <div className="pt-3 border-t flex flex-col gap-3 pl-1" style={{ borderColor: 'var(--cor-fundo-app)' }}>
-                  
+                                  
                   <div className="flex items-center gap-3">
                     {/* ✅ BOTÃO DE CURTIR CONFIGURADO PARA O ECOSSISTEMA DO GRUPO */}
                     <BotaoCurtir 
                       mensagemId={post.id}
                       curtidasIniciais={curtidasContagem}
                       jaCurtidoInicial={usuarioCurtiu}
-                      tipoFeed="global"
-                      grupoId={grupoId}
                     />
 
                     {/* BOTÃO DE RESPONDER */}

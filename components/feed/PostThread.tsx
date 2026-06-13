@@ -225,7 +225,11 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
               </Link>
 
               {/* 💡 EXIBE O ÍCONE ALINHADO AO LADO DO NOME */}
-              {usuarioIsPremium && <BadgePremium />}
+              {usuarioIsPremium && (
+                <div className="scale-80 origin-left flex items-center shrink-0">
+                  <BadgePremium />
+                </div>
+              )}
             </div>
   
             <p className="text-[9px] uppercase tracking-wider font-bold opacity-40 mt-0.5" style={{ color: 'var(--cor-texto-principal)' }}>
@@ -287,7 +291,6 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
           mensagemId={post.id}
           curtidasIniciais={curtidasContagem}
           jaCurtidoInicial={usuarioCurtiu}
-          tipoFeed="global"
         />
 
         {/* SELETOR INDICADOR DE RESPOSTAS */}
