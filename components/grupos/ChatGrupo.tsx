@@ -8,6 +8,7 @@ import {
   PaperAirplaneIcon,
   ChatBubbleOvalLeftEllipsisIcon
 } from "@heroicons/react/24/outline";
+import BotaoChatBottom from "@/components/ui/BotaoChatBottom";
 
 interface MensagemGrupo {
   id: number;
@@ -28,21 +29,37 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
   const [mensagens, setMensagens] = useState<MensagemGrupo[]>([]);
   const [novaMensagem, setNovaMensagem] = useState("");
   const [meuId, setMeuId] = useState<number | null>(null);
+  const [alertaNovasMsg, setAlertaNovasMsg] = useState(false);
   
   // Guardamos o seu perfil assim que o histórico carrega para uso posterior
   const meuPerfilRef = useRef<{ id: number; nome: string; fotoPerfil: string | null } | null>(null);
   
+  const areaMensagensRef = useRef<HTMLDivElement>(null);
   const fimDoChatRef = useRef<HTMLDivElement>(null);
 
-  const rolarParaBaixo = () => {
+  const rolarParaBaixo = (behavior: "smooth" | "auto" = "smooth") => {
     setTimeout(() => {
-      fimDoChatRef.current?.scrollIntoView({ behavior: "smooth" });
+      fimDoChatRef.current?.scrollIntoView({ behavior });
+      setAlertaNovasMsg(false);
     }, 50);
   };
 
+  // Monitora a entrada de mensagens para decidir se desce a tela ou ativa o alerta de novas mensagens
   useEffect(() => {
-    rolarParaBaixo();
-  }, [mensagens.length]);
+    const container = areaMensagensRef.current;
+    if (!container) return;
+
+    const { scrollTop, scrollHeight, clientHeight } = container;
+    const restanteParaOFundo = scrollHeight - scrollTop - clientHeight;
+
+    // Se o usuário já estiver próximo do fim do chat (menos de 200px) ou for a carga inicial, rola para baixo automaticamente
+    if (restanteParaOFundo < 200 || mensagens.length <= 30) {
+      rolarParaBaixo("smooth");
+    } else {
+      // Se ele estiver lendo o histórico mais acima, ativa a bolinha de aviso no botão
+      setAlertaNovasMsg(true);
+    }
+  }, [mensagens]);
 
   useEffect(() => {
     const idAtual = authService.getUserId();
@@ -58,6 +75,9 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
           const hist = await res.json();
           const historicoOrdenado = Array.isArray(hist) ? hist.reverse() : [];
           setMensagens(historicoOrdenado);
+
+          // Força o chat a iniciar posicionado lá embaixo nas mensagens recentes
+          setTimeout(() => rolarParaBaixo("auto"), 100);
 
           // Salva os dados do seu próprio usuário baseado no histórico para blindar novos envios
           if (idAtual) {
@@ -151,6 +171,7 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
 
     // 1. Insere na tela instantaneamente
     setMensagens((prev) => [...prev, mensagemOtimista]);
+    rolarParaBaixo("smooth");
 
     try {
       const token = authService.getToken();
@@ -180,7 +201,7 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
 
   return (
     <div 
-      className="border rounded-2xl flex flex-col h-[600px] shadow-sm animate-fade-in transition-all"
+      className="relative border rounded-2xl flex flex-col h-[600px] shadow-sm animate-fade-in transition-all"
       style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
     >
       {/* CABEÇALHO */}
@@ -198,7 +219,10 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
       </div>
 
       {/* ÁREA DE MENSAGENS */}
-      <div className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5">
+      <div 
+        ref={areaMensagensRef}
+        className="flex-1 overflow-y-auto p-4 flex flex-col gap-3.5"
+      >
         {mensagens.length === 0 ? (
           <div className="flex-1 flex flex-col items-center justify-center text-center opacity-50">
             <ChatBubbleOvalLeftEllipsisIcon className="w-8 h-8 mb-2" style={{ color: 'var(--cor-destaque)' }} />
@@ -260,6 +284,13 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
         )}
         <div ref={fimDoChatRef} />
       </div>
+
+      {/* BOTÃO FLUTUANTE INJETADO DIRETAMENTE NO ESCOPO DO BOX DO CHAT */}
+      <BotaoChatBottom 
+        containerRef={areaMensagensRef}
+        temNovasMensagens={alertaNovasMsg}
+        onClick={() => rolarParaBaixo("smooth")}
+      />
 
       {/* ÁREA DE INPUT */}
       <div 

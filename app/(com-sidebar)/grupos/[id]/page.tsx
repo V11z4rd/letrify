@@ -8,6 +8,8 @@ import FeedInterno from "@/components/grupos/FeedInterno";
 import ChatGrupo from "@/components/grupos/ChatGrupo";
 import PainelAdminGrupo from "@/components/grupos/PainelAdminGrupo";
 import EditorGrupo from "@/components/grupos/EditorGrupo";
+import BotaoPostTop from "@/components/ui/BotaoPostTop";
+import BotaoFlutuanteCriarPost from "@/components/ui/BotaoFlutuanteCriarPost";
 import { 
   PencilSquareIcon, 
   ArrowPathIcon,
@@ -33,6 +35,9 @@ export default function SalaGrupoPage() {
 
     const [isEditando, setIsEditando] = useState(false);
     const [abaAtiva, setAbaAtiva] = useState<"feed" | "chat" | "membros" | string>("feed");
+
+    // 💡 Monitora novos posts específicos deste clube vindos do SignalR
+    const [novosPostsDisponiveis, setNovosPostsDisponiveis] = useState(false);
 
     const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
@@ -140,6 +145,36 @@ export default function SalaGrupoPage() {
         }
     };
 
+<<<<<<< Updated upstream
+=======
+
+
+    // Callback para disparar a atualização de lista do FeedInterno por eventos do Window
+    const recarregarFeedDoClube = () => {
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("atualizar_feed_interno"));
+        }
+    };
+
+
+
+    // Callback para disparar a atualização de lista do FeedInterno por eventos do Window
+    const recarregarFeedDoClube = () => {
+        if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("atualizar_feed_interno"));
+        }
+    };
+
+    if (carregando) {
+        return (
+            <div className="flex flex-col items-center justify-center min-h-[60vh]" style={{ color: 'var(--cor-texto-secundario)' }}>
+                <ArrowPathIcon className="w-8 h-8 animate-spin mb-3" style={{ color: 'var(--cor-primaria)' }} />
+                <p className="font-black text-xs tracking-widest uppercase">A abrir a sala do clube...</p>
+            </div>
+        );
+    }
+
+>>>>>>> Stashed changes
     if (erro || !grupo) {
         return (
             <div className="max-w-3xl mx-auto mt-12 p-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-center font-bold text-xs">
@@ -340,6 +375,26 @@ export default function SalaGrupoPage() {
                             />
                         </div>
                     )}
+                </div>
+            )}
+
+            {/* 🚀 HUB DE ELEMENTOS FLUTUANTES COORDENADOS (Apenas visível se for membro e estiver na aba de feed) */}
+            {isMembro && abaAtiva === "feed" && !isEditando && (
+                <div className="fixed bottom-6 right-6 flex flex-col gap-4 z-50 pointer-events-none">
+                    
+                    {/* 1. Botão de subir (Renderiza acima por causa da ordem do flex-col) */}
+                    <div className="pointer-events-auto">
+                        <BotaoPostTop
+                            temNovosPosts={novosPostsDisponiveis} 
+                            onLimparAlerta={() => setNovosPostsDisponiveis(false)} 
+                        />
+                    </div>
+
+                    {/* 2. Botão Flutuante de Criar Post Interno no Clube */}
+                    <div className="pointer-events-auto">
+                        <BotaoFlutuanteCriarPost onPostCreated={recarregarFeedDoClube} grupoId={grupo.id} />
+                    </div>
+
                 </div>
             )}
         </div>

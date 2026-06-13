@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import Link from "next/link";
 import { authService } from "@/app/lib/authService";
 import { 
@@ -45,7 +45,7 @@ export default function FeedInterno({ grupoId }: FeedInternoProps) {
 
   const meuId = authService.getUserId();
 
-  const carregarPosts = async () => {
+  const carregarPosts = useCallback(async () => {
     setCarregando(true);
     setErro(null);
     try {
@@ -65,11 +65,25 @@ export default function FeedInterno({ grupoId }: FeedInternoProps) {
     } finally {
       setCarregando(false);
     }
-  };
+  }, [grupoId]);
 
+  // 1. Dispara o carregamento inicial ao entrar na tela ou mudar de grupo
   useEffect(() => {
     carregarPosts();
-  }, [grupoId]);
+  }, [carregarPosts]);
+
+  // 2. Escuta o evento global do botão flutuante e atualiza instantaneamente
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      window.addEventListener("atualizar_feed_interno", carregarPosts);
+    }
+
+    return () => {
+      if (typeof window !== "undefined") {
+        window.removeEventListener("atualizar_feed_interno", carregarPosts);
+      }
+    };
+  }, [carregarPosts]);
 
   const handlePublicar = async (e: React.FormEvent, postPaiId: number | null = null) => {
     e.preventDefault();

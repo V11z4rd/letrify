@@ -5,6 +5,8 @@ import { signalRService } from "@/app/lib/signalrService";
 import { authService } from "@/app/lib/authService";
 import BotaoCriarPost from "@/components/feed/BotaoCriarPost";
 import PostThread from "@/components/feed/PostThread";
+import BotaoPostTop from "@/components/ui/BotaoPostTop";
+import BotaoFlutuanteCriarPost from "@/components/ui/BotaoFlutuanteCriarPost";
 
 interface UsuarioChat {
   id: number;
@@ -26,6 +28,9 @@ export default function FeedPage() {
   const [mensagens, setMensagens] = useState<MensagemChat[]>([]);
   const [carregando, setCarregando] = useState(true);
   const [meuId, setMeuId] = useState<number | null>(null);
+
+  // 💡 Estado para monitorar se existem posts não lidos acima do scroll atual
+  const [novosPostsDisponiveis, setNovosPostsDisponiveis] = useState(false);
 
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
@@ -72,9 +77,6 @@ export default function FeedPage() {
 
     carregarHistorico();
 
-    // Conecta ao SignalR Hub
-    signalRService.iniciarConexao(token);
-
     // OUVINTE A: Nova Mensagem ou Resposta
     signalRService.iniciarConexao(token).catch(() => {});
 
@@ -82,6 +84,18 @@ export default function FeedPage() {
       setMensagens((estadoAnterior) => {
         if (!novaMensagem.mensagemPaiId) {
           if (estadoAnterior.some(m => m.id === novaMensagem.id)) return estadoAnterior;
+
+          // 💡 UX Inteligente de Scroll:
+          // Se o usuário está lendo algo lá embaixo, não joga a tela dele para cima. Ativa o alerta do botão.
+          if (typeof window !== "undefined" && window.scrollY > 150) {
+            setNovosPostsDisponiveis(true);
+          } else if (typeof window !== "undefined") {
+            // Se ele já está no topo, rola sutilmente para acomodar o novo post sem quebra brusca
+            setTimeout(() => {
+              window.scrollTo({ top: 0, behavior: "smooth" });
+            }, 100);
+          }
+
           const mensagemFormatada = { ...novaMensagem, respostas: [] };
           return [mensagemFormatada, ...estadoAnterior];
         }
@@ -161,6 +175,24 @@ export default function FeedPage() {
             />
           ))
         )}
+      </div>
+
+      {/* 🚀 HUB DE ELEMENTOS FIXOS/FLUTUANTES COORDENADOS */}
+      <div className="fixed bottom-6 right-6 flex flex-col gap-4 z-50 pointer-events-none">
+        
+        {/* 1. Botão de subir (Rederiza em cima porque vem primeiro no fluxo do flex col) */}
+        <div className="pointer-events-auto">
+          <BotaoPostTop
+            temNovosPosts={novosPostsDisponiveis} 
+            onLimparAlerta={() => setNovosPostsDisponiveis(false)} 
+          />
+        </div>
+
+        {/* 2. Botão de abrir o Editor de Post */}
+        <div className="pointer-events-auto">
+          <BotaoFlutuanteCriarPost onPostCreated={carregarHistorico} />
+        </div>
+
       </div>
     </div>
   );
