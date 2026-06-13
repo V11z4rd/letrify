@@ -145,19 +145,6 @@ export default function SalaGrupoPage() {
         }
     };
 
-<<<<<<< Updated upstream
-=======
-
-
-    // Callback para disparar a atualização de lista do FeedInterno por eventos do Window
-    const recarregarFeedDoClube = () => {
-        if (typeof window !== "undefined") {
-            window.dispatchEvent(new CustomEvent("atualizar_feed_interno"));
-        }
-    };
-
-
-
     // Callback para disparar a atualização de lista do FeedInterno por eventos do Window
     const recarregarFeedDoClube = () => {
         if (typeof window !== "undefined") {
@@ -174,7 +161,6 @@ export default function SalaGrupoPage() {
         );
     }
 
->>>>>>> Stashed changes
     if (erro || !grupo) {
         return (
             <div className="max-w-3xl mx-auto mt-12 p-6 rounded-2xl bg-red-500/10 border border-red-500/20 text-red-500 text-center font-bold text-xs">
