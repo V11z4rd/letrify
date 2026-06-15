@@ -46,7 +46,7 @@ export default function Sidebar() {
       {/* SIDEBAR DESKTOP (Invisível no Mobile)      */}
       {/* ========================================== */}
       <aside 
-        className="hidden md:flex w-24 border-r border-gray-300 dark:border-gray-800 sticky top-0 self-start flex-col items-center py-8 min-h-screen justify-between transition-colors duration-300" 
+        className="hidden md:flex w-24 border-r border-gray-300 dark:border-gray-800 sticky top-0 self-start flex-col items-center py-8 min-h-screen justify-between transition-colors duration-300 z-50" 
         style={{ 
           backgroundColor: 'var(--cor-fundo-sidebar)', 
           color: 'var(--cor-texto-sidebar)' 
