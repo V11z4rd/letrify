@@ -22,10 +22,10 @@ export default function BotaoFlutuanteCriarPost({ onPostCreated, grupoId }: Bota
   return (
     <>
       {/* 🚀 BOTÃO FLUTUANTE (Fixo no canto inferior direito) */}
-      <button
+     <button
         onClick={() => setModalAberto(true)}
         aria-label="Criar nova publicação"
-        className="p-3.5 rounded-full border shadow-xl transition-all duration-300 hover:scale-110 active:scale-90 flex items-center justify-center group"
+        className="fixed bottom-20 md:bottom-6 right-4 md:right-6 p-3.5 rounded-full border shadow-xl transition-all duration-300 hover:scale-110 active:scale-90 flex items-center justify-center group z-40 pointer-events-auto"
         style={{
           backgroundColor: "var(--cor-destaque)",
           borderColor: "var(--cor-destaque)",
@@ -36,7 +36,11 @@ export default function BotaoFlutuanteCriarPost({ onPostCreated, grupoId }: Bota
 
       {/* 🏙️ OVERLAY MODAL (Aparece ao clicar no botão) */}
       {modalAberto && (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in" onClick={fecharModal}>
+        <div 
+          /* 👇 CLASSE EDITADA: Adicionado pointer-events-auto e garantido o z-50 */
+          className="fixed inset-0 bg-black/60 backdrop-blur-xs z-50 flex items-center justify-center p-4 animate-fade-in pointer-events-auto" 
+          onClick={fecharModal}
+        >
           <div 
             className="w-full max-w-xl rounded-3xl p-2 relative shadow-2xl animate-scale-up"
             onClick={(e) => e.stopPropagation()} // Impede o fechamento ao clicar dentro do editor
@@ -50,9 +54,12 @@ export default function BotaoFlutuanteCriarPost({ onPostCreated, grupoId }: Bota
               <XMarkIcon className="w-5 h-5 stroke-[2.5]" />
             </button>
 
-            {/* Reutilização total da sua estrutura e lógica de criação original */}
-            <div className="pt-4">
-              <BotaoCriarPost onPostCreated={tratarSucessoPost} grupoIdContexto={grupoId} />
+            {/* Reutilização total da sua estrutura e lógica de criação */}
+            <div className="bg-[var(--cor-fundo-card)] rounded-2xl p-4">
+              <BotaoCriarPost 
+                onPostCreated={tratarSucessoPost}
+                grupoIdContexto={grupoId}
+              />
             </div>
           </div>
         </div>

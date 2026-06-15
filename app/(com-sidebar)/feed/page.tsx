@@ -178,21 +178,12 @@ export default function FeedPage() {
       </div>
 
       {/* 🚀 HUB DE ELEMENTOS FIXOS/FLUTUANTES COORDENADOS */}
-      <div className="fixed bottom-6 right-6 flex flex-col gap-4 z-50 pointer-events-none">
-        
-        {/* 1. Botão de subir (Rederiza em cima porque vem primeiro no fluxo do flex col) */}
-        <div className="pointer-events-auto">
-          <BotaoPostTop
-            temNovosPosts={novosPostsDisponiveis} 
-            onLimparAlerta={() => setNovosPostsDisponiveis(false)} 
-          />
-        </div>
-
-        {/* 2. Botão de abrir o Editor de Post */}
-        <div className="pointer-events-auto">
-          <BotaoFlutuanteCriarPost onPostCreated={carregarHistorico} />
-        </div>
-
+      <div className="z-40 pointer-events-none">
+        <BotaoPostTop
+          temNovosPosts={novosPostsDisponiveis} 
+          onLimparAlerta={() => setNovosPostsDisponiveis(false)}
+        />
+        <BotaoFlutuanteCriarPost onPostCreated={carregarHistorico} />
       </div>
     </div>
   );
