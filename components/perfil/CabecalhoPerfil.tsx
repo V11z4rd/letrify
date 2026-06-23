@@ -1,5 +1,6 @@
 "use client";
 import { useState, useEffect } from "react";
+import Link from "next/link";
 import EditorPerfil from "./EditorPerfil";
 import { CheckBadgeIcon } from "@heroicons/react/24/solid";
 import { authService } from "@/app/lib/authService";
@@ -33,7 +34,9 @@ export function SkeletonCabecalho() {
   );
 }
 
+// 👇 1. Adicionamos o userId na Interface
 interface CabecalhoProps {
+  userId?: string | number; 
   nome: string;
   cidade: string;
   descricao: string;
@@ -50,6 +53,7 @@ interface CabecalhoProps {
 }
 
 export default function CabecalhoPerfil({
+  userId, // 👇 2. Recebemos o userId aqui
   nome: initialNome,
   cidade: initialCidade,
   descricao: initialDescricao,
@@ -92,7 +96,7 @@ export default function CabecalhoPerfil({
       descricao: initialDescricao,
       fotoPerfil: initialFoto,
       bannerUrl: initialBanner,
-      isPremium: isPremium // Garante que a atualização externa reflita aqui
+      isPremium: isPremium
     }));
   }, [initialNome, initialCidade, initialDescricao, initialFoto, initialBanner, isPremium]);
 
@@ -127,7 +131,6 @@ export default function CabecalhoPerfil({
         formData.append("foto", novosDados.fotoPerfil);
       }
 
-      // Corrigido para utilizar a variável dinâmica global BASE_URL
       const resposta = await fetch(`${BASE_URL}/usuario/editar`, {
         method: "PUT",
         headers: { "Authorization": `Bearer ${token}` },
@@ -201,7 +204,6 @@ export default function CabecalhoPerfil({
                 <div className="flex flex-col sm:flex-row justify-between items-center sm:items-start md:items-center gap-4">
                   <h1 className="text-3xl font-black tracking-tight flex items-center" style={{ color: 'var(--cor-texto-principal)' }}>
                     {dadosPerfil.nome}
-                    {/* Se o objeto usuário vier com 'isPremium: true' */}
                     {dadosPerfil.isPremium && <BadgePremium />}
                   </h1>
               
@@ -219,27 +221,45 @@ export default function CabecalhoPerfil({
                       <span>Editar Perfil</span>
                     </button>
                   ) : (
-                    <button 
-                      onClick={handleBotaoSeguir} 
-                      className="px-7 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl shadow-md flex items-center gap-2 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
-                      style={{ 
-                        backgroundColor: seguindo ? 'var(--cor-fundo-sidebar)' : 'var(--cor-destaque)', 
-                        color: seguindo ? 'var(--cor-texto-secundario)' : '#ffffff',
-                        border: seguindo ? '1px solid var(--cor-fundo-sidebar)' : 'none'
-                      }}
-                    >
-                      {seguindo ? (
-                        <>
-                          <CheckIcon className="w-3.5 h-3.5 stroke-[3]" />
-                          <span>Seguindo</span>
-                        </>
-                      ) : (
-                        <>
-                          <UserPlusIcon className="w-3.5 h-3.5 stroke-[3]" />
-                          <span>Seguir</span>
-                        </>
+                    // 👇 3. Agrupamos Seguir e Mensagem apenas para Visitantes
+                    <div className="flex flex-row items-center gap-2">
+                      <button 
+                        onClick={handleBotaoSeguir} 
+                        className="px-7 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl shadow-md flex items-center justify-center gap-2 transition-all duration-200 hover:scale-[1.02] active:scale-[0.98]"
+                        style={{ 
+                          backgroundColor: seguindo ? 'var(--cor-fundo-sidebar)' : 'var(--cor-destaque)', 
+                          color: seguindo ? 'var(--cor-texto-secundario)' : '#ffffff',
+                          border: seguindo ? '1px solid var(--cor-fundo-sidebar)' : 'none'
+                        }}
+                      >
+                        {seguindo ? (
+                          <>
+                            <CheckIcon className="w-3.5 h-3.5 stroke-[3]" />
+                            <span>Seguindo</span>
+                          </>
+                        ) : (
+                          <>
+                            <UserPlusIcon className="w-3.5 h-3.5 stroke-[3]" />
+                            <span>Seguir</span>
+                          </>
+                        )}
+                      </button>
+
+                      {/* 👇 O botão de DM agora usa o userId com segurança */}
+                      {userId && (
+                        <Link
+                          href={`/mensagens?id=${userId}`}
+                          className="px-4 py-2.5 text-xs font-black uppercase tracking-wider rounded-xl transition-all border active:scale-95 flex items-center justify-center"
+                          style={{
+                            backgroundColor: "transparent",
+                            color: "var(--cor-texto-principal)",
+                            borderColor: "var(--cor-fundo-sidebar)"
+                          }}
+                        >
+                          Mensagem
+                        </Link>
                       )}
-                    </button>
+                    </div>
                   )}
                 </div>
 

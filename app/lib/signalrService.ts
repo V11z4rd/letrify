@@ -24,51 +24,37 @@ class SignalRService {
         skipNegotiation: false // Mantido false para o fallback funcionar no ambiente do Fly.io
       })
       .withAutomaticReconnect([0, 2000, 5000, 10000]) // Intervalos de reconexão inteligentes
-      .configureLogging(signalR.LogLevel.Warning) // Evita poluir o console com erros de cancelamento normais
+      .configureLogging(signalR.LogLevel.Warning) // Silencia os logs de "Information" e "Debug"
       .build();
 
-    return this.connection.start()
-      .then(() => {
-        console.log("🔥 [SignalR] Conectado com sucesso ao Chat Global!");
-      })
-      .catch((erro) => {
-        // Se for um erro de cancelamento por desmontagem do componente, silencia
-        if (erro.toString().includes("stopped during negotiation")) {
-          return;
-        }
-        console.error("🚨 [SignalR] Erro ao conectar:", erro);
-        throw erro;
-      });
+    return this.connection.start().catch(err => {
+      console.error("🚨 [SignalR] Erro fatal ao conectar:", err);
+    });
   }
 
   public pararConexao() {
     if (this.connection) {
-      // Verifica se está em um estado que permite parada estável
-      if (this.connection.state !== signalR.HubConnectionState.Disconnected) {
-        this.connection.stop();
-        console.log("🛑 [SignalR] Conexão encerrada de forma limpa.");
-      }
+      this.connection.stop();
       this.connection = null;
     }
   }
 
-  public async entrarNoGrupo(grupoId: number) {
+  public async entrarSalaGrupo(grupoId: number) {
     if (this.connection && this.connection.state === signalR.HubConnectionState.Connected) {
       try {
         await this.connection.invoke("entrarSalaGrupo", grupoId.toString());
-        console.log(`📡 [SignalR] Entrou na sala do Grupo ${grupoId} (camelCase)`);
       } catch (err) {
+        // Fallback para PascalCase caso o C# esteja exigindo
         try {
           await this.connection.invoke("EntrarSalaGrupo", grupoId.toString());
-          console.log(`📡 [SignalR] Entrou na sala do Grupo ${grupoId} (PascalCase)`);
         } catch (innerErr) {
-          console.error("🚨 [SignalR] Falha total ao invocar entrada na sala:", innerErr);
+          console.error("🚨 [SignalR] Erro ao entrar na sala:", innerErr);
         }
       }
     }
   }
 
-  public async sairDoGrupo(grupoId: number) {
+  public async sairSalaGrupo(grupoId: number) {
     if (this.connection && this.connection.state === signalR.HubConnectionState.Connected) {
       try {
         await this.connection.invoke("sairSalaGrupo", grupoId.toString());
@@ -106,6 +92,15 @@ class SignalRService {
       this.connection.off("mensagemDeletada");
       this.connection.on("MensagemDeletada", callback);
       this.connection.on("mensagemDeletada", callback);
+    }
+  }
+
+  public onReceberMensagemDireta(callback: (mensagem: any) => void) {
+    if (this.connection) {
+      this.connection.off("ReceberMensagemDireta");
+      this.connection.off("receberMensagemDireta");
+      this.connection.on("ReceberMensagemDireta", callback);
+      this.connection.on("receberMensagemDireta", callback);
     }
   }
 }

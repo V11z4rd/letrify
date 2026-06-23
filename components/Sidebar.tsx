@@ -3,6 +3,7 @@
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import NotificacaoIcone from './ui/NotificacaoIcone'; 
+import ChatIcone from './ui/ChatIcone';
 
 import { 
   HomeIcon as HomeOutline, 
@@ -64,6 +65,7 @@ export default function Sidebar() {
           <Link href="/estante" title="Estante" className="group">{renderIcon('/estante', BookSolid, BookOutline)}</Link>
           <Link href="/Premium" title="Seja Premium" className="group">{renderIcon('/Premium', SparklesSolid, SparklesOutline)}</Link>
           <NotificacaoIcone />
+          <ChatIcone />
           <Link href="/perfil" title="Meu Perfil" className="group">{renderIcon('/perfil', UserSolid, UserOutline)}</Link>
         </nav>
 
@@ -88,11 +90,13 @@ export default function Sidebar() {
         </Link>
 
         <div className="flex items-center gap-4">
+          <ChatIcone />
           <NotificacaoIcone />
           <Link href="/conta" title="Configurações" className="p-1 active:scale-95 transition-transform">
             {renderIcon('/conta', CogSolid, CogOutline)}
           </Link>
         </div>
+
       </header>
 
       {/* ========================================== */}

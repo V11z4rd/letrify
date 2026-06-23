@@ -163,6 +163,7 @@ function ConteudoDoPerfil() {
       )}
 
       <CabecalhoPerfil
+        userId={idParaBuscar || ""} 
         nome={perfilMapeado.nome}
         cidade={perfilMapeado.cidade}
         descricao={perfilMapeado.descricao}
