@@ -275,7 +275,7 @@ export default function AbasDestaque({ perfil, isDonoDoPerfil = false, isPremium
                   Acompanhe a sua rotina de leitura e construa uma sequência implacável de dias lidos.
                 </p>
                 <Link 
-                  href="/conta/metas"
+                  href="/metas"
                   className="px-6 py-3 text-xs font-black uppercase tracking-widest rounded-xl shadow-lg transition-transform hover:scale-105 active:scale-95"
                   style={{ backgroundColor: 'var(--cor-destaque)', color: 'white' }}
                 >
