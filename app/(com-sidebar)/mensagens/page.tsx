@@ -1,6 +1,7 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+// 👇 1. Importamos o Suspense do React
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useSearchParams, useRouter } from "next/navigation";
 import { dmService, ConversaResumo, MensagemDireta } from "@/app/lib/dmService";
 import { authService } from "@/app/lib/authService";
@@ -12,7 +13,8 @@ import {
   ArrowPathIcon
 } from "@heroicons/react/24/outline";
 
-export default function MensagensPage() {
+// 👇 2. Mudamos o nome da função principal de 'MensagensPage' para 'MensagensConteudo'
+function MensagensConteudo() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const idInicial = searchParams.get("id"); 
@@ -30,18 +32,14 @@ export default function MensagensPage() {
 
   const mensagensEndRef = useRef<HTMLDivElement>(null);
 
-  // 👇 MÁGICA 1: Normalizador de conversas (Protege contra letras maiúsculas/minúsculas do C#)
   const normalizarConversa = (c: any): ConversaResumo => {
     const outroObj = c.outroUsuario ?? c.OutroUsuario ?? {};
-    
-    // Captura a última mensagem (string ou objeto)
     const msgUltimaRaw = c.ultimaMensagem ?? c.UltimaMensagem;
     const textoUltimaMsg = typeof msgUltimaRaw === 'object' && msgUltimaRaw !== null
         ? (msgUltimaRaw.conteudo ?? msgUltimaRaw.Conteudo ?? "") 
         : (msgUltimaRaw || "");
 
     return {
-      // O C# retorna c.Id para identificar a conversa!
       conversaId: c.id ?? c.Id ?? c.conversaId ?? c.ConversaId ?? 0,
       outroUsuario: {
         id: outroObj.id ?? outroObj.Id ?? 0,
@@ -55,7 +53,6 @@ export default function MensagensPage() {
   };
 
   const normalizarMensagem = (m: any): MensagemDireta => {
-    // Captura o remetente tanto do GET (RemetenteId) quanto do SignalR (Remetente: { Id })
     const remetenteObj = m.remetente ?? m.Remetente ?? {};
     const remetenteIdReal = m.remetenteId ?? m.RemetenteId ?? remetenteObj.id ?? remetenteObj.Id ?? 0;
 
@@ -72,7 +69,6 @@ export default function MensagensPage() {
   const carregarConversas = async () => {
     try {
       const dados = await dmService.listarConversas();
-      // Aplica a normalização imediatamente
       const conversasLimpas = dados.map(normalizarConversa);
       setConversas(conversasLimpas);
       
@@ -100,7 +96,6 @@ export default function MensagensPage() {
   useEffect(() => {
     carregarConversas();
     
-    // Escuta SignalR
     signalRService.onReceberMensagemDireta((novaMsgRaw: any) => {
       const novaMsg = normalizarMensagem(novaMsgRaw);
       
@@ -170,20 +165,17 @@ export default function MensagensPage() {
     if (!texto.trim() || !conversaAtiva || enviando) return;
 
     setEnviando(true);
-    // Salva o texto antes de limpar o input
     const textoEnviado = texto.trim(); 
     setTexto("");
 
     try {
-      // A API devolve: { mensagem: "Mensagem enviada!", conversaId: X, mensagemId: Y }
       const respostaApiRaw = await dmService.enviarMensagem(conversaAtiva.outroUsuario.id, textoEnviado);
       
-      // Montamos a mensagem manualmente para desenhar na tela imediatamente!
       const msgEnviada: MensagemDireta = {
         id: respostaApiRaw.mensagemId ?? respostaApiRaw.MensagemId ?? Date.now(),
         remetenteId: meuId,
         destinatarioId: conversaAtiva.outroUsuario.id,
-        conteudo: textoEnviado, // Colocamos o texto aqui!
+        conteudo: textoEnviado,
         dataEnvio: new Date().toISOString(),
         lida: false
       };
@@ -205,7 +197,6 @@ export default function MensagensPage() {
         return novas;
       });
       
-      // Atualiza o ID da conversa se for um chat totalmente novo
       if (conversaAtiva.conversaId === 0) {
          const novoId = respostaApiRaw.conversaId ?? respostaApiRaw.ConversaId;
          setConversaAtiva(prev => prev ? { ...prev, conversaId: novoId } : prev);
@@ -213,7 +204,6 @@ export default function MensagensPage() {
       }
     } catch (error: any) {
       alert(error.message); 
-      // Se deu erro (ex: não seguem mutuamente), devolve o texto para o input
       setTexto(textoEnviado);
     } finally {
       setEnviando(false);
@@ -223,9 +213,6 @@ export default function MensagensPage() {
   return (
     <div className="max-w-6xl mx-auto w-full h-[calc(100vh-140px)] md:h-[calc(100vh-80px)] flex border rounded-3xl overflow-hidden shadow-sm bg-[var(--cor-fundo-card)]" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
       
-      {/* 1. LATERAL: LISTA DE CONVERSAS 
-          No telemóvel: Mostra se NÃO houver conversa ativa. Esconde se houver.
-          No Desktop (md:): Mostra sempre. */}
       <div 
         className={`${conversaAtiva ? 'hidden md:flex' : 'flex'} w-full md:w-1/3 flex-col border-r h-full transition-all`} 
         style={{ borderColor: 'var(--cor-fundo-sidebar)' }}
@@ -242,7 +229,7 @@ export default function MensagensPage() {
           ) : (
             conversas.map(chat => (
               <button
-                key={`user-${chat.outroUsuario.id}`} // 👈 Chave TS perfeita e segura!
+                key={`user-${chat.outroUsuario.id}`}
                 onClick={() => setConversaAtiva(chat)}
                 className={`w-full p-4 flex items-center gap-3 border-b text-left transition-colors hover:bg-black/5 dark:hover:bg-white/5 ${conversaAtiva?.outroUsuario.id === chat.outroUsuario.id ? 'bg-black/5 dark:bg-white/5' : ''}`}
                 style={{ borderColor: 'var(--cor-fundo-sidebar)' }}
@@ -271,17 +258,12 @@ export default function MensagensPage() {
         </div>
       </div>
 
-      {/* 2. ÁREA CENTRAL: O CHAT ATIVO 
-          No telemóvel: Esconde se NÃO houver conversa ativa. Mostra se houver.
-          No Desktop (md:): Mostra sempre. */}
       <div 
         className={`${!conversaAtiva ? 'hidden md:flex' : 'flex'} w-full md:w-2/3 flex-col h-full bg-black/[0.02] dark:bg-white/[0.02]`}
       >
         {conversaAtiva ? (
           <>
-            {/* Header do Chat Ativo */}
             <div className="p-4 border-b flex items-center gap-3 shrink-0 bg-[var(--cor-fundo-card)] z-10 shadow-sm" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-              {/* 👇 Botão de voltar exclusivo para o Mobile (md:hidden) */}
               <button 
                 onClick={() => setConversaAtiva(null)} 
                 className="md:hidden p-2 -ml-2 rounded-full hover:bg-black/10 active:scale-95"
@@ -297,7 +279,6 @@ export default function MensagensPage() {
               <span className="font-black text-lg" style={{ color: 'var(--cor-texto-principal)' }}>{conversaAtiva.outroUsuario.nome}</span>
             </div>
 
-            {/* Feed de Balões de Mensagens */}
             <div className="flex-1 overflow-y-auto p-4 space-y-3">
               {carregandoMensagens ? (
                 <div className="flex justify-center p-8 opacity-50"><ArrowPathIcon className="w-6 h-6 animate-spin" /></div>
@@ -325,7 +306,6 @@ export default function MensagensPage() {
               )}
             </div>
 
-            {/* Input Footer */}
             <form onSubmit={handleEnviar} className="p-3 sm:p-4 border-t shrink-0 flex gap-2" style={{ borderColor: 'var(--cor-fundo-sidebar)', backgroundColor: 'var(--cor-fundo-card)' }}>
               <input 
                 type="text"
@@ -346,7 +326,6 @@ export default function MensagensPage() {
             </form>
           </>
         ) : (
-          /* Blank State (Ecrã Inicial no Desktop) */
           <div className="flex-1 flex flex-col items-center justify-center opacity-40">
             <PaperAirplaneIcon className="w-20 h-20 mb-4 stroke-[1]" />
             <h3 className="text-2xl font-black tracking-tight">Suas Mensagens</h3>
@@ -355,5 +334,18 @@ export default function MensagensPage() {
         )}
       </div>
     </div>
+  );
+}
+
+// 👇 3. CRIAMOS O EXPORT DEFAULT COM O SUSPENSE ENVOLVENDO TUDO 👇
+export default function MensagensPage() {
+  return (
+    <Suspense fallback={
+      <div className="flex h-full w-full items-center justify-center min-h-[400px]">
+        <ArrowPathIcon className="w-8 h-8 animate-spin opacity-50" style={{ color: 'var(--cor-destaque)' }} />
+      </div>
+    }>
+      <MensagensConteudo />
+    </Suspense>
   );
 }
