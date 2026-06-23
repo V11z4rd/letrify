@@ -4,6 +4,7 @@ import Link from "next/link";
 import { usePathname } from "next/navigation";
 import { 
   UserIcon, 
+  FireIcon,
   ShieldCheckIcon, 
   PaintBrushIcon, 
   BellIcon, 
@@ -16,6 +17,7 @@ export default function ConfiguracoesLayout({ children }: { children: React.Reac
 
   const linksNavegacao = [
     { href: "/conta", rotulo: "Conta", icone: UserIcon },
+    { href: "/metas", rotulo: "Metas", icone: FireIcon },
     { href: "/privacidade", rotulo: "Privacidade", icone: ShieldCheckIcon },
     { href: "/personalizacao", rotulo: "Personalização", icone: PaintBrushIcon },
     { href: "/notificacoes", rotulo: "Notificações", icone: BellIcon },

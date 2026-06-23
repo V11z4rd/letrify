@@ -78,17 +78,15 @@ export const NotificacoesProvider = ({ children }: { children: ReactNode }) => {
         
         const newConnection = new HubConnectionBuilder()
             .withUrl(SIGNALR_HUB_URL, { accessTokenFactory: () => token || '' })
-            .configureLogging(LogLevel.Information)
+            .configureLogging(LogLevel.Warning) // Alterado para Warning para silenciar logs excessivos
             .build();
 
         setConnection(newConnection);
 
         return () => {
-            if (newConnection.state !== 'Disconnected') {
-                newConnection.stop()
-                    .then(() => console.log('Desconectado do SignalR.'))
-                    .catch(e => console.error("Erro ao desconectar:", e));
-            }
+            // Como o React Strict Mode monta e desmonta rapidamente, 
+            // este catch invisível absorve o erro de tentar parar uma conexão em andamento.
+            newConnection.stop().catch(() => {});
         };
     }, []);
 

@@ -101,7 +101,7 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
     if (token) {
       signalRService.iniciarConexao(token)
         .then(() => {
-          signalRService.entrarNoGrupo(grupoId);
+          signalRService.entrarSalaGrupo(grupoId);
 
           const lidarComMensagemEntrada = (msgRecebida: any) => {
             if (!msgRecebida || (!msgRecebida.conteudo && !msgRecebida.texto)) return;
@@ -144,7 +144,7 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
     }
 
     return () => {
-      signalRService.sairDoGrupo(grupoId);
+      signalRService.sairSalaGrupo(grupoId);
     };
   }, [grupoId, meuId]);
 
