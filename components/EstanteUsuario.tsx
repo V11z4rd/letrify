@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { useSearchParams } from "next/navigation";
 import { authService } from "@/app/lib/authService";
 import CardLivro, { LivroDados } from "@/components/CardLivro";
@@ -44,56 +44,57 @@ export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
     else setFiltroAtivo("Todos");
   }, [searchParams]);
 
-  useEffect(() => {
-    const buscarEstante = async () => {
-      setCarregando(true);
-      setErro("");
+  // 1. ISOLAMOS A FUNÇÃO DE BUSCA E ENVOLVEMOS EM USECALLBACK PARA EVITAR LOOPS
+  const buscarEstante = useCallback(async () => {
+    setCarregando(true);
+    setErro("");
 
-      try {
-        const token = authService.getToken();
-        const idFinal = userId || authService.getUserId();
+    try {
+      const token = authService.getToken();
+      const idFinal = userId || authService.getUserId();
 
-        if (!idFinal) {
-          console.error("Nenhum ID de usuário encontrado para buscar a estante.");
-          return;
-        }
-
-        if (!token && !userId) {
-          throw new Error("Você precisa estar logado para ver sua estante.");
-        }
-
-        const resposta = await fetch(`${BASE_URL}/usuario/${idFinal}/livros`, {
-          headers: {
-            "Authorization": token ? `Bearer ${token}` : ""
-          }
-        });
-
-        if (!resposta.ok) {
-          if (resposta.status === 403) throw new Error("Esta estante é privada.");
-          throw new Error("Erro ao carregar estante");
-        }
-
-        const dados = await resposta.json();
-        setEstante({
-          lendo: dados.lendo || [],
-          lido: dados.lido || [],
-          queroLer: dados.queroLer || []
-        });
-
-      } catch (err: any) {
-        setErro(err.message);
-      } finally {
-        setCarregando(false);
+      if (!idFinal) {
+        console.error("Nenhum ID de usuário encontrado para buscar a estante.");
+        return;
       }
-    };
 
+      if (!token && !userId) {
+        throw new Error("Você precisa estar logado para ver sua estante.");
+      }
+
+      const resposta = await fetch(`${BASE_URL}/usuario/${idFinal}/livros`, {
+        headers: {
+          "Authorization": token ? `Bearer ${token}` : ""
+        }
+      });
+
+      if (!resposta.ok) {
+        if (resposta.status === 403) throw new Error("Esta estante é privada.");
+        throw new Error("Erro ao carregar estante");
+      }
+
+      const dados = await resposta.json();
+      setEstante({
+        lendo: dados.lendo || [],
+        lido: dados.lido || [],
+        queroLer: dados.queroLer || []
+      });
+
+    } catch (err: any) {
+      setErro(err.message);
+    } finally {
+      setCarregando(false);
+    }
+  }, [userId, BASE_URL]);
+
+  // 2. O EFFECT APENAS CHAMA A FUNÇÃO QUANDO O USERID MUDA OU QUANDO MONTAR
+  useEffect(() => {
     buscarEstante();
-  }, [userId]);
+  }, [buscarEstante]);
 
   let livrosParaMostrar: LivroDados[] = [];
   if (filtroAtivo === "Todos") {
     const todosLivros = [...estante.lendo, ...estante.lido, ...estante.queroLer];
-    // Evita duplicidade de keys no React gerada por inconsistências de estados na API
     livrosParaMostrar = todosLivros.filter((livro, index, self) =>
       index === self.findIndex((l) => l.id === livro.id)
     );
@@ -112,18 +113,15 @@ export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
     { id: "Quero Ler", label: "Quero Ler", icone: BookmarkIcon },
   ];
 
+  // Mantemos essa função caso o CardLivro ainda use a assinatura antiga por id
   const handleRemoverLivroDaTela = (livroId: number) => {
-    setEstante(prev => ({
-      lendo: prev.lendo.filter(l => l.id !== livroId),
-      lido: prev.lido.filter(l => l.id !== livroId),
-      queroLer: prev.queroLer.filter(l => l.id !== livroId)
-    }));
+    buscarEstante(); // Ao invés de manipular o array, recarrega direto da API para garantir consistência
   };
 
   return (
     <div className="w-full animate-fade-in">
       
-      {/* 1. O MENU DE FILTROS COM HEROICONS */}
+      {/* MENU DE FILTROS */}
       <div className="flex flex-wrap items-center justify-center sm:justify-start gap-3 mb-8 border-b pb-4" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
         {abas.map((aba) => {
           const isAtivo = filtroAtivo === aba.id;
@@ -149,7 +147,7 @@ export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
         })}
       </div>
 
-      {/* 2. FEEDBACKS VISUAIS MELHORADOS */}
+      {/* FEEDBACKS VISUAIS */}
       {carregando && (
         <div className="py-20 flex flex-col items-center justify-center text-center opacity-60 font-bold animate-pulse" style={{ color: 'var(--cor-primaria)' }}>
           <BookOpenIcon className="w-12 h-12 mb-4 animate-bounce" />
@@ -180,7 +178,7 @@ export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
         </div>
       )}
 
-      {/* 3. A GRADE DE LIVROS */}
+      {/* A GRADE DE LIVROS */}
       {!carregando && !erro && livrosParaMostrar.length > 0 && (
         <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-6">
           {livrosParaMostrar.map((livro) => (
@@ -189,6 +187,8 @@ export default function EstanteUsuario({ userId }: EstanteUsuarioProps) {
                  livro={livro} 
                  variante="estante" 
                  onRemove={handleRemoverLivroDaTela} 
+                 // 3. SE O SEU CARDLIVRO SUPORTAR, ADICIONE UM DISPARADOR DE UPDATE:
+                 onUpdate={buscarEstante} 
                />
              </div>
           ))}

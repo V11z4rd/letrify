@@ -5,7 +5,7 @@ import { authService } from "@/app/lib/authService";
 import { BookmarkIcon, BookOpenIcon, CheckCircleIcon, TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
 
 export interface LivroDados {
-  id?: number; // O Back-end costuma devolver o ID interno do livro na estante
+  id?: number; 
   isbn?: string;
   titulo?: string;
   autor?: string;
@@ -17,10 +17,12 @@ export interface LivroDados {
 interface CardLivroProps {
   livro: LivroDados;
   variante?: "busca" | "estante" | "simples";
-  onRemove?: (id: number) => void; // Callback para avisar a Estante que o livro foi apagado
+  onRemove?: (id: number) => void; 
+  // 🟢 1. ADICIONADO O CALLBACK DE ATUALIZAÇÃO NAS PROPS
+  onUpdate?: () => void; 
 }
 
-export default function CardLivro({ livro, variante = "busca", onRemove }: CardLivroProps) {
+export default function CardLivro({ livro, variante = "busca", onRemove, onUpdate }: CardLivroProps) {
   const [carregandoStatus, setCarregandoStatus] = useState<string | null>(null);
   const [sucessoNoBotao, setSucessoNoBotao] = useState<string | null>(null);
 
@@ -57,6 +59,11 @@ export default function CardLivro({ livro, variante = "busca", onRemove }: CardL
 
       if (resposta.ok || resposta.status === 200) {
         setSucessoNoBotao(statusEscolhido);
+        
+        // 🟢 2. SE O LIVRO FOI MOVIDO COM SUCESSO, AVISA A ESTANTE PARA SE RECARREGAR
+        if (onUpdate) {
+          onUpdate();
+        }
       } else {
         const erroMsg = await resposta.text();
         if (erroMsg.includes("duplicate") || erroMsg.includes("unique")) {
@@ -92,8 +99,12 @@ export default function CardLivro({ livro, variante = "busca", onRemove }: CardL
 
       if (!resposta.ok) throw new Error("Erro ao remover o livro da estante.");
       
-      // Avisa o componente pai (EstanteUsuario) para tirar o livro da tela!
-      if (onRemove) onRemove(livro.id);
+      // 🟢 3. SE O LIVRO FOI DELETADO, PRIORIZA RECARREGAR A API DA ESTANTE INTERA
+      if (onUpdate) {
+        onUpdate();
+      } else if (onRemove) {
+        onRemove(livro.id); // Mantém o fallback caso a estante antiga ainda use o onRemove por ID
+      }
 
     } catch (err: any) {
       alert(err.message);
@@ -101,7 +112,6 @@ export default function CardLivro({ livro, variante = "busca", onRemove }: CardL
     }
   };
 
-  // Definição global dos botões para facilitar o mapeamento
   const botoesStatus = [
     { label: "Quero Ler", icone: <BookmarkIcon className="w-4 h-4" /> },
     { label: "Lendo", icone: <BookOpenIcon className="w-4 h-4" /> },
@@ -113,7 +123,7 @@ export default function CardLivro({ livro, variante = "busca", onRemove }: CardL
       className="rounded-xl overflow-hidden shadow-sm border flex flex-col transition-transform hover:-translate-y-1 hover:shadow-lg h-full bg-card-limpo relative"
       style={{ borderColor: 'var(--cor-fundo-sidebar)' }}
     >
-      {/* TAG DE STATUS (Aparece apenas na Estante) */}
+      {/* TAG DE STATUS */}
       {variante === "estante" && livro.status && (
         <div className="absolute top-3 right-3 bg-black/80 backdrop-blur-md px-2.5 py-1 rounded-md text-[10px] font-bold uppercase tracking-wider text-white border border-white/10 z-10 flex items-center gap-1.5 shadow-lg">
           {livro.status === "Quero Ler" && <BookmarkIcon className="w-3 h-3 text-blue-400" />}
@@ -130,17 +140,14 @@ export default function CardLivro({ livro, variante = "busca", onRemove }: CardL
             src={`https://covers.openlibrary.org/b/isbn/${isbnFinal}-M.jpg`} 
             alt={`Capa de ${tituloFinal}`} 
             className="h-full object-contain shadow-md rounded transition-transform duration-300 hover:scale-105"
-            onError={() => setErroCapa(true)} // Se a API da OpenLibrary falhar, ativamos o estado de erro!
+            onError={() => setErroCapa(true)} 
           />
         ) : (
-          /* NOSSA CAPA SUBSTITUTA (FALLBACK) */
           <div className="flex flex-col items-center justify-center text-center p-4 w-full h-full rounded-md shadow-inner bg-gradient-to-br from-black/10 to-transparent dark:from-white/10 border border-dashed border-zinc-500/30 relative overflow-hidden">
             <BookOpenIcon className="w-12 h-12 mb-3 opacity-20 absolute top-4 right-4" />
-            
             <span className="text-sm font-black line-clamp-5 leading-tight opacity-90 z-10" style={{ color: 'var(--cor-texto-principal)' }}>
               {tituloFinal}
             </span>
-            
             <div className="absolute bottom-4 flex flex-col items-center">
               <div className="w-8 h-1 bg-zinc-500/30 rounded-full mb-2"></div>
               <span className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold opacity-80">
@@ -188,11 +195,9 @@ export default function CardLivro({ livro, variante = "busca", onRemove }: CardL
             </div>
           )}
 
-          {/* VARIANTE 2: ESTANTE (Sem o botão do status atual e com Lixeira) */}
+          {/* VARIANTE 2: ESTANTE */}
           {variante === "estante" && (
             <div className="flex justify-between items-center gap-2 border-t pt-3 mt-1" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-              
-              {/* Renderiza apenas os botões que são diferentes do status atual do livro */}
               {botoesStatus
                 .filter(btn => btn.label !== livro.status)
                 .map((btn) => (
@@ -210,7 +215,6 @@ export default function CardLivro({ livro, variante = "busca", onRemove }: CardL
                 </button>
               ))}
 
-              {/* Botão de Excluir */}
               <button
                 onClick={removerDaEstante}
                 disabled={!!carregandoStatus}
@@ -219,7 +223,6 @@ export default function CardLivro({ livro, variante = "busca", onRemove }: CardL
               >
                 {carregandoStatus === "Remover" ? <span className="animate-spin text-xs">↻</span> : <TrashIcon className="w-4 h-4" />}
               </button>
-
             </div>
           )}
 
