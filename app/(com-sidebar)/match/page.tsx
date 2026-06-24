@@ -3,6 +3,7 @@
 import { useEffect, useState } from "react";
 import RadarAfinidade, { UsuarioMatch } from "@/components/RadarAfinidade";
 import { authService } from "@/app/lib/authService";
+import { BadgePremium } from "@/components/perfil/Premium";
 import { 
   SignalIcon, 
   ExclamationTriangleIcon, 
@@ -52,7 +53,8 @@ export default function MatchPage() {
           id: item.usuario?.id,
           nome: item.usuario?.nome,
           cidade: item.usuario?.cidade,
-          fotoPerfil: item.usuario?.fotoPerfil
+          fotoPerfil: item.usuario?.fotoPerfil,
+          premium: item.usuario?.premium
         }));
 
         // 2. SALVAR NO CACHE DE SESSÃO 

@@ -17,11 +17,11 @@ export default function PremiumPage() {
   
   // Estados para o Painel Premium
   const [isPremium, setIsPremium] = useState(false);
-  const [analiseIa, setAnaliseIa] = useState<any>(null);
+  const [dadosUsuario, setDadosUsuario] = useState<any>(null);
 
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
-  // Ao montar a página, tenta buscar a análise premium
+  // Ao montar a página, busca as informações do usuário logado
   useEffect(() => {
     const verificarStatusPremium = async () => {
       try {
@@ -31,7 +31,7 @@ export default function PremiumPage() {
           return;
         }
 
-        const resposta = await fetch(`${BASE_URL}/premium/analise`, {
+        const resposta = await fetch(`${BASE_URL}/Usuario/informacoes`, {
           headers: {
             "Authorization": `Bearer ${token}`
           }
@@ -39,10 +39,15 @@ export default function PremiumPage() {
 
         if (resposta.ok) {
           const dados = await resposta.json();
-          console.log("🕵️ ESPIÃO DA IA - O que a API Premium retornou:", dados);
+          console.log("🕵️ Dados carregados do usuário:", dados);
           
-          setAnaliseIa(dados);
-          setIsPremium(true);
+          setDadosUsuario(dados);
+                   
+          if (dados.perfil?.premium === "1") {
+            setIsPremium(true);
+          } else {
+            setIsPremium(false);
+          }
         } else {
           setIsPremium(false);
         }
@@ -62,15 +67,14 @@ export default function PremiumPage() {
     
     try {
       const token = typeof window !== 'undefined' ? localStorage.getItem('letrify_token') : null;
-      const userId = typeof window !== 'undefined' ? localStorage.getItem('letrify_user_id') : null;
       
-      if (!token || !userId) {
+      if (!token) {
         alert("Você precisa estar logado para assinar o Letrify Pro.");
         setCarregandoAssinatura(false);
         return;
       }
       
-      const resposta = await fetch(`${BASE_URL}/usuario/premium/${userId}`, {
+      const resposta = await fetch(`${BASE_URL}/Usuario/tornar-premium`, {
         method: "PUT",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -89,6 +93,27 @@ export default function PremiumPage() {
     } catch (err) {
       console.error(err);
       alert("Erro de conexão com o servidor. Tente novamente mais tarde.");
+    } finally {
+      setCarregandoAssinatura(false);
+    }
+  };
+
+  // Função para lidar com cancelamento (Caso queira adicionar um botão futuramente)
+  const lidarComCancelamento = async () => {
+    if (!confirm("Tem certeza que deseja cancelar sua assinatura Premium?")) return;
+    setCarregandoAssinatura(true);
+    try {
+      const token = localStorage.getItem('letrify_token');
+      const resposta = await fetch(`${BASE_URL}/Usuario/cancelar-premium`, {
+        method: "PUT",
+        headers: { "Authorization": `Bearer ${token}` }
+      });
+      if (resposta.ok) {
+        alert("Assinatura cancelada com sucesso.");
+        window.location.reload();
+      }
+    } catch (err) {
+      console.error(err);
     } finally {
       setCarregandoAssinatura(false);
     }
@@ -119,36 +144,43 @@ export default function PremiumPage() {
   }
 
   // ==========================================
-  // ECRÃ 1: UTILIZADOR JÁ É PREMIUM (DASHBOARD IA)
+  // TELA 1: USUÁRIO JÁ É PREMIUM (DASHBOARD)
   // ==========================================
-  if (isPremium && analiseIa) {
+  if (isPremium && dadosUsuario) {
     return (
       <div className="max-w-4xl mx-auto w-full pt-8 pb-24 px-4 animate-fade-in">
-        <div className="flex items-center gap-3 mb-8">
-          <div className="w-12 h-12 rounded-full flex items-center justify-center bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">
-            <SparklesIcon className="w-6 h-6" />
+        <div className="flex items-center justify-between mb-8">
+          <div className="flex items-center gap-3">
+            <div className="w-12 h-12 rounded-full flex items-center justify-center bg-yellow-500/20 text-yellow-500 border border-yellow-500/30">
+              <SparklesIcon className="w-6 h-6" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black" style={{ color: 'var(--cor-texto-principal)' }}>Olá, {dadosUsuario.perfil?.nome}!</h1>
+              <p className="text-xs font-bold uppercase tracking-widest opacity-50" style={{ color: 'var(--cor-texto-secundario)' }}>Seu Painel Premium Ativo</p>
+            </div>
           </div>
-          <div>
-            <h1 className="text-2xl font-black" style={{ color: 'var(--cor-texto-principal)' }}>Seu Painel Premium</h1>
-            <p className="text-xs font-bold uppercase tracking-widest opacity-50" style={{ color: 'var(--cor-texto-secundario)' }}>Análise Literária com IA</p>
-          </div>
+          
+          <button 
+            onClick={lidarComCancelamento}
+            className="text-xs font-bold text-red-500 hover:underline opacity-60 hover:opacity-100 transition-opacity"
+          >
+            Cancelar Assinatura
+          </button>
         </div>
 
         <div className="space-y-6">
           
-          {/* BLOCO DA IA (Mapeando corretamente para o "analise" do JSON) */}
-          <div className="p-6 sm:p-8 rounded-3xl border shadow-lg bg-gradient-to-br from-black/5 to-transparent dark:from-white/5" style={{ borderColor: 'var(--cor-primaria)' }}>
-            <h2 className="text-lg font-black mb-4 flex items-center gap-2" style={{ color: 'var(--cor-primaria)' }}>
-              <BookOpenIcon className="w-5 h-5 stroke-[2.5]" />
-              Sua Essência Literária
-            </h2>
-            <div className="text-sm leading-relaxed font-medium whitespace-pre-wrap opacity-90" style={{ color: 'var(--cor-texto-principal)' }}>
-              {analiseIa.analise || "A IA ainda está processando o seu perfil. Continue lendo!"}
+          {/* LIVRO FAVORITO */}
+          {dadosUsuario.favorito && (
+            <div className="p-6 rounded-3xl border" style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}>
+              <span className="text-[9px] uppercase tracking-widest font-black text-yellow-500">Destaque da sua estante</span>
+              <h3 className="text-lg font-black mt-1" style={{ color: 'var(--cor-texto-principal)' }}>⭐ {dadosUsuario.favorito.titulo}</h3>
+              <p className="text-xs opacity-60" style={{ color: 'var(--cor-texto-secundario)' }}>por {dadosUsuario.favorito.autor}</p>
             </div>
-          </div>
+          )}
 
-          {/* NOVO BLOCO: ESTATÍSTICAS (Aproveitando os dados que o Backend mandou) */}
-          {analiseIa.estatisticas && (
+          {/* ESTATÍSTICAS (Aproveitando os dados reais que o seu Backend estruturou) */}
+          {dadosUsuario.estatisticas && (
             <div className="p-6 sm:p-8 rounded-3xl border shadow-lg" style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}>
               <h2 className="text-lg font-black mb-6 flex items-center gap-2" style={{ color: 'var(--cor-texto-principal)' }}>
                 <ChartBarIcon className="w-5 h-5 stroke-[2.5] text-yellow-500" />
@@ -158,21 +190,15 @@ export default function PremiumPage() {
               {/* Contadores Principais */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-                  <div className="text-2xl font-black" style={{ color: 'var(--cor-texto-principal)' }}>{analiseIa.estatisticas.totalLivros || 0}</div>
+                  <div className="text-2xl font-black" style={{ color: 'var(--cor-texto-principal)' }}>{dadosUsuario.estatisticas.totalDeLivros || 0}</div>
                   <div className="text-[9px] uppercase tracking-widest font-bold opacity-50" style={{ color: 'var(--cor-texto-secundario)' }}>Total na Estante</div>
                 </div>
-                <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-                  <div className="text-2xl font-black" style={{ color: 'var(--cor-texto-principal)' }}>{analiseIa.estatisticas.lidos || 0}</div>
-                  <div className="text-[9px] uppercase tracking-widest font-bold opacity-50" style={{ color: 'var(--cor-texto-secundario)' }}>Livros Lidos</div>
-                </div>
-                <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-                  <div className="text-2xl font-black text-blue-500">{analiseIa.estatisticas.lendo || 0}</div>
-                  <div className="text-[9px] uppercase tracking-widest font-bold opacity-50" style={{ color: 'var(--cor-texto-secundario)' }}>Lendo Agora</div>
-                </div>
-                <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
-                  <div className="text-2xl font-black text-green-500">{analiseIa.estatisticas.quereLer || 0}</div>
-                  <div className="text-[9px] uppercase tracking-widest font-bold opacity-50" style={{ color: 'var(--cor-texto-secundario)' }}>Quero Ler</div>
-                </div>
+                {dadosUsuario.estatisticas.situacoes?.map((sit: any, idx: number) => (
+                  <div key={idx} className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
+                    <div className="text-2xl font-black" style={{ color: 'var(--cor-texto-principal)' }}>{sit.quantidade}</div>
+                    <div className="text-[9px] uppercase tracking-widest font-bold opacity-50" style={{ color: 'var(--cor-texto-secundario)' }}>{sit.situacao}</div>
+                  </div>
+                ))}
               </div>
 
               {/* Tags de Autores e Temas */}
@@ -180,7 +206,7 @@ export default function PremiumPage() {
                 <div>
                   <h3 className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-3" style={{ color: 'var(--cor-texto-secundario)' }}>Top Autores</h3>
                   <div className="flex flex-wrap gap-2">
-                    {analiseIa.estatisticas.topAutores?.length > 0 ? analiseIa.estatisticas.topAutores.map((item: any, i: number) => (
+                    {dadosUsuario.estatisticas.topAutores?.length > 0 ? dadosUsuario.estatisticas.topAutores.map((item: any, i: number) => (
                       <span key={i} className="text-[10px] font-bold px-3 py-1.5 rounded-lg border shadow-sm" style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)', color: 'var(--cor-texto-principal)' }}>
                         {item.autor} <span className="opacity-40 ml-1">({item.quantidade})</span>
                       </span>
@@ -191,7 +217,7 @@ export default function PremiumPage() {
                 <div>
                   <h3 className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-3" style={{ color: 'var(--cor-texto-secundario)' }}>Gêneros Favoritos</h3>
                   <div className="flex flex-wrap gap-2">
-                    {analiseIa.estatisticas.topTemas?.length > 0 ? analiseIa.estatisticas.topTemas.map((item: any, i: number) => (
+                    {dadosUsuario.estatisticas.topTemas?.length > 0 ? dadosUsuario.estatisticas.topTemas.map((item: any, i: number) => (
                       <span key={i} className="text-[10px] font-bold px-3 py-1.5 rounded-lg border shadow-sm" style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)', color: 'var(--cor-texto-principal)' }}>
                         {item.tema} <span className="opacity-40 ml-1">({item.quantidade})</span>
                       </span>
@@ -208,7 +234,7 @@ export default function PremiumPage() {
   }
 
   // ==========================================
-  // ECRÃ 2: UTILIZADOR NÃO É PREMIUM (VITRINE)
+  // TELA 2: UTILIZADOR NÃO É PREMIUM (VITRINE)
   // ==========================================
   return (
     <div className="min-h-screen w-full py-12 px-4 md:px-8 max-w-6xl mx-auto flex flex-col justify-center animate-fade-in">
@@ -221,7 +247,7 @@ export default function PremiumPage() {
         </div>
         
         <h1 className="text-4xl md:text-5xl font-black tracking-tight" style={{ color: 'var(--cor-texto-principal)' }}>
-          Leve a sua jornada literária ao próximo nível
+          Leve a sua viagem literária ao próximo nível
         </h1>
         <p className="mt-4 text-sm md:text-base font-medium opacity-70" style={{ color: 'var(--cor-texto-secundario)' }}>
           Estatísticas avançadas, estantes ilimitadas e uma comunidade apaixonada por livros esperando por você.

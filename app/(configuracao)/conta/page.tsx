@@ -76,8 +76,7 @@ export default function ContaPage() {
           "Authorization": `Bearer ${token}`,
           "Content-Type": "application/json"
         },
-        // CORREÇÃO: Passando o isPremium como false para remover o plano do usuário
-        body: JSON.stringify({ isPremium: false })
+        
       });
 
       if (!resposta.ok) {

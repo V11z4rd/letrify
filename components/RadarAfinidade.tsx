@@ -2,12 +2,14 @@
 
 import Link from "next/link";
 import { UserIcon, MapPinIcon, BookOpenIcon } from "@heroicons/react/24/outline";
+import { BadgePremium } from "./perfil/Premium";
 
 export interface UsuarioMatch {
   id: string | number;
   nome: string;
   cidade: string;
   fotoPerfil: string | null;
+  premium?: boolean;
 }
 
 interface RadarAfinidadeProps {
@@ -34,8 +36,18 @@ export default function RadarAfinidade({ usuario }: RadarAfinidadeProps) {
       </div>
 
       {/* DADOS DO USUÁRIO */}
-      <h3 className="font-black text-lg line-clamp-1 w-full" style={{ color: 'var(--cor-texto-principal)' }} title={usuario.nome}>
-        {usuario.nome}
+      <h3 
+        className="font-black text-lg w-full flex items-center justify-center gap-1" 
+        style={{ color: 'var(--cor-texto-principal)' }} 
+        title={usuario.nome}
+      >
+        <span className="truncate">{usuario.nome}</span>
+        
+        {usuario.premium && (
+          <div className="scale-75 flex-shrink-0 -mt-0.5"> 
+            <BadgePremium />
+          </div>
+        )}
       </h3>
       
       <p className="text-sm mt-1 font-medium mb-6 flex items-center justify-center gap-1" style={{ color: 'var(--cor-texto-secundario)' }}>
