@@ -328,6 +328,7 @@ export default function FeedInterno({ grupoId }: FeedInternoProps) {
                       mensagemId={post.id}
                       curtidasIniciais={curtidasContagem}
                       jaCurtidoInicial={usuarioCurtiu}
+                      grupoIdContexto={grupoId}
                     />
 
                     {/* BOTÃO DE RESPONDER */}

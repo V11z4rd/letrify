@@ -10,7 +10,8 @@ import {
   ChatBubbleLeftRightIcon, 
   UserGroupIcon, 
   ArrowRightIcon,
-  PaperAirplaneIcon
+  PaperAirplaneIcon,
+  BookOpenIcon
 } from "@heroicons/react/24/outline";
 
 interface UsuarioChat {
@@ -18,6 +19,14 @@ interface UsuarioChat {
   nome: string;
   fotoPerfil: string;
   isPremium?: boolean;
+}
+
+interface LivroResenha {
+  isbn: string;
+  titulo: string;
+  autor: string;
+  capaUrl: string;
+  nota: number;
 }
 
 interface MensagemChat {
@@ -35,7 +44,11 @@ interface MensagemChat {
   TotalCurtidas?: number;
   euCurti?: boolean;
   EuCurti?: boolean;
+  tipoPost?: "post" | "resenha" | string;
+  livro?: LivroResenha | null;
 }
+
+
 
 interface PostThreadProps {
   post: MensagemChat;
@@ -56,6 +69,8 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
   const [usuarioIsPremium, setUsuarioIsPremium] = useState<boolean>(false);
 
   const isDonoDoPost = meuId === post.usuario.id;
+  const isResenha = post.tipoPost === "resenha" || !!post.livro;
+
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
   
   const curtidasContagem = post.totalCurtidas ?? post.TotalCurtidas ?? 0;
@@ -240,6 +255,63 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
 
         <MenuTresPontinhos idPost={post.id} isDono={isDonoDoPost} />
       </div>
+
+      {isResenha && post.livro && (
+        <div 
+          className="flex flex-col sm:flex-row gap-4 p-4 rounded-2xl mb-4 border transition-all animate-fade-in" 
+          style={{ backgroundColor: 'var(--cor-fundo-app)', borderColor: 'var(--cor-fundo-sidebar)' }}
+        >
+          {/* FALLBACK INTELIGENTE DE CAPAS DA IA */}
+          <div className="w-full sm:w-20 h-28 rounded-xl overflow-hidden shrink-0 shadow border bg-neutral-900 flex items-center justify-center relative group">
+            <img
+              src={post.livro.capaUrl}
+              alt={post.livro.titulo}
+              className="w-full h-full object-cover"
+              onError={(e) => {
+                const target = e.currentTarget;
+                if (!target.dataset.tentou) {
+                  target.dataset.tentou = "true";
+                  target.src = `https://covers.openlibrary.org/b/title/${encodeURIComponent(post.livro!.titulo)}-M.jpg`;
+                } else {
+                  target.style.display = "none";
+                  const placeholder = document.createElement("div");
+                  placeholder.style.cssText = "width:100%;height:100%;background:#1a1a2e;display:flex;flex-direction:column;align-items:center;justify-content:center;gap:4px;padding:6px;";
+                  placeholder.innerHTML = `<span style="font-size:20px">📖</span><span style="font-size:9px;color:#777;text-align:center;font-weight:bold;line-height:1.1">${post.livro!.titulo}</span>`;
+                  target.parentElement?.appendChild(placeholder);
+                }
+              }}
+            />
+          </div>
+
+          <div className="flex flex-col justify-between py-0.5">
+            <div>
+              <div className="flex items-center gap-1 text-[9px] font-black uppercase tracking-widest text-amber-500">
+                <BookOpenIcon className="w-3.5 h-3.5 stroke-[2.5]" />
+                <span>Avaliação Literária</span>
+              </div>
+              <h4 className="font-black text-base tracking-tight mt-0.5 leading-snug" style={{ color: 'var(--cor-texto-principal)' }}>
+                {post.livro.titulo}
+              </h4>
+              <p className="text-xs font-bold opacity-60" style={{ color: 'var(--cor-texto-principal)' }}>
+                por {post.livro.autor}
+              </p>
+            </div>
+
+            {/* RENDERIZADOR DE ESTRELAS (1 A 5) */}
+            <div className="flex gap-0.5 mt-2">
+              {[1, 2, 3, 4, 5].map((estrela) => (
+                <span 
+                  key={estrela} 
+                  className="text-base leading-none select-none" 
+                  style={{ color: estrela <= (post.livro?.nota ?? 0) ? '#f59e0b' : 'rgba(255,255,255,0.15)' }}
+                >
+                  ★
+                </span>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
       
       {/* CORPO DO POST PAI */}
       <p 
@@ -291,6 +363,7 @@ export default function PostThread({ post, meuId }: PostThreadProps) {
           mensagemId={post.id}
           curtidasIniciais={curtidasContagem}
           jaCurtidoInicial={usuarioCurtiu}
+          grupoIdContexto={idDoGrupo}
         />
 
         {/* SELETOR INDICADOR DE RESPOSTAS */}

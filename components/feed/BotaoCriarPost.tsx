@@ -3,7 +3,8 @@
 import { useState, useEffect } from "react";
 import { authService } from "@/app/lib/authService";
 import { grupoService, GrupoResumo } from "@/app/lib/grupoService";
-import { XMarkIcon, UserGroupIcon, PaperAirplaneIcon } from "@heroicons/react/24/outline";
+import { XMarkIcon, UserGroupIcon, PaperAirplaneIcon, DocumentTextIcon, BookOpenIcon } from "@heroicons/react/24/outline";
+import CriarResenha from "./CriarResenha";
 
 interface BotaoCriarPostProps {
   onPostCreated?: () => void;
@@ -13,6 +14,7 @@ interface BotaoCriarPostProps {
 export default function BotaoCriarPost({ onPostCreated, grupoIdContexto }: BotaoCriarPostProps) {
   const [conteudo, setConteudo] = useState("");
   const [enviando, setEnviando] = useState(false);
+  const [tipoPostagem, setTipoPostagem] = useState<"post" | "resenha">("post");
 
   // Se já recebemos um grupo por contexto, o modo recrutamento/seleção não é necessário
   // --- LÓGICA DE RECRUTAMENTO ---
@@ -159,10 +161,44 @@ export default function BotaoCriarPost({ onPostCreated, grupoIdContexto }: Botao
   };
 
   return (
-    <div 
-      className="rounded-3xl border p-5 sm:p-6 mb-8 shadow-md transition-all duration-300"
-      style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
-    >
+  <div 
+    className="rounded-3xl border p-5 sm:p-6 mb-8 shadow-md transition-all duration-300"
+    style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}
+  >
+    {/* SWITCH DO COMPONENTE */}
+    {!estaNoFeedDoClube && (
+      <div className="flex gap-1.5 mb-5 p-1 rounded-xl w-fit" style={{ backgroundColor: 'var(--cor-fundo-app)' }}>
+        <button
+          type="button"
+          onClick={() => setTipoPostagem("post")}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all"
+          style={{
+            backgroundColor: tipoPostagem === "post" ? 'var(--cor-fundo-card)' : 'transparent',
+            color: tipoPostagem === "post" ? 'var(--cor-primaria)' : 'var(--cor-texto-secundario)'
+          }}
+        >
+          <DocumentTextIcon className="w-4 h-4" />
+          <span>Pensamento (150c)</span>
+        </button>
+        <button
+          type="button"
+          onClick={() => setTipoPostagem("resenha")}
+          className="flex items-center gap-1.5 px-3.5 py-1.5 rounded-lg text-xs font-black uppercase tracking-wider transition-all"
+          style={{
+            backgroundColor: tipoPostagem === "resenha" ? 'var(--cor-fundo-card)' : 'transparent',
+            color: tipoPostagem === "resenha" ? 'var(--cor-primaria)' : 'var(--cor-texto-secundario)'
+          }}
+        >
+          <BookOpenIcon className="w-4 h-4" />
+          <span>Resenha (750c)</span>
+        </button>
+      </div>
+    )}
+
+    {/* EXIBIÇÃO LOGICAL */}
+    {tipoPostagem === "resenha" && !estaNoFeedDoClube ? (
+      <CriarResenha onResenhaCreated={onPostCreated} grupoIdContexto={grupoIdContexto ?? null} />
+    ) : (
       <form onSubmit={handlePublicar} className="flex flex-col gap-4">
         
         <textarea
@@ -262,6 +298,7 @@ export default function BotaoCriarPost({ onPostCreated, grupoIdContexto }: Botao
           </button>
         </div>
       </form>
+    )}
     </div>
   );
 }

@@ -1,44 +1,56 @@
 "use client";
 
 import { useState, useEffect } from "react";
-import { authService } from "@/app/lib/authService";
-import { HeartIcon as HeartOutline } from "@heroicons/react/24/outline";
 import { HeartIcon as HeartSolid } from "@heroicons/react/24/solid";
+import { HeartIcon as HeartOutline } from "@heroicons/react/24/outline";
+import { authService } from "@/app/lib/authService";
 
 interface BotaoCurtirProps {
-  mensagemId: number;
-  curtidasIniciais?: number;
-  jaCurtidoInicial?: boolean;
+  mensagemId: number;          // É o ID do post (ou postId)
+  curtidasIniciais: number;
+  jaCurtidoInicial: boolean;
+  grupoIdContexto?: number | null; // 💡 NOVO: Passamos o ID do grupo se o post for de um clube
 }
 
 export default function BotaoCurtir({ 
   mensagemId, 
-  curtidasIniciais = 0, 
-  jaCurtidoInicial = false
+  curtidasIniciais, 
+  jaCurtidoInicial,
+  grupoIdContexto = null 
 }: BotaoCurtirProps) {
+  
   const [curtido, setCurtido] = useState(jaCurtidoInicial);
   const [totalCurtidas, setTotalCurtidas] = useState(curtidasIniciais);
-  const [processando, setProcessando] = useState(false);
+  const [carregando, setCarregando] = useState(false);
 
+  // Sincroniza o estado caso o feed recarregue do backend
   useEffect(() => {
     setCurtido(jaCurtidoInicial);
     setTotalCurtidas(curtidasIniciais);
-  }, [curtidasIniciais, jaCurtidoInicial]);
+  }, [jaCurtidoInicial, curtidasIniciais]);
 
-  const handleToggleCurtir = async () => {
-    if (processando) return;
+  const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
-    const estadoAnterior = curtido;
-    setCurtido(!estadoAnterior);
-    setTotalCurtidas((prev) => (estadoAnterior ? Math.max(0, prev - 1) : prev + 1));
-    setProcessando(true);
+  const handleCurtir = async (e: React.MouseEvent) => {
+    e.stopPropagation(); // Evita expandir o post sem querer ao clicar no like
+    if (carregando) return;
+
+    setCarregando(true);
+    
+    // Otimismo na UI (muda o ícone antes da resposta da API para parecer instantâneo)
+    const novoEstadoCurtido = !curtido;
+    setCurtido(novoEstadoCurtido);
+    setTotalCurtidas((prev) => novoEstadoCurtido ? prev + 1 : prev - 1);
 
     try {
-      const token = authService.getToken();
-      if (!token) return;
+      const token = authService.getToken(); 
 
-      // 🔑 Usando exatamente a rota global estável que funciona em tudo
-      const resposta = await fetch(`https://letrify.fly.dev/api/chat/curtir/${mensagemId}`, {
+      // 🎯 DEFINIÇÃO DINÂMICA DA ROTA
+      const urlEnvio = grupoIdContexto
+      ? `https://letrify.fly.dev/api/grupos/${grupoIdContexto}/posts/${mensagemId}/curtir`
+      : `https://letrify.fly.dev/api/chat/curtir/${mensagemId}`;
+
+      const resposta = await fetch(urlEnvio, {
         method: "POST",
         headers: {
           "Authorization": `Bearer ${token}`,
@@ -46,35 +58,36 @@ export default function BotaoCurtir({
         }
       });
 
-      if (!resposta.ok) throw new Error("Erro ao alternar curtida na API.");
-
+      if (!resposta.ok) {
+        // Se a API falhar, desfaz a alteração visual otimista
+        setCurtido(curtido);
+        setTotalCurtidas(totalCurtidas);
+      }
     } catch (error) {
-      console.error(error);
-      setCurtido(estadoAnterior);
-      setTotalCurtidas((prev) => (estadoAnterior ? prev + 1 : Math.max(0, prev - 1)));
+      console.error("Erro ao alternar curtida:", error);
+      setCurtido(curtido);
+      setTotalCurtidas(totalCurtidas);
     } finally {
-      setProcessando(false);
+      setCarregando(false);
     }
   };
 
   return (
     <button
-      type="button"
-      onClick={handleToggleCurtir}
-      disabled={processando}
-      className="text-[10px] uppercase tracking-widest font-black flex items-center gap-1.5 px-3 py-1.5 rounded-xl transition-all select-none duration-200 active:scale-95"
+      onClick={handleCurtir}
+      disabled={carregando}
+      className="text-[10px] uppercase tracking-widest font-black flex items-center gap-2 px-3 py-1.5 rounded-xl transition-all active:scale-90 select-none"
       style={{
-        backgroundColor: curtido ? 'rgba(239, 68, 68, 0.1)' : 'var(--cor-fundo-sidebar)',
-        color: curtido ? '#ef4444' : 'var(--cor-texto-sidebar)',
-        opacity: curtido ? 1 : 0.6
+        backgroundColor: curtido ? 'rgba(239, 68, 68, 0.1)' : 'transparent',
+        color: curtido ? '#ef4444' : 'var(--cor-texto-secundario)'
       }}
     >
       {curtido ? (
-        <HeartSolid className="w-4 h-4 text-red-500 animate-fade-in scale-110" />
+        <HeartSolid className="w-4 h-4 text-red-500 animate-pop" />
       ) : (
         <HeartOutline className="w-4 h-4 stroke-[2.5]" />
       )}
-      <span className="font-mono font-bold">{totalCurtidas}</span>
+      <span>{totalCurtidas} curtidas</span>
     </button>
   );
 }

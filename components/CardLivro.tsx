@@ -1,6 +1,6 @@
 "use client";
 
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { authService } from "@/app/lib/authService";
 import { BookmarkIcon, BookOpenIcon, CheckCircleIcon, TrashIcon, PlusIcon } from "@heroicons/react/24/outline";
 
@@ -26,13 +26,65 @@ export default function CardLivro({ livro, variante = "busca", onRemove, onUpdat
   const [carregandoStatus, setCarregandoStatus] = useState<string | null>(null);
   const [sucessoNoBotao, setSucessoNoBotao] = useState<string | null>(null);
 
-  const [erroCapa, setErroCapa] = useState(false);
-
   const tituloFinal = livro.titulo || "Título Desconhecido";
   const autorFinal = livro.autor || (livro.autores && livro.autores.join(", ")) || livro.autorPrincipal || "Autor Desconhecido";
-  const isbnFinal = livro.isbn && livro.isbn !== 'Sem ISBN' ? livro.isbn.trim() : null;
+  const isbnFinal = livro.isbn && !livro.isbn.includes("Sem ISBN") ? livro.isbn.trim() : null;
+  const [urlCapa, setUrlCapa] = useState<string | null>(null);
+  const [erroCapa, setErroCapa] = useState(false);
 
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
+
+  // 🎨 FUNÇÃO PARA GERAR UMA COR DE FUNDO EXCLUSIVA BASEADA NO TÍTULO DO LIVRO
+  const gerarCorPorTexto = (texto: string) => {
+    let hash = 0;
+    for (let i = 0; i < texto.length; i++) {
+      hash = texto.charCodeAt(i) + ((hash << 5) - hash);
+    }
+    // Paleta de cores elegantes e fechadas para estilo capa dura (Livros antigos/modernos)
+    const paleta = [
+      "#2b4c3f", "#1e3a5f", "#4a2840", "#5c2e2b", "#334155", 
+      "#1e293b", "#563d2d", "#3f2b5c", "#1c3d5a", "#2e4a62"
+    ];
+    const index = Math.abs(hash) % paleta.length;
+    return paleta[index];
+  };
+
+  const corCapaDura = gerarCorPorTexto(tituloFinal);
+
+  // Inicializa a URL da capa com base no Open Library se houver ISBN
+  useEffect(() => {
+    if (isbnFinal) {
+      // Se tem ISBN, começa pela Open Library de forma padrão
+      setUrlCapa(`https://covers.openlibrary.org/b/isbn/${isbnFinal}-M.jpg?default=false`);
+      setErroCapa(false);
+    } else {
+      // 🟢 SE NÃO TEM ISBN: Fazemos uma busca textual inteligente no Google Books por Título + Autor!
+      const queryBusca = encodeURIComponent(`intitle:${tituloFinal} inauthor:${autorFinal}`);
+      setUrlCapa(`https://books.google.com/books/content?query=${queryBusca}&printsec=frontcover&img=1&zoom=1`);
+      setErroCapa(false);
+    }
+  }, [isbnFinal, tituloFinal, autorFinal]);
+
+  const handleErroCapa = () => {
+    // Se o Open Library com ISBN falhar, migra para o Google Books por ISBN
+    if (isbnFinal && urlCapa?.includes("openlibrary")) {
+      setUrlCapa(`https://books.google.com/books/content?id=&vid=ISBN:${isbnFinal}&printsec=frontcover&img=1&zoom=1`);
+    } else {
+      // Se falhar a busca por texto ou por ISBN no Google, assume o Mockup Editorial
+      setErroCapa(true);
+    }
+  };
+
+  // 🟢 SOLUÇÃO PARA O BUG DA IMAGEM "IMAGE NOT AVAILABLE" (image_065a25.jpg)
+  // Imagens fantasmas do Google Books têm dimensões específicas (como 132x192 ou tamanhos muito pequenos)
+  // O código abaixo valida se a imagem carregada na tela é o placeholder cinza indesejado
+  const validarTamanhoImagem = (e: React.SyntheticEvent<HTMLImageElement, Event>) => {
+    const img = e.currentTarget;
+    // O placeholder de erro do Google Books geralmente tem exatamente 128 ou 132 de largura por 192 de altura
+    if (img.naturalWidth === 128 || img.naturalWidth === 132) {
+      setErroCapa(true); 
+    }
+  };
 
   // Função para ADICIONAR ou MOVER
   const adicionarNaEstante = async (statusEscolhido: string) => {
@@ -135,29 +187,47 @@ export default function CardLivro({ livro, variante = "busca", onRemove, onUpdat
 
       {/* ÁREA DA CAPA DO LIVRO */}
       <div className="h-64 flex items-center justify-center p-4 bg-black/5 dark:bg-white/5 relative border-b border-black/5 dark:border-white/5">
-        {isbnFinal && !erroCapa ? (
+        {urlCapa && !erroCapa ? (
           <img 
-            src={`https://covers.openlibrary.org/b/isbn/${isbnFinal}-M.jpg`} 
+            src={urlCapa} 
             alt={`Capa de ${tituloFinal}`} 
             className="h-full object-contain shadow-md rounded transition-transform duration-300 hover:scale-105"
-            onError={() => setErroCapa(true)} 
+            onLoad={validarTamanhoImagem} // Intercepta imagens quebras que fingem sucesso
+            onError={handleErroCapa}
           />
         ) : (
-          <div className="flex flex-col items-center justify-center text-center p-4 w-full h-full rounded-md shadow-inner bg-gradient-to-br from-black/10 to-transparent dark:from-white/10 border border-dashed border-zinc-500/30 relative overflow-hidden">
-            <BookOpenIcon className="w-12 h-12 mb-3 opacity-20 absolute top-4 right-4" />
-            <span className="text-sm font-black line-clamp-5 leading-tight opacity-90 z-10" style={{ color: 'var(--cor-texto-principal)' }}>
-              {tituloFinal}
-            </span>
-            <div className="absolute bottom-4 flex flex-col items-center">
-              <div className="w-8 h-1 bg-zinc-500/30 rounded-full mb-2"></div>
-              <span className="text-[9px] uppercase tracking-widest text-zinc-500 font-bold opacity-80">
-                Capa Indisponível
+          /* DESIGN EDITORIAL PREMIUM PARA LIVROS SEM CAPA */
+          <div 
+            className="flex flex-col justify-between p-4 w-full h-full rounded-r-xl rounded-l-sm shadow-xl relative overflow-hidden border-l-4 animate-fade-in text-left select-none"
+            style={{ 
+              backgroundColor: corCapaDura, 
+              borderColor: 'rgba(0,0,0,0.25)',
+            }}
+          >
+            <div className="absolute inset-x-0 top-3 border-t border-b border-white/10 h-1 pointer-events-none"></div>
+
+            <div className="flex flex-col gap-1 mt-3 z-10">
+              <span className="text-white/60 text-[9px] font-bold uppercase tracking-widest line-clamp-1">
+                {autorFinal.split(',')[0]}
+              </span>
+              <span className="text-sm lg:text-base font-black leading-tight text-white line-clamp-4 drop-shadow-sm">
+                {tituloFinal}
               </span>
             </div>
+
+            <div className="z-10 border-t border-white/20 pt-2 pb-1 flex justify-between items-center">
+              <span className="text-[8px] uppercase tracking-wider text-white/50 font-mono">
+                Letrify Editora
+              </span>
+              <BookOpenIcon className="w-3 h-3 text-white/30" />
+            </div>
+
+            <div className="absolute inset-0 bg-gradient-to-tr from-black/25 via-transparent to-white/10 pointer-events-none" />
           </div>
         )}
       </div>
       
+      {/* CORPO DO CARD */}
       <div className="p-4 flex flex-col flex-1">
         <h3 className="font-bold text-sm lg:text-base line-clamp-2 leading-tight" style={{ color: 'var(--cor-texto-principal)' }} title={tituloFinal}>
           {tituloFinal}
