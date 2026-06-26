@@ -18,10 +18,14 @@ export default function PremiumPage() {
   // Estados para o Painel Premium
   const [isPremium, setIsPremium] = useState(false);
   const [dadosUsuario, setDadosUsuario] = useState<any>(null);
+  
+  // 👇 NOVOS ESTADOS PARA A ANÁLISE IA
+  const [analiseIA, setAnaliseIA] = useState<string | null>(null);
+  const [carregandoAnalise, setCarregandoAnalise] = useState(false);
 
   const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "https://letrify.fly.dev/api";
 
-  // Ao montar a página, busca as informações do usuário logado
+  // Ao montar a página, busca as informações do usuário logado e a análise se for premium
   useEffect(() => {
     const verificarStatusPremium = async () => {
       try {
@@ -39,12 +43,28 @@ export default function PremiumPage() {
 
         if (resposta.ok) {
           const dados = await resposta.json();
-          console.log("🕵️ Dados carregados do usuário:", dados);
-          
           setDadosUsuario(dados);
                    
           if (dados.perfil?.premium === "1") {
             setIsPremium(true);
+            
+            // 👇 BUSCA DA ANÁLISE IA (Executa logo após confirmar que é premium)
+            setCarregandoAnalise(true);
+            try {
+              const resAnalise = await fetch(`${BASE_URL}/premium/analise`, {
+                headers: { "Authorization": `Bearer ${token}` }
+              });
+              
+              if (resAnalise.ok) {
+                const dataAnalise = await resAnalise.json();
+                setAnaliseIA(dataAnalise.analise); // Extraímos apenas o texto, ignorando o resto!
+              }
+            } catch (errAnalise) {
+              console.error("Erro ao carregar análise da IA:", errAnalise);
+            } finally {
+              setCarregandoAnalise(false);
+            }
+
           } else {
             setIsPremium(false);
           }
@@ -98,7 +118,6 @@ export default function PremiumPage() {
     }
   };
 
-  // Função para lidar com cancelamento (Caso queira adicionar um botão futuramente)
   const lidarComCancelamento = async () => {
     if (!confirm("Tem certeza que deseja cancelar sua assinatura Premium?")) return;
     setCarregandoAssinatura(true);
@@ -179,7 +198,7 @@ export default function PremiumPage() {
             </div>
           )}
 
-          {/* ESTATÍSTICAS (Aproveitando os dados reais que o seu Backend estruturou) */}
+          {/* ESTATÍSTICAS */}
           {dadosUsuario.estatisticas && (
             <div className="p-6 sm:p-8 rounded-3xl border shadow-lg" style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-fundo-sidebar)' }}>
               <h2 className="text-lg font-black mb-6 flex items-center gap-2" style={{ color: 'var(--cor-texto-principal)' }}>
@@ -187,7 +206,6 @@ export default function PremiumPage() {
                 Raio-X da sua Estante
               </h2>
               
-              {/* Contadores Principais */}
               <div className="grid grid-cols-2 md:grid-cols-4 gap-4 mb-6">
                 <div className="bg-black/5 dark:bg-white/5 p-4 rounded-2xl border" style={{ borderColor: 'var(--cor-fundo-sidebar)' }}>
                   <div className="text-2xl font-black" style={{ color: 'var(--cor-texto-principal)' }}>{dadosUsuario.estatisticas.totalDeLivros || 0}</div>
@@ -201,7 +219,6 @@ export default function PremiumPage() {
                 ))}
               </div>
 
-              {/* Tags de Autores e Temas */}
               <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                 <div>
                   <h3 className="text-[10px] font-black uppercase tracking-widest opacity-50 mb-3" style={{ color: 'var(--cor-texto-secundario)' }}>Top Autores</h3>
@@ -225,9 +242,41 @@ export default function PremiumPage() {
                   </div>
                 </div>
               </div>
-
             </div>
           )}
+
+          {/* 👇 ANÁLISE IA (NOVA SEÇÃO EXCLUSIVA) 👇 */}
+          {(carregandoAnalise || analiseIA) && (
+            <div 
+              className="p-6 sm:p-8 rounded-3xl border shadow-lg mt-6 relative overflow-hidden animate-fade-in" 
+              style={{ backgroundColor: 'var(--cor-fundo-card)', borderColor: 'var(--cor-destaque)' }}
+            >
+              {/* Efeito visual de brilho de fundo para a área da IA */}
+              <div className="absolute -top-10 -right-10 w-40 h-40 bg-[var(--cor-destaque)] opacity-10 rounded-full blur-3xl pointer-events-none"></div>
+
+              <h2 className="text-lg font-black mb-6 flex items-center gap-2 relative z-10" style={{ color: 'var(--cor-destaque)' }}>
+                <SparklesIcon className="w-6 h-6 stroke-[2.5]" />
+                Análise Literária Letrify AI
+              </h2>
+              
+              {carregandoAnalise ? (
+                <div className="flex items-center gap-3 opacity-60">
+                  <ArrowPathIcon className="w-5 h-5 animate-spin" style={{ color: 'var(--cor-destaque)' }} />
+                  <span className="text-sm font-bold tracking-tight" style={{ color: 'var(--cor-texto-principal)' }}>
+                    O nosso curador artificial está a analisar a sua estante...
+                  </span>
+                </div>
+              ) : (
+                <div 
+                  className="text-sm font-medium leading-relaxed whitespace-pre-wrap relative z-10" 
+                  style={{ color: 'var(--cor-texto-principal)' }}
+                >
+                  {analiseIA}
+                </div>
+              )}
+            </div>
+          )}
+
         </div>
       </div>
     );
