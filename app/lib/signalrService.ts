@@ -1,111 +1,136 @@
 import * as signalR from '@microsoft/signalr';
 
 class SignalRService {
-  private connection: signalR.HubConnection | null = null;
+  private connectionChat: signalR.HubConnection | null = null;
+  private connectionDM: signalR.HubConnection | null = null;
 
+  // ==========================================
+  // 🗣️ CONEXÃO 1: GRUPOS E FEED (/hubs/chat)
+  // ==========================================
+  
+  // 👇 COMPATIBILIDADE: Mantém o nome antigo para não quebrar o Feed e outros componentes
   public iniciarConexao(token: string): Promise<void> {
+    return this.iniciarConexaoChat(token);
+  }
+
+  public iniciarConexaoChat(token: string): Promise<void> {
     if (typeof window === "undefined") return Promise.resolve();
 
-    if (this.connection) {
-      if (this.connection.state === signalR.HubConnectionState.Connected || 
-          this.connection.state === signalR.HubConnectionState.Connecting) {
-        console.log("⚠️ [SignalR] Tentativa de conectar ignorada: Já está conectado ou conectando.");
+    if (this.connectionChat) {
+      if (this.connectionChat.state === signalR.HubConnectionState.Connected || 
+          this.connectionChat.state === signalR.HubConnectionState.Connecting) {
         return Promise.resolve();
       }
     }
 
-    console.log("🔄 [SignalR] Iniciando nova conexão com o Hub de Chat...");
-
-    this.connection = new signalR.HubConnectionBuilder()
+    this.connectionChat = new signalR.HubConnectionBuilder()
       .withUrl("https://letrify.fly.dev/hubs/chat", {
         accessTokenFactory: () => token,
         transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
         skipNegotiation: false 
       })
-      .withAutomaticReconnect([0, 2000, 5000, 10000]) 
-      // 👇 MUDAMOS PARA 'Information' PARA VER OS BASTIDORES DO SIGNALR
-      .configureLogging(signalR.LogLevel.Information) 
+      .withAutomaticReconnect([0, 2000, 5000, 10000])
+      .configureLogging(signalR.LogLevel.Warning)
       .build();
 
-    return this.connection.start()
-      .then(() => {
-        // 👇 GRITA NA CONSOLA SE CONECTAR COM SUCESSO
-        console.log("✅ [SignalR] CONECTADO COM SUCESSO! Connection ID:", this.connection?.connectionId);
-      })
-      .catch(err => {
-        console.error("🚨 [SignalR] Erro fatal ao conectar:", err);
-      });
+    return this.connectionChat.start().catch(err => {
+      console.error("🚨 [SignalR-Chat] Erro fatal ao conectar:", err);
+    });
   }
 
   public pararConexao() {
-    if (this.connection) {
-      this.connection.stop();
-      this.connection = null;
+    if (this.connectionChat) {
+      this.connectionChat.stop();
+      this.connectionChat = null;
+    }
+    if (this.connectionDM) {
+      this.connectionDM.stop();
+      this.connectionDM = null;
     }
   }
 
   public async entrarSalaGrupo(grupoId: number) {
-    if (this.connection && this.connection.state === signalR.HubConnectionState.Connected) {
-      try {
-        await this.connection.invoke("entrarSalaGrupo", grupoId.toString());
-      } catch (err) {
-        // Fallback para PascalCase caso o C# esteja exigindo
-        try {
-          await this.connection.invoke("EntrarSalaGrupo", grupoId.toString());
-        } catch (innerErr) {
-          console.error("🚨 [SignalR] Erro ao entrar na sala:", innerErr);
-        }
+    if (this.connectionChat && this.connectionChat.state === signalR.HubConnectionState.Connected) {
+      try { await this.connectionChat.invoke("entrarSalaGrupo", grupoId.toString()); } 
+      catch (err) {
+        try { await this.connectionChat.invoke("EntrarSalaGrupo", grupoId.toString()); } 
+        catch (innerErr) { console.error("🚨 [SignalR] Erro ao entrar na sala:", innerErr); }
       }
     }
   }
 
   public async sairSalaGrupo(grupoId: number) {
-    if (this.connection && this.connection.state === signalR.HubConnectionState.Connected) {
-      try {
-        await this.connection.invoke("sairSalaGrupo", grupoId.toString());
-      } catch (err) {
-        try {
-          await this.connection.invoke("SairSalaGrupo", grupoId.toString());
-        } catch (innerErr) {
-          console.error("🚨 [SignalR] Erro ao sair da sala:", innerErr);
-        }
+    if (this.connectionChat && this.connectionChat.state === signalR.HubConnectionState.Connected) {
+      try { await this.connectionChat.invoke("sairSalaGrupo", grupoId.toString()); } 
+      catch (err) {
+        try { await this.connectionChat.invoke("SairSalaGrupo", grupoId.toString()); } 
+        catch (innerErr) { console.error("🚨 [SignalR] Erro ao sair da sala:", innerErr); }
       }
     }
   }
 
   public onReceberMensagemGrupo(callback: (mensagem: any) => void) {
-    if (this.connection) {
-      this.connection.off("ReceberMensagemGrupo");
-      this.connection.off("receberMensagemGrupo");
-      this.connection.on("ReceberMensagemGrupo", callback);
-      this.connection.on("receberMensagemGrupo", callback);
+    if (this.connectionChat) {
+      this.connectionChat.off("ReceberMensagemGrupo");
+      this.connectionChat.off("receberMensagemGrupo");
+      this.connectionChat.on("ReceberMensagemGrupo", callback);
+      this.connectionChat.on("receberMensagemGrupo", callback);
     }
   }
 
   public onReceberNovaMensagem(callback: (mensagem: any) => void) {
-    if (this.connection) {
-      this.connection.off("ReceberNovaMensagem"); 
-      this.connection.off("receberNovaMensagem"); 
-      this.connection.on("ReceberNovaMensagem", callback);
-      this.connection.on("receberNovaMensagem", callback);
+    if (this.connectionChat) {
+      this.connectionChat.off("ReceberNovaMensagem"); 
+      this.connectionChat.off("receberNovaMensagem"); 
+      this.connectionChat.on("ReceberNovaMensagem", callback);
+      this.connectionChat.on("receberNovaMensagem", callback);
     }
   }
 
   public onMensagemDeletada(callback: (idDeletado: number) => void) {
-    if (this.connection) {
-      this.connection.off("MensagemDeletada");
-      this.connection.off("mensagemDeletada");
-      this.connection.on("MensagemDeletada", callback);
-      this.connection.on("mensagemDeletada", callback);
+    if (this.connectionChat) {
+      this.connectionChat.off("MensagemDeletada");
+      this.connectionChat.off("mensagemDeletada");
+      this.connectionChat.on("MensagemDeletada", callback);
+      this.connectionChat.on("mensagemDeletada", callback);
     }
   }
 
+  // ==========================================
+  // ✉️ CONEXÃO 2: MENSAGENS DIRETAS (/hubs/dm)
+  // ==========================================
+  
+  public iniciarConexaoDM(token: string): Promise<void> {
+    if (typeof window === "undefined") return Promise.resolve();
+
+    if (this.connectionDM) {
+      if (this.connectionDM.state === signalR.HubConnectionState.Connected || 
+          this.connectionDM.state === signalR.HubConnectionState.Connecting) {
+        return Promise.resolve();
+      }
+    }
+
+    this.connectionDM = new signalR.HubConnectionBuilder()
+      .withUrl("https://letrify.fly.dev/hubs/dm", {
+        accessTokenFactory: () => token,
+        transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
+        skipNegotiation: false
+      })
+      .withAutomaticReconnect([0, 2000, 5000, 10000])
+      .configureLogging(signalR.LogLevel.Warning)
+      .build();
+
+    return this.connectionDM.start().catch(err => {
+      console.error("🚨 [SignalR-DM] Erro fatal ao conectar:", err);
+    });
+  }
+
   public onReceberMensagemDireta(callback: (mensagem: any) => void) {
-    if (this.connection) {
-      this.connection.off("ReceberMensagemDireta");
-      this.connection.off("receberMensagemDireta");
-      this.connection.on("ReceberMensagemDireta", callback);
-      this.connection.on("receberMensagemDireta", callback);
+    if (this.connectionDM) {
+      this.connectionDM.off("ReceberMensagemDireta");
+      this.connectionDM.off("receberMensagemDireta");
+      this.connectionDM.on("ReceberMensagemDireta", callback);
+      this.connectionDM.on("receberMensagemDireta", callback);
     }
   }
 }

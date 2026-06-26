@@ -30,7 +30,7 @@ export default function ChatIcone() {
 
         const token = authService.getToken();
         if (token) {
-            signalRService.iniciarConexao(token).catch(console.error);
+            signalRService.iniciarConexaoDM(token).catch(console.error);
         }
 
         carregarContagem();

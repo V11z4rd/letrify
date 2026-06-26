@@ -99,7 +99,7 @@ export default function ChatGrupo({ grupoId }: ChatGrupoProps) {
 
     const token = authService.getToken();
     if (token) {
-      signalRService.iniciarConexao(token)
+      signalRService.iniciarConexaoChat(token)
         .then(() => {
           signalRService.entrarSalaGrupo(grupoId);
 

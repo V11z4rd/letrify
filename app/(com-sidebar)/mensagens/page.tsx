@@ -102,7 +102,7 @@ function MensagensConteudo() {
 
     if (token) {
       console.log("📡 [DMs] Chamando iniciarConexao do SignalR...");
-      signalRService.iniciarConexao(token).catch(err => 
+      signalRService.iniciarConexaoDM(token).catch(err => 
         console.error("Erro ao ligar o SignalR nas DMs:", err)
       );
     } else {
