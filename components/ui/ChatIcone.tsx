@@ -7,6 +7,7 @@ import { ChatBubbleLeftEllipsisIcon as ChatOutline } from '@heroicons/react/24/o
 import { ChatBubbleLeftEllipsisIcon as ChatSolid } from '@heroicons/react/24/solid';
 import { dmService } from '@/app/lib/dmService';
 import { signalRService } from '@/app/lib/signalrService';
+import { authService } from '@/app/lib/authService';
 
 export default function ChatIcone() {
     const pathname = usePathname();
@@ -26,6 +27,11 @@ export default function ChatIcone() {
                 console.error("Erro ao carregar contagem de DMs", error);
             }
         };
+
+        const token = authService.getToken();
+        if (token) {
+            signalRService.iniciarConexao(token).catch(console.error);
+        }
 
         carregarContagem();
 

@@ -4,32 +4,37 @@ class SignalRService {
   private connection: signalR.HubConnection | null = null;
 
   public iniciarConexao(token: string): Promise<void> {
-    // 💡 SEGURANÇA 1: Impede terminantemente execuções no lado do servidor (SSR)
     if (typeof window === "undefined") return Promise.resolve();
 
-    // Se já estiver conectado ou conectando, evita duplicar e quebrar a negociação anterior
     if (this.connection) {
       if (this.connection.state === signalR.HubConnectionState.Connected || 
           this.connection.state === signalR.HubConnectionState.Connecting) {
+        console.log("⚠️ [SignalR] Tentativa de conectar ignorada: Já está conectado ou conectando.");
         return Promise.resolve();
       }
     }
 
-    // 💡 SEGURANÇA 2: Força WebSockets e desativa logs ruidosos de handshakes interrompidos
+    console.log("🔄 [SignalR] Iniciando nova conexão com o Hub de Chat...");
+
     this.connection = new signalR.HubConnectionBuilder()
       .withUrl("https://letrify.fly.dev/hubs/chat", {
         accessTokenFactory: () => token,
-        // Força o transporte por WebSockets diretamente. Se falhar, tenta LongPolling de forma limpa
         transport: signalR.HttpTransportType.WebSockets | signalR.HttpTransportType.LongPolling,
-        skipNegotiation: false // Mantido false para o fallback funcionar no ambiente do Fly.io
+        skipNegotiation: false 
       })
-      .withAutomaticReconnect([0, 2000, 5000, 10000]) // Intervalos de reconexão inteligentes
-      .configureLogging(signalR.LogLevel.Warning) // Silencia os logs de "Information" e "Debug"
+      .withAutomaticReconnect([0, 2000, 5000, 10000]) 
+      // 👇 MUDAMOS PARA 'Information' PARA VER OS BASTIDORES DO SIGNALR
+      .configureLogging(signalR.LogLevel.Information) 
       .build();
 
-    return this.connection.start().catch(err => {
-      console.error("🚨 [SignalR] Erro fatal ao conectar:", err);
-    });
+    return this.connection.start()
+      .then(() => {
+        // 👇 GRITA NA CONSOLA SE CONECTAR COM SUCESSO
+        console.log("✅ [SignalR] CONECTADO COM SUCESSO! Connection ID:", this.connection?.connectionId);
+      })
+      .catch(err => {
+        console.error("🚨 [SignalR] Erro fatal ao conectar:", err);
+      });
   }
 
   public pararConexao() {

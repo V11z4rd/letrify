@@ -96,7 +96,23 @@ function MensagensConteudo() {
   useEffect(() => {
     carregarConversas();
     
+    // 👇 VERIFICADOR DE CONEXÃO NAS DMs 👇
+    const token = authService.getToken();
+    console.log("🔎 [DMs] Token encontrado? ", !!token);
+
+    if (token) {
+      console.log("📡 [DMs] Chamando iniciarConexao do SignalR...");
+      signalRService.iniciarConexao(token).catch(err => 
+        console.error("Erro ao ligar o SignalR nas DMs:", err)
+      );
+    } else {
+      console.warn("⚠️ [DMs] Nenhum token encontrado, SignalR não vai ligar.");
+    }
+
+    // OUVINTE COM ESPIONAGEM
     signalRService.onReceberMensagemDireta((novaMsgRaw: any) => {
+      console.log("📬 [DMs] MENSAGEM RECEBIDA VIA SIGNALR!!!", novaMsgRaw); // 👈 Log de sucesso
+      
       const novaMsg = normalizarMensagem(novaMsgRaw);
       
       setConversas(prevConversas => {
